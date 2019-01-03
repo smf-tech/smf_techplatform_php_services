@@ -1,0 +1,48 @@
+<?php
+
+namespace App;
+
+use Illuminate\Auth\Authenticatable;
+use Laravel\Lumen\Auth\Authorizable;
+use Jenssegers\Mongodb\Eloquent\Model as Model;
+#use Illuminate\Database\Eloquent\Model;
+#use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
+#use Illuminate\Contracts\Auth\Access\Authorizable as AuthorizableContract;
+use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
+use Illuminate\Contracts\Auth\Access\Authorizable as AuthorizableContract;
+#use DesignMyNight\Mongodb\Auth\User as Authenticatable;
+use Laravel\Passport\HasApiTokens;
+
+class User extends Model implements AuthenticatableContract,AuthorizableContract
+{
+    use HasApiTokens,Authenticatable, Authorizable;
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array
+     */
+    protected $fillable = [
+        'firstname','middlename','lastname', 'email','password','phone','dob','org_id','role_id','approve_status','projects','profile_pic','location'
+    ];
+
+    /**
+     * The attributes excluded from the model's JSON form.
+     *
+     * @var array
+     */
+    protected $hidden = [
+        'password',
+    ];
+	
+	/**
+     * Find the user identified by the given $identifier.
+     *
+     * @param $identifier email|phone
+     * @return mixed
+     */
+    public function findForPassport($identifier) {
+        return User::orWhere('email', $identifier)->orWhere('phone', $identifier)->first();
+    }
+
+}
