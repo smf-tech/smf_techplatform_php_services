@@ -66,15 +66,21 @@ class SurveyController extends Controller
 
         $date = Carbon::now();
         
-            foreach($date as $key=>$value)
-            {
-                if($key == 'date')
-                    $dateTime = $value;
-            }
-            
-            $fields['updated_at'] = $dateTime; 
-            $fields['created_at'] = $dateTime;
-
+        foreach($date as $key=>$value)
+        {
+            if($key == 'date')
+                $dateTime = $value;
+        }
+        
+        $fields['updated_at'] = $dateTime; 
+        $collection_name = isset($survey->entity_id)?'entity_'.$survey->entity_id:'survey_results'; 
+        $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
+        //return $user_submitted['submit_count'];
+        if(isset($user_submitted)){
+            $fields['submit_count']= $user_submitted['submit_count']+1;   
+        }  
+        
+        
         if($survey->entity_id == null)
         {
             DB::collection('survey_results')->where('survey_id','=',$survey_id)
@@ -219,12 +225,13 @@ class SurveyController extends Controller
 
         if($survey->entity_id == null)
         {
-            $collection_name =  'survey_results';
+            $collection_name = 'survey_results';
             if(!empty($primaryValues)){
                 $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
+                //return $user_submitted['submit_count'];
                 if(isset($user_submitted)){
                     $fields['submit_count']= $user_submitted['submit_count']+1;
-                    DB::collection('entity_'.$survey->entity_id)->where('survey_id','=',$survey_id)
+                    DB::collection('survey_results')->where('survey_id','=',$survey_id)
                     ->where('user_id','=',$user->id)
                     ->where(function($q) use ($primaryValues)
                     {
@@ -282,9 +289,10 @@ class SurveyController extends Controller
                                                           $q->where($key, '=', $value);
                                                       }
                                                   })
-                                                  ->get(['submit_count']);
+                                                  ->get()->first();
         return $response;   
     }
+
     public function showResponse($survey_id)
     {
         $user = $this->request->user();
