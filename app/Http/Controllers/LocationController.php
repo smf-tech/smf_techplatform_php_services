@@ -23,7 +23,7 @@ class LocationController extends Controller
      */
     public function getstates(Request $request){
   
-        $states=State::with('jurisdictions')->get(['Name']);
+        $states=State::with('jurisdictions')->select('Name')->get();
         $response_data = array('status' =>'success','data' => $states,'message'=>'');
         return response()->json($response_data); 
     }

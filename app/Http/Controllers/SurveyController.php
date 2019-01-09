@@ -138,7 +138,7 @@ class SurveyController extends Controller
         $user = $this->request->user();
       
         $organisation = Organisation::where('_id',$user->org_id)->get();
-        
+        //return $user->role_id;
         $database = $organisation[0]->name.'_'.$user->org_id; 
 
         \Illuminate\Support\Facades\Config::set('database.connections.'.$database, array(
@@ -151,7 +151,7 @@ class SurveyController extends Controller
         DB::setDefaultConnection($database); 
         
         // $data = Survey::select('_id as formId','name as formName')->get(); 
-        $data = Survey::select('_id','name','category_id','microservice_id','active','editable','multiple_entry','project_id','assigned_roles')->get(); 
+        $data = Survey::select('_id','name','category_id','microservice_id','active','editable','multiple_entry','project_id','assigned_roles')->where('assigned_roles','=',$user->role_id)->get(); 
         return response()->json(['status'=>'success','data' => $data,'message'=>'']);
     }
 
