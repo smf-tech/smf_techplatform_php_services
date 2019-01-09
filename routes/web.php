@@ -44,6 +44,14 @@ $api->version('v1',function($api){
         $api->get('projects/{org_id}','OrganisationController@getorgprojects');
         $api->get('states','LocationController@getstates');
         $api->get('location/level/{state_id}/{level}','LocationController@getleveldata');
+        $api->get('forms/schema','SurveyController@getSurveys');
+        $api->get('forms/schema/{form_id}','SurveyController@getSurveyDetails');
+        // $api->delete('forms/{form}','SurveyController@deleteSurvey');
+        // $api->put('forms/{form_id}','SurveyController@updateSurvey');      
+
+        $api->get('forms/result/{form_id}','SurveyController@showResponse');
+        $api->post('forms/result/{form_id}','SurveyController@createResponse');
+        $api->put('forms/result/{form_id}','SurveyController@updateSurvey');
 
     });
     
