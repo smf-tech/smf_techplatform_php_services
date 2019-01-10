@@ -24,31 +24,44 @@ class LocationController extends Controller
     public function getstates(Request $request){
   
         $states=State::with('jurisdictions')->select('Name')->get();
-        $response_data = array('status' =>'success','data' => $states,'message'=>'');
+        $response_data = [];
+        foreach($states as $state){
+            
+            foreach($state->jurisdictions as $jurisdiction){
+                
+                $jurisdiction_instance = Jurisdiction::find($jurisdiction->jurisdiction_id);
+                $jurisdiction->levelName = $jurisdiction_instance->levelName;
+            }
+            $response_data[] = $state;
+        }
+        $response_data = array('status' =>'success','data' => $response_data,'message'=>'');
         return response()->json($response_data); 
     }
 
     public function getleveldata($state_id,$level,Request $request){
         $jurisdiction = StateJurisdiction::where([['state_id',$state_id],['level',(int)$level]])->get()->first();
+        $data = [];
         if($jurisdiction){
             $jurisdiction_instance = Jurisdiction::where('_id',$jurisdiction->jurisdiction_id)->get()->first();
             switch($jurisdiction_instance->levelName){
                 case 'District':
-                $data = District::where('state_id',$state_id)->get();
+                $list = District::where('state_id',$state_id)->get();
                 break;
                 case 'Taluka':
-                $data = Taluka::where('state_id',$state_id)->get();
+                $list = Taluka::where('state_id',$state_id)->get();
                 break;
                 case 'Cluster':
-                $data = Cluster::where('state_id',$state_id)->get();
+                $list = Cluster::where('state_id',$state_id)->get();
                 break;
                 case 'Village':
-                $data = Village::where('state_id',$state_id)->get();
+                $list = Village::where('state_id',$state_id)->get();
                 break;
                 default:
-                $data = [];
+                $list = [];
 
             }
+            $data['levelName'] = $jurisdiction_instance->levelName;
+            $data['list'] = $list;
             $response_data = array('status' =>'success','data' => $data,'message'=>'');
             return response()->json($response_data); 
         }else{
