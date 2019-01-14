@@ -38,12 +38,12 @@ class UserController extends Controller
             //return $update_data;
             $update_data['dob'] = strtotime($update_data['dob']);
             $user->update($update_data);
-            if(array_key_exists('role_id',$update_data)){
+            /*if(array_key_exists('role_id',$update_data)){
                 $role = Role::find($update_data['role_id']);
                 if($role){
                     $user->assignRole($role->name);
                 }
-            }
+            }*/
             $user->dob = date('Y-m-d',$user->dob);
             return response()->json($user, 200);
         }else{
