@@ -8,12 +8,16 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Config;
 use App\SurveyResult;
 use App\Entity;
+use App\Microservice;
+use App\Category;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 #use Teapot\StatusCode;
 use Carbon\Carbon;
 use MongoDB\BSON\UTCDateTime;
 use DateTime;
+use Illuminate\Support\Collection;
+
 
 //class SurveyController extends Controller implements StatusCode
 class SurveyController extends Controller
@@ -138,7 +142,6 @@ class SurveyController extends Controller
         $user = $this->request->user();
       
         $organisation = Organisation::where('_id',$user->org_id)->get();
-        //return $user->role_id;
         $database = $organisation[0]->name.'_'.$user->org_id; 
 
         \Illuminate\Support\Facades\Config::set('database.connections.'.$database, array(
@@ -149,9 +152,9 @@ class SurveyController extends Controller
             'password'  => '',  
         ));
         DB::setDefaultConnection($database); 
-        
-        // $data = Survey::select('_id as formId','name as formName')->get(); 
-        $data = Survey::select('_id','name','category_id','microservice_id','active','editable','multiple_entry','project_id','assigned_roles')->where('assigned_roles','=',$user->role_id)->get(); 
+
+        $data = Survey::select('_id','name','active','editable','multiple_entry')->where('assigned_roles','=',$user->role_id)->get(); 
+
         return response()->json(['status'=>'success','data' => $data,'message'=>'']);
     }
 
@@ -173,7 +176,17 @@ class SurveyController extends Controller
         ));
         DB::setDefaultConnection($database); 
         
-        $data = Survey::where('_id',$survey_id)->get();
+        $data = Survey::with('microservice')->with('project')
+        ->with('category')->with('entity')
+        ->select('category_id','microservice_id','project_id','entity_id','_id','name','json','active','editable','multiple_entry','assigned_roles','form_keys')
+        ->find($survey_id);
+
+        unset($data->category_id);
+        unset($data->microservice_id);
+        unset($data->project_id);
+        unset($data->entity_id);
+
+        $data->json = json_decode($data->json,true);
         return response()->json(['status'=>'success','data' => $data,'message'=>'']);
     }
 

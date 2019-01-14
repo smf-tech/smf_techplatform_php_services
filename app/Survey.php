@@ -52,4 +52,8 @@ class Survey  extends \Jenssegers\Mongodb\Eloquent\Model
     {
         return $this->belongsTo('App\Entity');
     }
+    public function user()
+    {
+        return $this->belongsTo('App\User');
+    }
 }

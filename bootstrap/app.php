@@ -103,6 +103,7 @@ $app->register(Dingo\Api\Provider\LumenServiceProvider::class);
 $app->register(Orumad\ConfigCache\ServiceProviders\ConfigCacheServiceProvider::class);
 $app->register(DesignMyNight\Mongodb\MongodbPassportServiceProvider::class); 
 $app->register(Maklad\Permission\PermissionServiceProvider::class);
+$app->register(Flipbox\LumenGenerator\LumenGeneratorServiceProvider::class);
 
 Dusterio\LumenPassport\LumenPassport::routes($app);
 
