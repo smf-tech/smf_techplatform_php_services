@@ -20,7 +20,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Schema::defaultStringLength(191);
         
-        LumenPassport::tokensExpireIn(Carbon::now()->addDays(1)); 
+        LumenPassport::tokensExpireIn(Carbon::now()->addHours(4)); 
     }
 
     /**
