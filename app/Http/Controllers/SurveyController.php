@@ -173,7 +173,8 @@ class SurveyController extends Controller
         ));
         DB::setDefaultConnection($database); 
         
-        $data = Survey::where('_id',$survey_id)->get();
+        $data = Survey::find($survey_id);
+        $data->json = json_decode($data->json,true); 
         return response()->json(['status'=>'success','data' => $data,'message'=>'']);
     }
 
