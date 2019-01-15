@@ -4,24 +4,27 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Organisation;
-
-use Maklad\Permission\Models\Role;
+use App\Role;
+// use Maklad\Permission\Models\Role;
 use Maklad\Permission\Models\Permission;
 use App\RoleConfig;
 use App\Module;
+use App\Jurisdiction;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
 
 class RoleController extends Controller
-{
-   
-    
+{   
     /**
      * Display a listing of the resource.
      *
      * @return \Illuminate\Http\Response
      */
     public function getorgroles($org_id,Request $request){
-        $roles=Role::where('org_id', $org_id)->get(['name', 'display_name','org_id','jurisdiction']);
+       
+        $roles=Role::select('display_name','jurisdiction_id')->with('jurisdiction')
+        ->where('org_id', $org_id)
+        ->get();
         $response_data = array('status' =>'success','data' => $roles,'message'=>'');
         return response()->json($response_data); 
     }
