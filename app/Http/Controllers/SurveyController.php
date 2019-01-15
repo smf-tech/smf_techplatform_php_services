@@ -153,7 +153,18 @@ class SurveyController extends Controller
         ));
         DB::setDefaultConnection($database); 
 
-        $data = Survey::select('_id','name','active','editable','multiple_entry')->where('assigned_roles','=',$user->role_id)->get(); 
+        $data = Survey::select('_id','name','active','editable','multiple_entry','category_id','microservice_id','project_id','entity_id','assigned_roles')
+        ->with('microservice','project','category','entity')
+        ->where('assigned_roles','=',$user->role_id)->get(); 
+
+        foreach($data as $row)
+        {
+            unset($row->category_id);
+            unset($row->microservice_id);
+            unset($row->project_id);
+            unset($row->entity_id);
+            unset($row->assigned_roles);
+        }
 
         return response()->json(['status'=>'success','data' => $data,'message'=>'']);
     }
@@ -175,17 +186,17 @@ class SurveyController extends Controller
             'password'  => '',  
         ));
         DB::setDefaultConnection($database); 
-        
+
         $data = Survey::with('microservice')->with('project')
         ->with('category')->with('entity')
-        ->select('category_id','microservice_id','project_id','entity_id','_id','name','json','active','editable','multiple_entry','assigned_roles','form_keys')
+        ->select('category_id','microservice_id','project_id','entity_id','assigned_roles','_id','name','json','active','editable','multiple_entry','assigned_roles','form_keys')
         ->find($survey_id);
 
         unset($data->category_id);
         unset($data->microservice_id);
         unset($data->project_id);
         unset($data->entity_id);
-
+        
         $data->json = json_decode($data->json,true);
         return response()->json(['status'=>'success','data' => $data,'message'=>'']);
     }
