@@ -12,10 +12,11 @@ use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Contracts\Auth\Access\Authorizable as AuthorizableContract;
 #use DesignMyNight\Mongodb\Auth\User as Authenticatable;
 use Laravel\Passport\HasApiTokens;
+use Maklad\Permission\Traits\HasRoles;
 
 class User extends Model implements AuthenticatableContract,AuthorizableContract
 {
-    use HasApiTokens,Authenticatable, Authorizable;
+    use HasApiTokens,Authenticatable, Authorizable, HasRoles;
 
     /**
      * The attributes that are mass assignable.
