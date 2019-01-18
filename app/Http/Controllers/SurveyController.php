@@ -12,14 +12,12 @@ use App\Microservice;
 use App\Category;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-#use Teapot\StatusCode;
 use Carbon\Carbon;
 use MongoDB\BSON\UTCDateTime;
 use DateTime;
 use Illuminate\Support\Collection;
 
 
-//class SurveyController extends Controller implements StatusCode
 class SurveyController extends Controller
 {
 
@@ -79,7 +77,7 @@ class SurveyController extends Controller
         $fields['updated_at'] = $dateTime; 
         $collection_name = isset($survey->entity_id)?'entity_'.$survey->entity_id:'survey_results'; 
         $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
-        //return $user_submitted['submit_count'];
+        
         if(isset($user_submitted)){
             $fields['submit_count']= $user_submitted['submit_count']+1;   
         }  
@@ -188,8 +186,8 @@ class SurveyController extends Controller
         DB::setDefaultConnection($database); 
 
         $data = Survey::with('microservice')->with('project')
-        ->with('category')->with('entity')
-        ->select('category_id','microservice_id','project_id','entity_id','assigned_roles','_id','name','json','active','editable','multiple_entry','assigned_roles','form_keys')
+        ->with('category')->with('entity')        
+        ->select('category_id','microservice_id','project_id','entity_id','assigned_roles','_id','name','json','active','editable','multiple_entry','form_keys')
         ->find($survey_id);
 
         unset($data->category_id);
@@ -252,7 +250,7 @@ class SurveyController extends Controller
             $collection_name = 'survey_results';
             if(!empty($primaryValues)){
                 $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
-                //return $user_submitted['submit_count'];
+
                 if(isset($user_submitted)){
                     $fields['submit_count']= $user_submitted['submit_count']+1;
                     DB::collection('survey_results')->where('survey_id','=',$survey_id)
@@ -337,8 +335,6 @@ class SurveyController extends Controller
 
         $survey = Survey::find($survey_id);
 
-        // $fields = array();
-
         if($survey->entity_id == null)
         {
             $results = DB::collection('survey_results')->where('survey_id','=',$survey_id)->where('user_id','=',$user->id)->get();
@@ -346,9 +342,11 @@ class SurveyController extends Controller
         else
         {               
             $results = DB::collection('entity_'.$survey->entity_id)->where('survey_id','=',$survey_id)->where('user_id','=',$user->id)->get();
-            //$data = DB::collection('entity_'.$survey->entity_id)->where('survey_id','=',$survey_id)->select('')->get();
         }           
-        #return $results[0];
+
+        $json = json_decode($survey->json,true);
+        $results->put('json', $json);
+
         return response()->json(['status'=>'success','data' => $results,'message'=>'']);
 
     }
