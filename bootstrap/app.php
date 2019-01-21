@@ -104,6 +104,8 @@ $app->register(Orumad\ConfigCache\ServiceProviders\ConfigCacheServiceProvider::c
 $app->register(DesignMyNight\Mongodb\MongodbPassportServiceProvider::class); 
 $app->register(Maklad\Permission\PermissionServiceProvider::class);
 // $app->register(Flipbox\LumenGenerator\LumenGeneratorServiceProvider::class);
+$app->register(App\Providers\RefreshTokenServiceProvider::class);
+//$app->register(Aws\Laravel\AwsServiceProvider::class);
 
 Dusterio\LumenPassport\LumenPassport::routes($app);
 
