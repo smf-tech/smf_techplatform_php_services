@@ -53,7 +53,7 @@ class SurveyController extends Controller
         $primaryKeys = $survey->form_keys;
 
         $fields = array();           
-        $fields['survey_id']=$survey_id;
+        $fields['form_id']=$survey_id;
         $fields['user_id']=$user->id;
 
         $primaryValues = array();
@@ -85,7 +85,7 @@ class SurveyController extends Controller
         
         if($survey->entity_id == null)
         {
-            DB::collection('survey_results')->where('survey_id','=',$survey_id)
+            DB::collection('survey_results')->where('form_id','=',$survey_id)
                                             ->where('user_id','=',$user->id)
                                             ->where(function($q) use ($primaryValues)
                                             {
@@ -98,7 +98,7 @@ class SurveyController extends Controller
         }
         else
         {
-            DB::collection('entity_'.$survey->entity_id)->where('survey_id','=',$survey_id)
+            DB::collection('entity_'.$survey->entity_id)->where('form_id','=',$survey_id)
                                                 ->where('user_id','=',$user->id)
                                                 ->where(function($q) use ($primaryValues)
                                                 {
@@ -221,7 +221,7 @@ class SurveyController extends Controller
         $primaryKeys = isset($survey->form_keys)?$survey->form_keys:[];
 
         $fields = array();
-        $fields['survey_id'] = $survey_id;
+        $fields['form_id'] = $survey_id;
         $fields['user_id'] = $user->id;
 
         $primaryValues = array();
@@ -253,7 +253,7 @@ class SurveyController extends Controller
 
                 if(isset($user_submitted)){
                     $fields['submit_count']= $user_submitted['submit_count']+1;
-                    DB::collection('survey_results')->where('survey_id','=',$survey_id)
+                    DB::collection('survey_results')->where('form_id','=',$survey_id)
                     ->where('user_id','=',$user->id)
                     ->where(function($q) use ($primaryValues)
                     {
@@ -277,7 +277,7 @@ class SurveyController extends Controller
                 $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
                 if(isset($user_submitted)){
                     $fields['submit_count']= $user_submitted['submit_count']+1;
-                    DB::collection('entity_'.$survey->entity_id)->where('survey_id','=',$survey_id)
+                    DB::collection('entity_'.$survey->entity_id)->where('form_id','=',$survey_id)
                     ->where('user_id','=',$user->id)
                     ->where(function($q) use ($primaryValues)
                     {
@@ -302,7 +302,7 @@ class SurveyController extends Controller
     }
 
     public function getUserResponse($user_id,$survey_id,$primaryValues,$collection_name){
-        $response = DB::collection($collection_name)->where('survey_id','=',$survey_id)
+        $response = DB::collection($collection_name)->where('form_id','=',$survey_id)
                                                   ->where('user_id','=',$user_id)
                                                   ->where(function($q) use ($primaryValues)
                                                   {
@@ -337,15 +337,38 @@ class SurveyController extends Controller
 
         if($survey->entity_id == null)
         {
-            $results = DB::collection('survey_results')->where('survey_id','=',$survey_id)->where('user_id','=',$user->id)->get();
+            $results = DB::collection('survey_results')->where('form_id','=',$survey_id)->where('user_id','=',$user->id)->get();
         }
         else
         {               
-            $results = DB::collection('entity_'.$survey->entity_id)->where('survey_id','=',$survey_id)->where('user_id','=',$user->id)->get();
+            $results = DB::collection('entity_'.$survey->entity_id)->where('form_id','=',$survey_id)->where('user_id','=',$user->id)->get();
         }           
 
         $json = json_decode($survey->json,true);
         $results->put('json', $json);
+
+        // Converts json string to array
+        $data = json_decode($survey->json,true);     
+        
+       
+          
+        // Accessing the value of key pages
+        $pages = $data['pages'];
+       
+
+        $numberOfKeys = 0;
+
+        foreach($pages as $page)
+        {
+            // Accessing the value of key elements to obtain the names of the questions
+            foreach($page['elements'] as $element)
+            {
+                $keys[] = $element['name'];
+                $numberOfKeys++;
+            }
+        }
+
+        $results->put('keys', $keys);
 
         return response()->json(['status'=>'success','data' => $results,'message'=>'']);
 
