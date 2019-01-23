@@ -16,6 +16,7 @@ use Carbon\Carbon;
 use MongoDB\BSON\UTCDateTime;
 use DateTime;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Arr;
 
 
 class SurveyController extends Controller
@@ -337,40 +338,23 @@ class SurveyController extends Controller
 
         if($survey->entity_id == null)
         {
-            $results = DB::collection('survey_results')->where('form_id','=',$survey_id)->where('user_id','=',$user->id)->get();
+            $surveyResults = DB::collection('survey_results')->where('form_id','=',$survey_id)->where('user_id','=',$user->id)->get();
         }
         else
         {               
-            $results = DB::collection('entity_'.$survey->entity_id)->where('form_id','=',$survey_id)->where('user_id','=',$user->id)->get();
+            $surveyResults = DB::collection('entity_'.$survey->entity_id)->where('form_id','=',$survey_id)->where('user_id','=',$user->id)->get();
         }           
 
-        $json = json_decode($survey->json,true);
-        $results->put('json', $json);
+        $result = ['form'=>['form_id'=>$surveyResults[0]['form_id'],'user_id'=>$surveyResults[0]['user_id'],'created_at'=>$surveyResults[0]['created_at'],'updated_at'=>$surveyResults[0]['updated_at']]];
 
-        // Converts json string to array
-        $data = json_decode($survey->json,true);     
-        
-       
-          
-        // Accessing the value of key pages
-        $pages = $data['pages'];
-       
+        $values = [];
 
-        $numberOfKeys = 0;
-
-        foreach($pages as $page)
+        foreach($surveyResults as $surveyResult)
         {
-            // Accessing the value of key elements to obtain the names of the questions
-            foreach($page['elements'] as $element)
-            {
-                $keys[] = $element['name'];
-                $numberOfKeys++;
-            }
+            $values[] = Arr::except($surveyResult,['form_id','user_id','created_at','updated_at']); 
         }
 
-        $results->put('keys', $keys);
-
-        return response()->json(['status'=>'success','data' => $results,'message'=>'']);
+        return response()->json(['status'=>'success','metadata'=>$result,'values'=>$values,'message'=>'']);
 
     }
 }
