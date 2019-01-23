@@ -12,6 +12,10 @@ class UserController extends Controller
 {
     use Helpers;
 
+    /**
+     *
+     * @var Request
+     */
     protected $request;
 
     public function __construct(Request $request) 
@@ -34,7 +38,13 @@ class UserController extends Controller
     {
         $user = User::where('phone', $phone)->first();
         if($user){
+//            if ($this->request->hasFile('profile_picture')) {
+//                $this->validate($this->request, [
+//                    'profile_picture' => 'image'
+//                ]);
+//            }
             $update_data = $this->request->all();
+//            $user->uploadProfilePicture($update_data['profile_picture']);
             //return $update_data;
             $update_data['dob'] = strtotime($update_data['dob']);
             $user->update($update_data);
