@@ -1,10 +1,10 @@
-<?php 
+<?php
 
 namespace App;
 
-use Illuminate\Database\Eloquent\Model;
+use Jenssegers\Mongodb\Eloquent\Model as Model;
 
-class JurisdictionType  extends \Jenssegers\Mongodb\Eloquent\Model
+class JurisdictionType extends Model
 {
-    protected $fillable=['jurisdictions'];
+
 }

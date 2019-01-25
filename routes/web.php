@@ -44,7 +44,7 @@ $api->version('v1',function($api){
         $api->get('projects/{org_id}','OrganisationController@getorgprojects');
         $api->get('states','LocationController@getstates');
         $api->get('location/level/{state_id}/{level}','LocationController@getleveldata');
-
+        
     });
     
     $api->group(['prefix'=>'oauth'],function($api){
@@ -79,6 +79,7 @@ $api->version('v1',function($api){
         $api->put('forms/result/{form_id}','SurveyController@updateSurvey');
 
         $api->get('locations', 'LocationController@getLocations');
+        $api->get('jurisdiction-types[/{id}]', 'JurisdictionTypeController@index');
     });
 
 });
