@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Dingo\Api\Routing\Helpers;
 use App\Organisation;
 use App\State;
 use App\StateJurisdiction;
@@ -11,10 +12,22 @@ use App\District;
 use App\Taluka;
 use App\Cluster;
 use App\Village;
+use App\Project;
+use App\Location;
+use App\Role;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Input;
 
 class LocationController extends Controller
 {
-   
+    use Helpers;
+
+    protected $request;
+
+    public function __construct(Request $request)
+    {
+        $this->request = $request;
+    }
     
     /**
      * Display a listing of the resource.
@@ -70,4 +83,67 @@ class LocationController extends Controller
         
     }
 
+    public function getLocations()
+    {
+        // Obtaining all details of the logged-in user
+        $user = $this->request->user();
+        
+        // When given an array, the has method will determine if all of the 
+        // specified values are present on the request
+        if (!$this->request->has(['jurisdictionID', 'projectID'])) 
+        {         
+            $role = Role::where('_id',$user->role_id)->get();
+        }
+
+        $organisation = Organisation::where('_id',$user->org_id)->get();
+        
+        $database = $organisation[0]->name.'_'.$user->org_id; 
+
+        \Illuminate\Support\Facades\Config::set('database.connections.'.$database, array(
+            'driver'    => 'mongodb',
+            'host'      => '127.0.0.1',
+            'database'  => $database,
+            'username'  => '',
+            'password'  => '',  
+        ));
+
+        DB::setDefaultConnection($database); 
+
+        $status = "success";
+
+        // 'filled' method determines if a value is present on the request and is not empty
+        if($this->request->filled('jurisdictionID'))
+        {
+            // 'input' method obtains the value
+            $locations = Location::where('jurisdiction_type_id',$this->request->input('jurisdictionID'))->get();
+
+            if($locations->isEmpty())
+                $status = "error";
+        }
+        elseif($this->request->filled('projectID'))
+        {
+            $project = Project::find($this->request->input('projectID'));
+
+            if( isset($project) )
+                $locations = Location::where('jurisdiction_type_id',$project->jurisdiction_type_id)->get();
+            else
+                $status = "error";      
+                
+        }
+        else
+        {
+            $locations = Location::where('jurisdiction_type_id',$role[0]->jurisdiction_type_id)->get();
+        }
+        
+            if($status === "success")
+            {
+                foreach($locations as $location)
+                {
+                    $location->level = json_decode($location->level,true);
+                }
+                return response()->json(['status'=>'success','data'=>$locations,'message'=>'']); 
+            }
+            else
+                return response()->json(['status'=>'error','data'=>null,'message'=>'Invalid data entered'],404); 
+    }
 }

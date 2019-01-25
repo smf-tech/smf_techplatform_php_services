@@ -4,6 +4,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Survey  extends \Jenssegers\Mongodb\Eloquent\Model
 {
+    protected $table = 'surveys';
+
     protected $fillable = [
         'name', 'json', 'project_id','category_id','creator_id','microservice_id','entity_id',//slug',
     ];

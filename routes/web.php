@@ -40,7 +40,7 @@ $api->version('v1',function($api){
         $api->get('message/otp','MessageAuthController@sendOTP');
         $api->get('token','MessageAuthController@verifyOTP');
         $api->get('organizations','OrganisationController@listorgs');
-        $api->get('roles/{org_id}','RoleController@getorgroles');
+        // $api->get('roles/{org_id}','RoleController@getorgroles');
         $api->get('projects/{org_id}','OrganisationController@getorgprojects');
         $api->get('states','LocationController@getstates');
         $api->get('location/level/{state_id}/{level}','LocationController@getleveldata');
@@ -53,6 +53,9 @@ $api->version('v1',function($api){
 
     $api->group(['namespace'=>'App\Http\Controllers','middleware'=>['auth:api','cors']],function($api){
 
+
+        $api->get('roles/{org_id}','RoleController@getOrgRoles');
+        
         $api->get('users','UserController@show');
         $api->get('user','UserController@getUserDetails');
 		
@@ -74,6 +77,8 @@ $api->version('v1',function($api){
         $api->get('forms/result/{form_id}','SurveyController@showResponse');
         $api->post('forms/result/{form_id}','SurveyController@createResponse');
         $api->put('forms/result/{form_id}','SurveyController@updateSurvey');
+
+        $api->get('locations', 'LocationController@getLocations');
     });
 
 });

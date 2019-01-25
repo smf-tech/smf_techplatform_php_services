@@ -34,6 +34,7 @@ class SurveyController extends Controller
 
     public function updateSurvey($survey_id)
     {
+        // Obtaining all details of the logged-in user
         $user = $this->request->user();
       
         $organisation = Organisation::where('_id',$user->org_id)->get();
@@ -58,8 +59,12 @@ class SurveyController extends Controller
         $fields['user_id']=$user->id;
 
         $primaryValues = array();
+
+        // Looping through the response object from the body
         foreach($this->request->response as $key=>$value)
         {
+            // Checking if the key is marked as a primary key and storing the value 
+            // in primaryValues if it is
             if(in_array($key,$primaryKeys))
             {
                 $primaryValues[$key] = $value;
@@ -67,22 +72,32 @@ class SurveyController extends Controller
             $fields[$key] = $value;
         }        
 
+        // Gives current date and time in the format :  2019-01-24 10:30:46
         $date = Carbon::now();
         
+        // $date contains the key => value pairs:
+        // date => 2019-01-24 10:33:00.851100
+        // timezone_type => 3
+        // timezone => UTC
         foreach($date as $key=>$value)
         {
             if($key == 'date')
                 $dateTime = $value;
         }
-        
+                
         $fields['updated_at'] = $dateTime; 
+
+        // Selecting the collection to use depending on whether the survey has an entity_id or not
         $collection_name = isset($survey->entity_id)?'entity_'.$survey->entity_id:'survey_results'; 
+
+        // Function defined below, it queries the collection $collection_name using the parameters
+        // $user->id,$survey_id,$primaryValues and returns the results
         $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
         
+        // If the set of values are present in the collection then an update occurs and 'submit_count' gets incremented
         if(isset($user_submitted)){
             $fields['submit_count']= $user_submitted['submit_count']+1;   
-        }  
-        
+        } 
         
         if($survey->entity_id == null)
         {
@@ -117,6 +132,7 @@ class SurveyController extends Controller
 
     public function deleteSurvey($survey_id)
     {
+        // Obtaining all details of the logged-in user
         $user = $this->request->user();
       
         $organisation = Organisation::where('_id',$user->org_id)->get();
@@ -132,12 +148,13 @@ class SurveyController extends Controller
         ));
         DB::setDefaultConnection($database); 
         
-        $data = DB::collection('surveys')->where('_id',$survey_id)->delete(); 
+        $data = Survey::find($survey_id)->delete(); 
         return "success";
     }
 
     public function getSurveys()
     {
+        // Obtaining all details of the logged-in user
         $user = $this->request->user();
       
         $organisation = Organisation::where('_id',$user->org_id)->get();
@@ -152,12 +169,15 @@ class SurveyController extends Controller
         ));
         DB::setDefaultConnection($database); 
 
+        // Obtaining '_id','name','active','editable','multiple_entry','category_id','microservice_id','project_id','entity_id','assigned_roles' of Surveys
+        // alongwith corresponding details of 'microservice','project','category','entity'
         $data = Survey::select('_id','name','active','editable','multiple_entry','category_id','microservice_id','project_id','entity_id','assigned_roles')
         ->with('microservice','project','category','entity')
         ->where('assigned_roles','=',$user->role_id)->get(); 
 
         foreach($data as $row)
         {
+            // unset() removes the element from the 'row' object
             unset($row->category_id);
             unset($row->microservice_id);
             unset($row->project_id);
@@ -171,6 +191,7 @@ class SurveyController extends Controller
 
     public function getSurveyDetails($survey_id)
     {
+        // Obtaining all details of the logged-in user
         $user = $this->request->user();
       
         $organisation = Organisation::where('_id',$user->org_id)->get();
@@ -186,22 +207,27 @@ class SurveyController extends Controller
         ));
         DB::setDefaultConnection($database); 
 
+        // Obtaining '_id','name','json', active','editable','multiple_entry','category_id','microservice_id','project_id','entity_id','assigned_roles','form_keys' of a Survey
+        // alongwith corresponding details of 'microservice','project','category','entity'
         $data = Survey::with('microservice')->with('project')
         ->with('category')->with('entity')        
         ->select('category_id','microservice_id','project_id','entity_id','assigned_roles','_id','name','json','active','editable','multiple_entry','form_keys')
         ->find($survey_id);
 
+        // unset() removes the element from the 'row' object
         unset($data->category_id);
         unset($data->microservice_id);
         unset($data->project_id);
         unset($data->entity_id);
         
+        // json_decode function takes a JSON string and converts it into a PHP variable
         $data->json = json_decode($data->json,true);
         return response()->json(['status'=>'success','data' => $data,'message'=>'']);
     }
 
     public function createResponse($survey_id)
     {
+        // Obtaining all details of the logged-in user
         $user = $this->request->user();
               
         $organisation = Organisation::where('_id',$user->org_id)->get();
@@ -226,8 +252,12 @@ class SurveyController extends Controller
         $fields['user_id'] = $user->id;
 
         $primaryValues = array();
+
+        // Looping through the response object from the body
         foreach($this->request->response as $key=>$value)
         {
+            // Checking if the key is marked as a primary key and storing the value 
+            // in primaryValues if it is
             if(in_array($key,$primaryKeys))
             {
                 $primaryValues[$key] = $value;
@@ -235,7 +265,13 @@ class SurveyController extends Controller
             $fields[$key] = $value;
         }       
 
-        $date = Carbon::now();    
+        // Gives current date and time in the format :  2019-01-24 10:30:46
+        $date = Carbon::now();
+        
+        // $date contains the key => value pairs:
+        // date => 2019-01-24 10:33:00.851100
+        // timezone_type => 3
+        // timezone => UTC
         foreach($date as $key=>$value)
         {
             if($key == 'date')
@@ -249,9 +285,14 @@ class SurveyController extends Controller
         if($survey->entity_id == null)
         {
             $collection_name = 'survey_results';
+
             if(!empty($primaryValues)){
+                // 'getUserResponse' function defined below, it queries the collection $collection_name using the parameters
+                // $user->id,$survey_id,$primaryValues and returns the results
                 $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
 
+                 // If the set of values are present in the collection then an update occurs and 'submit_count' gets incremented
+                // else an insert occurs and 'submit_count' gets value 1
                 if(isset($user_submitted)){
                     $fields['submit_count']= $user_submitted['submit_count']+1;
                     DB::collection('survey_results')->where('form_id','=',$survey_id)
@@ -318,6 +359,7 @@ class SurveyController extends Controller
 
     public function showResponse($survey_id)
     {
+        // Obtaining all details of the logged-in user
         $user = $this->request->user();
               
         $organisation = Organisation::where('_id',$user->org_id)->get();
@@ -351,6 +393,8 @@ class SurveyController extends Controller
 
         foreach($surveyResults as $surveyResult)
         {
+            // Excludes values 'form_id','user_id','created_at','updated_at' from the $surveyResult array
+            //  and stores it in values
             $values[] = Arr::except($surveyResult,['form_id','user_id','created_at','updated_at']); 
         }
 

@@ -13,4 +13,9 @@ class Role extends Roles
     {
         return $this->belongsTo('App\Jurisdiction','jurisdiction_id');
     }
+
+    public function project()
+    {
+        return $this->hasOne('App\Project');
+    }
 }

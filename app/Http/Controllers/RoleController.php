@@ -12,6 +12,8 @@ use App\Module;
 use App\Jurisdiction;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
+use App\JurisdictionType;
+use App\Project;
 
 class RoleController extends Controller
 {   
@@ -20,13 +22,53 @@ class RoleController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function getorgroles($org_id,Request $request){
-       
-        $roles=Role::select('display_name','jurisdiction_id')->with('jurisdiction')
-        ->where('org_id', $org_id)
-        ->get();
+    public function getOrgRoles($org_id,Request $request)
+    {       
+        // Obtaining all the roles of an organisation from the main database 
+        $roles=Role::where('org_id', $org_id)
+        ->get(['display_name','jurisdiction_type_id','project_id']);
+
+        if(!$roles->isEmpty())
+        {
+
+        $organisation = Organisation::where('_id',$org_id)->get();
+        
+        $database = $organisation[0]->name.'_'.$org_id; 
+
+        \Illuminate\Support\Facades\Config::set('database.connections.'.$database, array(
+            'driver'    => 'mongodb',
+            'host'      => '127.0.0.1',
+            'database'  => $database,
+            'username'  => '',
+            'password'  => '',  
+        ));
+
+        DB::setDefaultConnection($database); 
+
+        // For each role we obtain jurisdiction details & project details from the resp. collections
+        // in the tenant database
+        foreach($roles as $role)
+        {
+            $jurisdictionType = JurisdictionType::find($role->jurisdiction_type_id);
+            // Adding element jurisdiction to the role object
+            $role->jurisdictionType = $jurisdictionType;
+            // Removing element jurisdiction_id from the role object
+            unset($role->jurisdiction_type_id);
+
+            $project = Project::find($role->project_id);
+            // Adding element project to the role object
+            $role->project = $project;
+            // Removing element project_id from the role object
+            unset($role->project_id);
+        }
+
         $response_data = array('status' =>'success','data' => $roles,'message'=>'');
-        return response()->json($response_data); 
+        return response()->json($response_data);
+        }
+        else
+        {
+            return response()->json(['status'=>'error','data'=>null,'message'=>'Invalid organisation ID entered'],404); 
+        }
     }
 
     public function getroleconfig($org_id,$role_id,Request $request){
