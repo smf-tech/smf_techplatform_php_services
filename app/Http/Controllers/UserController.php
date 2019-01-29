@@ -73,4 +73,14 @@ class UserController extends Controller
             return response()->json([], 404);
         }
     }
+
+    public function upload()
+    {
+        if ($this->request->file('profilePhoto')->isValid()) {
+            $fileInstance = $this->request->file('profilePhoto');
+            $name = $fileInstance->getClientOriginalName();
+            //https://mybucket.s3.amazonaws.com/myfolder/afile.jpg
+            var_dump($this->request->file('profilePhoto')->storeAs('profile-photoes', $name, 's3'));
+        }
+    }
 }

@@ -52,11 +52,28 @@ $app->singleton(
     App\Console\Kernel::class
 );
 
+$app->singleton(
+    Illuminate\Contracts\Filesystem\Factory::class,
+    function ($app) {
+        return new Illuminate\Filesystem\FilesystemManager($app);
+    }
+);
+
+//$app->singleton('filesystem', function($app) {
+//    return $app->loadComponent(
+//        'filesystems',
+//        Illuminate\Filesystem\FilesystemServiceProvider::class,
+//        'filesystem'
+//    );
+//});
+
 $app->configure('auth');
 
 $app->configure('cors');
 
 $app->configure('permission');
+
+$app->configure('filesystems');
 
 /*
 |--------------------------------------------------------------------------
@@ -105,7 +122,6 @@ $app->register(DesignMyNight\Mongodb\MongodbPassportServiceProvider::class);
 $app->register(Maklad\Permission\PermissionServiceProvider::class);
 // $app->register(Flipbox\LumenGenerator\LumenGeneratorServiceProvider::class);
 $app->register(App\Providers\RefreshTokenServiceProvider::class);
-//$app->register(Aws\Laravel\AwsServiceProvider::class);
 
 Dusterio\LumenPassport\LumenPassport::routes($app);
 
