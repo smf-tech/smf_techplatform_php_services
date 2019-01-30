@@ -22,8 +22,8 @@ class RoleController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function getOrgRoles($org_id,Request $request)
-    {       
+    public function getOrgRoles(Request $request, $org_id)
+    {
         // Obtaining all the roles of an organisation from the main database 
         $roles=Role::where('org_id', $org_id)
         ->get(['display_name','jurisdiction_type_id','project_id']);
