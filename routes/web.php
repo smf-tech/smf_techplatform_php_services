@@ -52,6 +52,7 @@ $api->version('v1',function($api){
     });
 
     $api->group(['namespace'=>'App\Http\Controllers','middleware'=>['auth:api','cors']],function($api){
+        $api->get('roles/{org_id}','RoleController@getorgroles');
         $api->get('users','UserController@show');
         $api->get('user','UserController@getUserDetails');
 		

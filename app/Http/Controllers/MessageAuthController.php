@@ -57,7 +57,7 @@ class MessageAuthController extends Controller
            //generate Oauth token using the 
            $http = new \GuzzleHttp\Client;
            $pwd = $request->get('password', $ph_no);
-            $response = $http->post('http://localhost:8000/oauth/token', [
+            $response = $http->post('http://localhost/oauth/token', [
             'form_params' => [
                                 'grant_type' => 'password',
                                 'client_id' => '5c1c78a9d503a33b29274ca4',
@@ -83,7 +83,7 @@ class MessageAuthController extends Controller
                         'approve_status'=>'pending'];
             User::create($user_data);
             $pwd = $request->get('password', $ph_no);
-            $response = $http->post('http://localhost:8000/oauth/token', [
+            $response = $http->post('http://localhost/oauth/token', [
             'form_params' => [
                                 'grant_type' => 'password',
                                 'client_id' => '5c1c78a9d503a33b29274ca4',
