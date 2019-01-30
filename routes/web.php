@@ -40,7 +40,6 @@ $api->version('v1',function($api){
         $api->get('message/otp','MessageAuthController@sendOTP');
         $api->get('token','MessageAuthController@verifyOTP');
         $api->get('organizations','OrganisationController@listorgs');
-        $api->get('roles/{org_id}','RoleController@getorgroles');
         $api->get('projects/{org_id}','OrganisationController@getorgprojects');
         $api->get('states','LocationController@getstates');
         $api->get('location/level/{state_id}/{level}','LocationController@getleveldata');
