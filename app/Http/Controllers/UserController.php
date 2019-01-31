@@ -93,13 +93,23 @@ class UserController extends Controller
         $approverRole = Role::where('org_id',$role->org_id)
                         ->where('name','LIKE','Approver%')->get()->first();
 
-        if(in_array($approverRole->id,$user->role_ids) || $approverRole === $user->role_id) {
+        if($role == null) {
+            return response()->json([
+            "status"=>"error",
+            "data"=>"",
+            "message"=>"Role not linked"
+            ],404);
+        } elseif(in_array($approverRole->id,$user->role_ids) || $approverRole === $user->role_id) {
             $users = User::where('org_id',$user->org_id)
                         ->where('approve_status','pending')
                         ->get();
                                     
             return response()->json(['status'=>'success','data'=>$users,'message'=>''], 200);
         } else
-                return response()->json(["Access Denied! You do not have approver role"], 401);
+                return response()->json([
+                    "status"=>"error",
+                    "data"=>"",
+                    "message"=>"Access Denied! You do not have approver role"
+                ],403);
     }
 }
