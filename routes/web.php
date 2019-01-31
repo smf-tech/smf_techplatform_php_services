@@ -77,6 +77,8 @@ $api->version('v1',function($api){
 
         $api->get('locations', 'LocationController@getLocations');
         $api->get('jurisdiction-types[/{id}]', 'JurisdictionTypeController@index');
+
+        $api->get('users/approvals','UserController@approvalList');
     });
 
 });
