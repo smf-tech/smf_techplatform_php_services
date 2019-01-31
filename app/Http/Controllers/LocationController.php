@@ -90,7 +90,7 @@ class LocationController extends Controller
         
         // When given an array, the has method will determine if all of the 
         // specified values are present on the request
-        if (!$this->request->has(['jurisdictionID', 'projectID'])) 
+        if (!$this->request->has(['jurisdictionTypeId', 'projectId'])) 
         {         
             $role = Role::where('_id',$user->role_id)->get();
         }
@@ -112,17 +112,17 @@ class LocationController extends Controller
         $status = "success";
 
         // 'filled' method determines if a value is present on the request and is not empty
-        if($this->request->filled('jurisdictionID'))
+        if($this->request->filled('jurisdictionTypeId'))
         {
             // 'input' method obtains the value
-            $locations = Location::where('jurisdiction_type_id',$this->request->input('jurisdictionID'))->get();
+            $locations = Location::where('jurisdiction_type_id',$this->request->input('jurisdictionTypeId'))->get();
 
             if($locations->isEmpty())
                 $status = "error";
         }
-        elseif($this->request->filled('projectID'))
+        elseif($this->request->filled('projectId'))
         {
-            $project = Project::find($this->request->input('projectID'));
+            $project = Project::find($this->request->input('projectId'));
 
             if( isset($project) )
                 $locations = Location::where('jurisdiction_type_id',$project->jurisdiction_type_id)->get();
