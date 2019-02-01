@@ -100,7 +100,7 @@ class UserController extends Controller
         {
             $approverRole = Role::where('org_id',$role->org_id)
                         ->where('name','LIKE','Approver%')->get()->first();
-            if(in_array($approverRole->id,$user->role_ids) || $approverRole === $user->role_id) {
+            if(in_array($approverRole->id,$user->role_ids) || $approverRole == $user->role_id) {
             $users = User::where('org_id',$user->org_id)
                         ->where('approve_status','pending')
                         ->get();
