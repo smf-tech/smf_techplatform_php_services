@@ -80,6 +80,7 @@ $api->version('v1',function($api){
         $api->get('reports[/{id}]', 'ReportController@index');
 
         $api->get('users/approvals','UserController@approvalList');
+        $api->post('structure/prepare', 'StructureTrackingController@prepare');
     });
 
 });
