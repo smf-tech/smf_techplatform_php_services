@@ -7,6 +7,9 @@ use App\User;
 use Maklad\Permission\Models\Role;
 use Maklad\Permission\Models\Permission;
 use Dingo\Api\Routing\Helpers;
+use App\Organisation;
+use App\RoleConfig;
+use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
@@ -87,32 +90,37 @@ class UserController extends Controller
     public function approvalList()
     {
         $user = $this->request->user();
-        if (empty($user->role_ids) && empty($user->role_id)) {
-                return response()->json([
-                        'statur' => 'error',
-                        'data' => '',
-                        'message' => 'Role not linked'
-                ], 404);
+
+        $database = $this->setDatabaseConfig($this->request);
+        DB::setDefaultConnection($database); 
+
+        $approver = RoleConfig::where('role_id', $user->role_id)->get(['approver_role'])->first();
+        if($approver == null) {
+            return response()->json([
+            "status"=>"error",
+            "data"=>"",
+            "message"=>"Role not linked"
+            ],404);
         }
-        $roleId = !empty($user->role_ids) ? $user->role_ids[0] : $user->role_id;
 
-        $role = Role::where('_id',$roleId)->get()->first();
+        DB::setDefaultConnection('mongodb'); 
+        $approverRole = Role::where('_id',$approver->approver_role)
+                                ->where('name','LIKE','Approver%')
+                                ->get()->first();
 
-        $approverRole = Role::where('org_id',$role->org_id)
-                    ->where('name','LIKE','Approver%')->get()->first();
-
-        if(!empty($user->role_ids) && (in_array($approverRole->id,$user->role_ids)) || $approverRole->id == $user->role_id) {
-            $users = User::where('org_id',$user->org_id)
-                        ->where('approve_status','pending')
-                        ->get();
-
-            return response()->json(['status'=>'success','data'=>$users,'message'=>''], 200);
-        } else {
+        if ($approverRole === null) {
             return response()->json([
                 "status"=>"error",
                 "data"=>"",
                 "message"=>"Access Denied! You do not have approver role"
-            ],403);
-        }
+            ],
+            403);
+        }               
+
+        $users = User::where('org_id',$user->org_id)
+                    ->where('approve_status','pending')
+                    ->get();
+                                                            
+            return response()->json(['status'=>'success','data'=>$users,'message'=>''], 200);
     }
 }
