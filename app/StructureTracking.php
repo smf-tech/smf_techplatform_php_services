@@ -3,6 +3,8 @@
 namespace App;
 
 use Jenssegers\Mongodb\Eloquent\Model as Model;
+use App\Volunteer;
+use App\FFAppointed;
 
 class StructureTracking extends Model
 {
@@ -12,12 +14,20 @@ class StructureTracking extends Model
         'work_type',
         'start_date',
         'operator_training_done',
-        'ff_appointed',
         'work_start_date',
         'work_end_date',
-        'volunteers',
         'status',
         'created_by',
         'updated_by'
     ];
+
+    public function volunteers()
+    {
+        return $this->hasMany(Volunteer::class);
+    }
+
+    public function ffs()
+    {
+        return $this->hasMany(FFAppointed::class);
+    }
 }

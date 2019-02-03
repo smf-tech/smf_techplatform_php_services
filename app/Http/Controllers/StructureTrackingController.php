@@ -7,6 +7,8 @@ use Dingo\Api\Routing\Helpers;
 use Illuminate\Support\Facades\DB;
 use App\StructureTracking;
 use Carbon\Carbon;
+use App\Volunteer;
+use App\FFAppointed;
 
 class StructureTrackingController extends Controller
 {
@@ -46,7 +48,20 @@ class StructureTrackingController extends Controller
             $databaseName = $this->setDatabaseConfig($this->request);
             DB::setDefaultConnection($databaseName);
             $structureTracking = StructureTracking::create($data);
-            var_dump($structureTracking->getIdAttribute());
+            if (isset($data['ff_appointed']) && !empty($data['ff_appointed'])) {
+                foreach ($data['ff_appointed'] as $singleFF) {
+                    $ffInstance = FFAppointed::create($singleFF);
+                    $ffInstance->structureTracking()->associate($structureTracking);
+                    $ffInstance->save();
+                }
+            }
+            if (isset($data['volunteers']) && !empty($data['volunteers'])) {
+                foreach ($data['volunteers'] as $volunteer) {
+                    $volunteerInstance = Volunteer::create($volunteer);
+                    $volunteerInstance->structureTracking()->associate($structureTracking);
+                    $volunteerInstance->save();
+                }
+            }
             return response()->json([
                 'status' => 'success',
                 'data' => $structureTracking->getIdAttribute(),
