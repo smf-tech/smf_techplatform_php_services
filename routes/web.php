@@ -81,6 +81,7 @@ $api->version('v1',function($api){
 
         $api->get('users/approvals','UserController@approvalList');
         $api->post('structure/prepare', 'StructureTrackingController@prepare');
+        $api->get('structure/prepare', 'StructureTrackingController@get');
     });
 
 });

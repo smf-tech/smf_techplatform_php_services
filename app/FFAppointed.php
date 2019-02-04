@@ -9,7 +9,8 @@ class FFAppointed extends Model
 {
     protected $fillable = [
         'name',
-        'mobileNumber'
+        'mobile_number',
+        'training_completed'
     ];
 
     public function structureTracking()

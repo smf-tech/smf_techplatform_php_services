@@ -9,7 +9,7 @@ class Volunteer extends Model
 {
     protected $fillable = [
         'name',
-        'mobileNumber'
+        'mobile_number'
     ];
 
     public function structureTracking()

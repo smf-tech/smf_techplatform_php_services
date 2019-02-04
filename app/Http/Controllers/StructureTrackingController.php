@@ -79,4 +79,37 @@ class StructureTrackingController extends Controller
         }
     }
 
+    public function get()
+    {
+        try {
+            if (!$this->request->filled('prepared')) {
+                return response()->json(
+                        [
+                        'status' => 'error',
+                        'data' => null,
+                        'message' => 'prepared parameter is missing'
+                    ],
+                    400
+                );
+            }
+            $databaseName = $this->setDatabaseConfig($this->request);
+            DB::setDefaultConnection($databaseName);
+            $prepared = $this->request->prepared === 'true' ? self::COMPLETED : self::PREPARED;
+            return response()->json([
+                'status' => 'success',
+                'data' => StructureTracking::where('status', $prepared)->with('ffs', 'volunteers')->get(),
+                'message' => 'List of structures.'
+            ]);
+        } catch(\Exception $exception) {
+            return response()->json(
+                    [
+                        'status' => 'error',
+                        'data' => null,
+                        'message' => $exception->getMessage()
+                    ],
+                    404
+                );
+            }
+    }
+
 }
