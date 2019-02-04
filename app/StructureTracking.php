@@ -12,7 +12,7 @@ class StructureTracking extends Model
         'village',
         'structure_code',
         'work_type',
-        'start_date',
+        'reporting_date',
         'operator_training_done',
         'work_start_date',
         'work_end_date',
