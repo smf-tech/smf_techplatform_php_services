@@ -380,14 +380,18 @@ class SurveyController extends Controller
 
         if($survey->entity_id == null)
         {
-            $surveyResults = DB::collection('survey_results')->where('form_id','=',$survey_id)->where('user_id','=',$user->id)->get();
+            $surveyResults = DB::collection('survey_results')->where('survey_id','=',$survey_id)->where('user_id','=',$user->id)->get();
         }
         else
         {               
-            $surveyResults = DB::collection('entity_'.$survey->entity_id)->where('form_id','=',$survey_id)->where('user_id','=',$user->id)->get();
+            $surveyResults = DB::collection('entity_'.$survey->entity_id)->where('survey_id','=',$survey_id)->where('user_id','=',$user->id)->get();
         }           
 
-        $result = ['form'=>['form_id'=>$surveyResults[0]['form_id'],'user_id'=>$surveyResults[0]['user_id'],'created_at'=>$surveyResults[0]['created_at'],'updated_at'=>$surveyResults[0]['updated_at']]];
+        if (empty($surveyResults)) {
+            return response()->json(['status'=>'success','metadata'=>[],'values'=>[],'message'=>'']);
+        }
+
+        $result = ['form'=>['form_id'=>$surveyResults[0]['survey_id'],'user_id'=>$surveyResults[0]['user_id'],'created_at'=>$surveyResults[0]['created_at'],'updated_at'=>$surveyResults[0]['updated_at']]];
 
         $values = [];
 
@@ -395,7 +399,7 @@ class SurveyController extends Controller
         {
             // Excludes values 'form_id','user_id','created_at','updated_at' from the $surveyResult array
             //  and stores it in values
-            $values[] = Arr::except($surveyResult,['form_id','user_id','created_at','updated_at']); 
+            $values[] = Arr::except($surveyResult,['survey_id','user_id','created_at','updated_at']);
         }
 
         return response()->json(['status'=>'success','metadata'=>$result,'values'=>$values,'message'=>'']);
