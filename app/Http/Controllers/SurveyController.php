@@ -387,7 +387,7 @@ class SurveyController extends Controller
             $surveyResults = DB::collection('entity_'.$survey->entity_id)->where('survey_id','=',$survey_id)->where('user_id','=',$user->id)->get();
         }           
 
-        if (empty($surveyResults)) {
+        if ($surveyResults->count() === 0) {
             return response()->json(['status'=>'success','metadata'=>[],'values'=>[],'message'=>'']);
         }
 
