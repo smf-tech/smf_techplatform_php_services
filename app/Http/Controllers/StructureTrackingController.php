@@ -53,7 +53,7 @@ class StructureTrackingController extends Controller
             }
             return response()->json([
                 'status' => 'success',
-                'data' => $structureTracking->getIdAttribute(),
+                'data' => ['preparationId' => $structureTracking->getIdAttribute()],
                 'message' => 'Structure prepared successfully.'
             ]);
         } catch(\Exception $exception) {
@@ -141,7 +141,7 @@ class StructureTrackingController extends Controller
             }
             return response()->json([
                 'status' => 'success',
-                'data' => $structureTracking->getIdAttribute(),
+                'data' => ['completionId' => $structureTracking->getIdAttribute()],
                 'message' => 'Structure completed successfully.'
             ]);
         } catch(\Exception $exception) {
