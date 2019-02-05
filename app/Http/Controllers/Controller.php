@@ -18,7 +18,7 @@ class Controller extends BaseController
     {
         $user = $request->user();
         $organisation = Organisation::find($user->org_id);
-        $database = strtolower($organisation->name).'_'.$user->org_id;
+        $database = $organisation->name.'_'.$user->org_id;
 
         \Illuminate\Support\Facades\Config::set('database.connections.'.$database, array(
             'driver'    => 'mongodb',
