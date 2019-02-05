@@ -80,13 +80,17 @@ $api->version('v1',function($api){
         $api->get('reports[/{id}]', 'ReportController@index');
 
         $api->get('users/approvals','UserController@approvalList');
+
         $api->post('structure/prepare', 'StructureTrackingController@prepare');
         $api->get('structure/prepare', 'StructureTrackingController@get');
+        $api->post('structure/complete', 'StructureTrackingController@complete');
+
         $api->post('machine/deploy','MachineTrackingController@machineDeploy');
         $api->get('machine/deploy','MachineTrackingController@getDeploymentInfo');
         $api->post('machine/shift','MachineTrackingController@machineShift');
         $api->get('machine/shift', 'MachineTrackingController@getShiftingInfo');
         $api->get('machine/mou','MachineTrackingController@machineMoU');
+        
     });
 
 });
