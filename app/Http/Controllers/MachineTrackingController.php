@@ -15,6 +15,10 @@ use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use App\machineMoU;
 
+
+
+use App\Images;
+
 class MachineTrackingController extends Controller
 {
 
@@ -30,15 +34,11 @@ class MachineTrackingController extends Controller
 
     public function machineDeploy()
     {
-        if($this->request->filled('mou_id')) {
-            $machine = MachineMou::where('mou_id',$this->request->input('mou_id'))->first();
-        }
-
         $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database); 
+        DB::setDefaultConnection($database);      
 
         $deployedMachine = new MachineTracking;
-        $deployedMachine->village_name = $this->request->village;
+        $deployedMachine->village = $this->request->village;
 
         $dateTime = Carbon::now()->toDateTimeString();
 
@@ -54,11 +54,13 @@ class MachineTrackingController extends Controller
                 'Y-m-d',
                 $this->request->last_deployed
             )->toDateTimeString();
-            
+
             $deployedMachine->last_deployed = $dateTime;
         }
 
-        if(isset($machine)) {
+        if($this->request->filled('mou_id')) {
+
+            $machine = MachineMou::where('mou_id',$this->request->input('mou_id'))->first();
             $deployedMachine->mou_details = $machine->toArray();
         }
 
@@ -80,8 +82,7 @@ class MachineTrackingController extends Controller
             $deployedMachines = MachineTracking::where('deployed',true)->get();
         }
         
-        return $deployedMachines;
-        return response()->json(['status'=>'success','data'=>$deploymentId,'message'=>'']);
+        return response()->json(['status'=>'success','data'=>$deployedMachines,'message'=>'']);
     }
 
     public function machineShift()
