@@ -58,9 +58,9 @@ class UserController extends Controller
                 }
             }*/
             $user->dob = date('Y-m-d',$user->dob);
-            return response()->json($user, 200);
+            return response()->json(['status'=>'success', 'data'=>$user, 'message'=>''],200);
         }else{
-            return response()->json($user, 404);
+            return response()->json(['status'=>'error', 'data'=>$user, 'message'=>'Invalid Mobile Number'],404);
         }
         
     }
@@ -71,9 +71,9 @@ class UserController extends Controller
             $put_params = $this->request->all();
             $update_data = ['approve_status'=>$put_params['update_status']];
             $user->update($update_data);
-            return response()->json([], 200);
+            return response()->json(['status'=>'success', 'data'=>$user, 'message'=>''],200);
         }else{
-            return response()->json([], 404);
+            return response()->json(['status'=>'error', 'data'=>'', 'message'=>'Invalid Mobile Number'],404);
         }
     }
 

@@ -55,7 +55,7 @@ class OrganisationController extends Controller
             $response_data = array('status' =>'success','data' => $projects,'message'=>'');
             return response()->json($response_data,200); 
         }else{
-            return response()->json([],404);
+            return response()->json(['status'=>'error', 'data'=>'', 'message'=>'Invalid Organisation Id'],404);
         }     
     }
 }
