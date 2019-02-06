@@ -90,7 +90,7 @@ class MachineTrackingController extends Controller
         $database = $this->setDatabaseConfig($this->request);
         DB::setDefaultConnection($database); 
         
-        $machine = MachineTracking::where('village_name',$this->request->moved_from_village)
+        $machine = MachineTracking::where('village',$this->request->moved_from_village)
                                 ->where('structure_code',$this->request->old_structure_code)
                                 ->where('machine_code',$this->request->machine_code)
                                 ->first();
