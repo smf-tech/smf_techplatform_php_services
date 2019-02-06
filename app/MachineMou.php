@@ -3,7 +3,6 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
-use App\MachineTracking;
 
 class MachineMou extends \Jenssegers\Mongodb\Eloquent\Model
 {

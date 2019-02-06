@@ -13,7 +13,7 @@ use App\ShiftingRecord;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
-use App\machineMoU;
+use App\MachineMou;
 
 
 
