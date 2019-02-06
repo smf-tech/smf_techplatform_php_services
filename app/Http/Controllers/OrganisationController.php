@@ -32,59 +32,6 @@ class OrganisationController extends Controller
         return $organisation;
     }
 
-    public function getSurveys()
-    {
-	
-        $user = $this->request->user();
-      
-        $organisation = Organisation::where('_id',$user->org_id)->get();
-        
-        $database = strtolower($organisation[0]->name).'_'.$user->org_id; 
-
-        \Illuminate\Support\Facades\Config::set('database.connections.'.$database, array(
-            'driver'    => 'mongodb',
-            'host'      => '127.0.0.1',
-            'database'  => $database,
-            'username'  => '',
-            'password'  => '',  
-        )); 
-
-        DB::setDefaultConnection($database); 
-        $data = DB::collection('surveys')->select('_id','name')->get();
-		//var_dump(sizeof($data));exit;
-        //DB::disconnect($database);
-
-        //DB::connection('mongodb');
-
-        return response()->json($data);
-    }
-
-
-    public function getSurveyDetails($survey_id)
-    {
-        $user = $this->request->user();
-      
-        $organisation = Organisation::where('_id',$user->org_id)->get();
-        
-        $database = strtolower($organisation[0]->name).'_'.$user->org_id; 
-
-        \Illuminate\Support\Facades\Config::set('database.connections.'.$database, array(
-            'driver'    => 'mongodb',
-            'host'      => '127.0.0.1',
-            'database'  => $database,
-            'username'  => '',
-            'password'  => '',  
-        )); 
-        DB::setDefaultConnection($database); 
-        $data = DB::collection('surveys')->select('name','json')->where('_id',$survey_id)->get();
-		//var_dump($data);exit;
-        //DB::disconnect($database);
-
-        //DB::connection('mysql');
-
-        return response()->json($data);
-    }
-
     public function listorgs(){
         $organisations = Organisation::where('orgshow','<>',0)->get();
         $response_data = array('status' =>'success','data' => $organisations,'message'=>'');
@@ -103,6 +50,7 @@ class OrganisationController extends Controller
                 'password'  => '',  
             ));
             DB::setDefaultConnection($dbName); 
+            
             $projects = Project::get(['name']); 
             $response_data = array('status' =>'success','data' => $projects,'message'=>'');
             return response()->json($response_data,200); 

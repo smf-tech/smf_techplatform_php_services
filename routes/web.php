@@ -59,8 +59,6 @@ $api->version('v1',function($api){
         $api->get('tasksOfUser','TaskController@getTask');
 
         $api->get('orgs','OrganisationController@show');
-        $api->get('surveysOfOrganisation','OrganisationController@getSurveys');
-        $api->get('getSurveyDetails/{survey_id}','OrganisationController@getSurveyDetails');
         $api->put('users/{phone}', ['uses' => 'UserController@update']);
         $api->get('modules/{org_id}/{role_id}','RoleController@getroleconfig');
         $api->put('users/approval/{phone}', ['uses' => 'UserController@approveuser']);
@@ -68,8 +66,6 @@ $api->version('v1',function($api){
 
         $api->get('forms/schema','SurveyController@getSurveys');
         $api->get('forms/schema/{form_id}','SurveyController@getSurveyDetails');
-        // $api->delete('forms/{form}','SurveyController@deleteSurvey');
-        // $api->put('forms/{form_id}','SurveyController@updateSurvey');      
 
         $api->get('forms/result/{form_id}','SurveyController@showResponse');
         $api->post('forms/result/{form_id}','SurveyController@createResponse');

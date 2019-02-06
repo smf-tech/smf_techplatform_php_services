@@ -33,22 +33,10 @@ class SurveyController extends Controller
 
     public function updateSurvey($survey_id)
     {
-        // Obtaining all details of the logged-in user
-        $user = $this->request->user();
-      
-        $organisation = Organisation::where('_id',$user->org_id)->get();
-        
-        $database = $organisation[0]->name.'_'.$user->org_id; 
-
-        \Illuminate\Support\Facades\Config::set('database.connections.'.$database, array(
-            'driver'    => 'mongodb',
-            'host'      => '127.0.0.1',
-            'database'  => $database,
-            'username'  => '',
-            'password'  => '',  
-        ));
-
+        $database = $this->setDatabaseConfig($this->request);
         DB::setDefaultConnection($database); 
+
+        $user = $this->request->user();
 
         $survey = Survey::find($survey_id);
         $primaryKeys = $survey->form_keys;
@@ -129,44 +117,12 @@ class SurveyController extends Controller
 
     }
 
-    public function deleteSurvey($survey_id)
-    {
-        // Obtaining all details of the logged-in user
-        $user = $this->request->user();
-      
-        $organisation = Organisation::where('_id',$user->org_id)->get();
-        
-        $database = $organisation[0]->name.'_'.$user->org_id; 
-
-        \Illuminate\Support\Facades\Config::set('database.connections.'.$database, array(
-            'driver'    => 'mongodb',
-            'host'      => '127.0.0.1',
-            'database'  => $database,
-            'username'  => '',
-            'password'  => '',  
-        ));
-        DB::setDefaultConnection($database); 
-        
-        $data = Survey::find($survey_id)->delete(); 
-        return "success";
-    }
-
     public function getSurveys()
     {
-        // Obtaining all details of the logged-in user
-        $user = $this->request->user();
-      
-        $organisation = Organisation::where('_id',$user->org_id)->get();
-        $database = $organisation[0]->name.'_'.$user->org_id; 
-
-        \Illuminate\Support\Facades\Config::set('database.connections.'.$database, array(
-            'driver'    => 'mongodb',
-            'host'      => '127.0.0.1',
-            'database'  => $database,
-            'username'  => '',
-            'password'  => '',  
-        ));
+        $database = $this->setDatabaseConfig($this->request);
         DB::setDefaultConnection($database); 
+
+        $user = $this->request->user();
 
         // Obtaining '_id','name','active','editable','multiple_entry','category_id','microservice_id','project_id','entity_id','assigned_roles' of Surveys
         // alongwith corresponding details of 'microservice','project','category','entity'
@@ -190,20 +146,7 @@ class SurveyController extends Controller
 
     public function getSurveyDetails($survey_id)
     {
-        // Obtaining all details of the logged-in user
-        $user = $this->request->user();
-      
-        $organisation = Organisation::where('_id',$user->org_id)->get();
-        
-        $database = $organisation[0]->name.'_'.$user->org_id; 
-
-        \Illuminate\Support\Facades\Config::set('database.connections.'.$database, array(
-            'driver'    => 'mongodb',
-            'host'      => '127.0.0.1',
-            'database'  => $database,
-            'username'  => '',
-            'password'  => '',  
-        ));
+        $database = $this->setDatabaseConfig($this->request);
         DB::setDefaultConnection($database); 
 
         // Obtaining '_id','name','json', active','editable','multiple_entry','category_id','microservice_id','project_id','entity_id','assigned_roles','form_keys' of a Survey
@@ -226,22 +169,10 @@ class SurveyController extends Controller
 
     public function createResponse($survey_id)
     {
-        // Obtaining all details of the logged-in user
-        $user = $this->request->user();
-              
-        $organisation = Organisation::where('_id',$user->org_id)->get();
-        
-        $database = $organisation[0]->name.'_'.$user->org_id; 
-
-        \Illuminate\Support\Facades\Config::set('database.connections.'.$database, array(
-            'driver'    => 'mongodb',
-            'host'      => '127.0.0.1',
-            'database'  => $database,
-            'username'  => '',
-            'password'  => '',  
-        ));
-
+        $database = $this->setDatabaseConfig($this->request);
         DB::setDefaultConnection($database); 
+
+        $user = $this->request->user();
 
         $survey = Survey::find($survey_id);
         $primaryKeys = isset($survey->form_keys)?$survey->form_keys:[];
@@ -343,6 +274,7 @@ class SurveyController extends Controller
     }
 
     public function getUserResponse($user_id,$survey_id,$primaryValues,$collection_name){
+
         $response = DB::collection($collection_name)->where('form_id','=',$survey_id)
                                                   ->where('user_id','=',$user_id)
                                                   ->where(function($q) use ($primaryValues)
@@ -358,23 +290,11 @@ class SurveyController extends Controller
 
     public function showResponse($survey_id)
     {
-        // Obtaining all details of the logged-in user
-        $user = $this->request->user();
-              
-        $organisation = Organisation::where('_id',$user->org_id)->get();
-        
-        $database = $organisation[0]->name.'_'.$user->org_id; 
-
-        \Illuminate\Support\Facades\Config::set('database.connections.'.$database, array(
-            'driver'    => 'mongodb',
-            'host'      => '127.0.0.1',
-            'database'  => $database,
-            'username'  => '',
-            'password'  => '',  
-        ));
-
+        $database = $this->setDatabaseConfig($this->request);
         DB::setDefaultConnection($database); 
 
+        $user = $this->request->user();
+        
         $survey = Survey::find($survey_id);
 
         if($survey->entity_id == null)

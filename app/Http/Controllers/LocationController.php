@@ -95,19 +95,8 @@ class LocationController extends Controller
             $role = Role::where('_id',$user->role_id)->get();
         }
 
-        $organisation = Organisation::where('_id',$user->org_id)->get();
-        
-        $database = $organisation[0]->name.'_'.$user->org_id; 
-
-        \Illuminate\Support\Facades\Config::set('database.connections.'.$database, array(
-            'driver'    => 'mongodb',
-            'host'      => '127.0.0.1',
-            'database'  => $database,
-            'username'  => '',
-            'password'  => '',  
-        ));
-
-        DB::setDefaultConnection($database); 
+        $database = $this->setDatabaseConfig($this->request);
+        DB::setDefaultConnection($database);   
 
         $status = "success";
 
