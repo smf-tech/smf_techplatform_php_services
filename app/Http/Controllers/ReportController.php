@@ -24,6 +24,8 @@ class ReportController extends Controller
      */
     public function index($id = null)
     {
+        $databaseName = $this->setDatabaseConfig($this->request);
+        DB::setDefaultConnection($databaseName);
         if ($id !== null) {
             try {
                 return response()->json(
