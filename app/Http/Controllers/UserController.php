@@ -66,14 +66,31 @@ class UserController extends Controller
     }
 
     public function approveuser($phone){
-        $user = User::where('phone', $phone)->first();
-        if($user){
+
+        $userForApproval = User::where('phone', $phone)->first();
+        $loggedInUser = $this->request->user();
+
+        $database = $this->setDatabaseConfig($this->request);
+        DB::setDefaultConnection($database); 
+
+        $userRole = RoleConfig::where('role_id',$userForApproval->role_id)->first();
+
+        if(!isset($userRole->approver_role)) {
+
+            $userForApproval->update(['approve_status'=>'approved']);
+            return response()->json(['status'=>'success', 'data'=>$userForApproval, 'message'=>''],200);
+        }
+        if($userRole->approver_role == $loggedInUser->role_id){
+
             $put_params = $this->request->all();
             $update_data = ['approve_status'=>$put_params['update_status']];
-            $user->update($update_data);
-            return response()->json(['status'=>'success', 'data'=>$user, 'message'=>''],200);
+            $userForApproval->update($update_data);
+            return response()->json(['status'=>'success', 'data'=>$userForApproval, 'message'=>''],200);
+
         }else{
-            return response()->json(['status'=>'error', 'data'=>'', 'message'=>'Invalid Mobile Number'],404);
+
+            return response()->json(['status'=>'error', 'data'=>'', 'message'=>'You do not have approver role for the given user'],403);
+
         }
     }
 
@@ -89,38 +106,36 @@ class UserController extends Controller
 
     public function approvalList()
     {
-        $user = $this->request->user();
+        $loggedInUser = $this->request->user();
 
         $database = $this->setDatabaseConfig($this->request);
         DB::setDefaultConnection($database); 
 
-        $approver = RoleConfig::where('role_id', $user->role_id)->get(['approver_role'])->first();
-        if($approver == null) {
-            return response()->json([
-            "status"=>"error",
-            "data"=>"",
-            "message"=>"Role not linked"
-            ],404);
-        }
+        $roles = RoleConfig::where('approver_role', $loggedInUser->role_id)->get(['role_id']);
 
-        DB::setDefaultConnection('mongodb'); 
-        $approverRole = Role::where('_id',$approver->approver_role)
-                                ->where('name','LIKE','Approver%')
-                                ->get()->first();
+        if($roles) {
 
-        if ($approverRole === null) {
-            return response()->json([
-                "status"=>"error",
-                "data"=>"",
-                "message"=>"Access Denied! You do not have approver role"
-            ],
-            403);
-        }               
+            DB::setDefaultConnection('mongodb');
 
-        $users = User::where('org_id',$user->org_id)
-                    ->where('approve_status','pending')
-                    ->get();
-                                                            
+            foreach($roles as $role)
+            {
+                $user = User::where('role_id', '=', $role->role_id)
+                        ->where('approve_status','pending')->get();
+            
+                if($user != '[]')
+                    $users[] = $user;
+            }
+
             return response()->json(['status'=>'success','data'=>$users,'message'=>''], 200);
+        
+        } else {
+
+            return response()->json([
+                        "status"=>"error",
+                        "data"=>"",
+                        "message"=>"You do not have approver role for any User"
+                    ],
+                    403);
+        }
     }
 }
