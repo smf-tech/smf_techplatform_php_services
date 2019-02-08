@@ -81,13 +81,12 @@ class SurveyController extends Controller
         // $user->id,$survey_id,$primaryValues and returns the results
         $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
         
-        // If the set of values are present in the collection then an update occurs and 'submit_count' gets incremented
-        if(isset($user_submitted)){
-            $fields['submit_count']= $user_submitted['submit_count']+1;   
-        } 
-        
         if($survey->entity_id == null)
         {
+            // If the set of values are present in the collection then an update occurs and 'submit_count' gets incremented
+            if(isset($user_submitted)){
+                $fields['submit_count']= $user_submitted['submit_count']+1;   
+            } 
             DB::collection('survey_results')->where('form_id','=',$survey_id)
                                             ->where('user_id','=',$user->id)
                                             ->where(function($q) use ($primaryValues)
@@ -246,9 +245,9 @@ class SurveyController extends Controller
         { 
             $collection_name = 'entity_'.$survey->entity_id;
             if(!empty($primaryValues)){
+                unset($fields['submit_count']);
                 $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
                 if(isset($user_submitted)){
-                    $fields['submit_count']= $user_submitted['submit_count']+1;
                     DB::collection('entity_'.$survey->entity_id)->where('form_id','=',$survey_id)
                     ->where('user_id','=',$user->id)
                     ->where(function($q) use ($primaryValues)
@@ -303,14 +302,14 @@ class SurveyController extends Controller
         }
         else
         {               
-            $surveyResults = DB::collection('entity_'.$survey->entity_id)->where('survey_id','=',$survey_id)->where('user_id','=',$user->id)->get();
+            $surveyResults = DB::collection('entity_'.$survey->entity_id)->where('form_id','=',$survey_id)->where('user_id','=',$user->id)->get();
         }           
 
         if ($surveyResults->count() === 0) {
             return response()->json(['status'=>'success','metadata'=>[],'values'=>[],'message'=>'']);
         }
 
-        $result = ['form'=>['form_id'=>$surveyResults[0]['survey_id'],'user_id'=>$surveyResults[0]['user_id'],'created_at'=>$surveyResults[0]['created_at'],'updated_at'=>$surveyResults[0]['updated_at']]];
+        $result = ['form'=>['form_id'=>$survey_id,'user_id'=>$surveyResults[0]['user_id'],'created_at'=>$surveyResults[0]['created_at'],'updated_at'=>$surveyResults[0]['updated_at']]];
 
         $values = [];
 
