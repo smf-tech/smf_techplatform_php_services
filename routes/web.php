@@ -42,7 +42,7 @@ $api->version('v1',function($api){
         $api->get('organizations','OrganisationController@listorgs');
         $api->get('projects/{org_id}','OrganisationController@getorgprojects');
         $api->get('states','LocationController@getstates');
-        $api->get('location/level/{state_id}/{level}','LocationController@getleveldata');
+        $api->get('location/level/{orgId}/{jurisdictionTypeId}/{jurisdictionLevel}','LocationController@getLevelData');
         
     });
     
