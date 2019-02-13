@@ -248,7 +248,7 @@ class SurveyController extends Controller
                 unset($fields['submit_count']);
                 $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
                 if(isset($user_submitted)){
-                    DB::collection('entity_'.$survey->entity_id)->where('form_id','=',$survey_id)
+                    DB::collection('entity_'.$survey->entity_id)->where('survey_id','=',$survey_id)
                     ->where('user_id','=',$user->id)
                     ->where(function($q) use ($primaryValues)
                     {
@@ -273,8 +273,8 @@ class SurveyController extends Controller
     }
 
     public function getUserResponse($user_id,$survey_id,$primaryValues,$collection_name){
-
-        $response = DB::collection($collection_name)->where('form_id','=',$survey_id)
+        $formKey = $collection_name == 'survey_results' ? 'form_id' : 'survey_id';
+        $response = DB::collection($collection_name)->where($formKey,'=',$survey_id)
                                                   ->where('user_id','=',$user_id)
                                                   ->where(function($q) use ($primaryValues)
                                                   {
@@ -298,11 +298,11 @@ class SurveyController extends Controller
 
         if($survey->entity_id == null)
         {
-            $surveyResults = DB::collection('survey_results')->where('survey_id','=',$survey_id)->where('user_id','=',$user->id)->get();
+            $surveyResults = DB::collection('survey_results')->where('form_id','=',$survey_id)->where('user_id','=',$user->id)->get();
         }
         else
         {               
-            $surveyResults = DB::collection('entity_'.$survey->entity_id)->where('form_id','=',$survey_id)->where('user_id','=',$user->id)->get();
+            $surveyResults = DB::collection('entity_'.$survey->entity_id)->where('survey_id','=',$survey_id)->where('user_id','=',$user->id)->get();
         }           
 
         if ($surveyResults->count() === 0) {
