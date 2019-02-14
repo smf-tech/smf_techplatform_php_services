@@ -17,6 +17,7 @@ use App\Project;
 use App\Location;
 use App\Role;
 use App\RoleConfig;
+use App\JurisdictionType;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Input;
 
@@ -53,31 +54,31 @@ class LocationController extends Controller
         return response()->json($response_data); 
     }
 
-    public function getleveldata($state_id,$level,Request $request){
-        $jurisdiction = StateJurisdiction::where([['state_id',$state_id],['level',(int)$level]])->get()->first();
+    public function getLevelData(Request $request, $orgId, $jurisdictionTypeId, $jurisdictionLevel)
+    {
+        $database = $this->setDatabaseConfig($request, $orgId);
+        DB::setDefaultConnection($database);
+        $jurisdictionType = JurisdictionType::find($jurisdictionTypeId);
         $data = [];
-        if($jurisdiction){
-            $jurisdiction_instance = Jurisdiction::where('_id',$jurisdiction->jurisdiction_id)->get()->first();
-            switch($jurisdiction_instance->levelName){
-                case 'District':
-                $list = District::where('state_id',$state_id)->get();
-                break;
-                case 'Taluka':
-                $list = Taluka::where('state_id',$state_id)->get();
-                break;
-                case 'Cluster':
-                $list = Cluster::where('state_id',$state_id)->get();
-                break;
-                case 'Village':
-                $list = Village::where('state_id',$state_id)->get();
-                break;
-                default:
-                $list = [];
-
+        if($jurisdictionType !== null){
+            $levels = [];
+            $jurisdictions = $jurisdictionType->jurisdictions;
+            foreach ($jurisdictions as $jurisdisction) {
+                $levels[] = strtolower($jurisdisction);
+                if ($jurisdisction == $jurisdictionLevel) {
+                    break;
+                }
             }
-            $data['levelName'] = $jurisdiction_instance->levelName;
-            $data['list'] = $list;
-            $response_data = array('status' =>'success','data' => $data,'message'=>'');
+
+            $result = [];
+            $levels = Location::where([
+                'jurisdiction_type_id' => $jurisdictionTypeId,
+            ])->get($levels)->toArray();
+            foreach ($levels as $level) {
+                unset($level['_id']);
+                $result[] = $level;
+            }
+            $response_data = array('status' =>'success','data' => array_unique($result, SORT_REGULAR),'message'=>'');
             return response()->json($response_data); 
         }else{
             return response()->json([],404); 

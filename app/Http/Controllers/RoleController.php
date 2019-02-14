@@ -26,27 +26,40 @@ class RoleController extends Controller
     {
         // Obtaining all the roles of an organisation from the main database 
         $roles=Role::where('org_id', $org_id)
-        ->get(['display_name','jurisdiction_type_id','project_id']);
+        ->get(['display_name','project_id']);
 
-        if(!$roles->isEmpty())
+        if(!$roles->isEmpty() && $roles !== null)
         {
             $database = $this->setDatabaseConfig($request);
             DB::setDefaultConnection($database); 
 
-        // For each role we obtain jurisdiction details & project details from the resp. collections
-        // in the tenant database
+            // For each role we obtain jurisdiction details & project details from the resp. collections
+            // in the tenant database
         foreach($roles as $role)
         {
-            $jurisdictionType = JurisdictionType::find($role->jurisdiction_type_id);
-            // Adding element jurisdiction to the role object
-            $role->jurisdictionType = $jurisdictionType;
-            // Removing element jurisdiction_id from the role object
-            unset($role->jurisdiction_type_id);
+                // Get Jurisdiction level
+            $roleConfig = RoleConfig::where('role_id', $role->id)->first();
+            $jurisdictionLevel = Jurisdiction::find($roleConfig->level);
+            unset($jurisdictionLevel['created_by'], $jurisdictionLevel['created_at'], $jurisdictionLevel['updated_at']);
+            $role->jurisdictionLevel = $jurisdictionLevel;
 
             $project = Project::find($role->project_id);
-            // Adding element project to the role object
+
+                // Adding element project to the role object
+            $jurisdictionType = JurisdictionType::find($project->jurisdiction_type_id);
+            $levels = [];
+            foreach ($jurisdictionType->jurisdictions as $level) {
+                $jurisdiction = Jurisdiction::where(['levelName' => $level])->first();
+                unset($jurisdiction['created_by'], $jurisdiction['created_at'], $jurisdiction['updated_at']);
+                $levels[] = $jurisdiction;
+                if ($jurisdictionLevel->levelName === $level) {
+                    break;
+                }
+            }
+            $project->jurisdictions = $levels;
+            unset($project['created_at'], $project['updated_at']);
             $role->project = $project;
-            // Removing element project_id from the role object
+                // Removing element project_id from the role object
             unset($role->project_id);
         }
 
