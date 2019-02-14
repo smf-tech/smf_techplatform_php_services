@@ -122,11 +122,11 @@ class UserController extends Controller
                 $user = User::where('role_id', '=', $role->role_id)
                         ->where('approve_status','pending')->get();
             
-                if($user != '[]')
-                    $users[] = $user;
+                // if($user != '[]')
+                //     $users[] = $user;
             }
 
-            return response()->json(['status'=>'success','data'=>$users,'message'=>''], 200);
+            return response()->json(['status'=>'success','data'=>$user,'message'=>''], 200);
         
         } else {
 
