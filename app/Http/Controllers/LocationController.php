@@ -124,12 +124,14 @@ class LocationController extends Controller
             if(isset($user->role_id)) {
                 $roleConfig = RoleConfig::where('role_id',$user->role_id)->first();
                 $jurisdiction = Jurisdiction::where('_id',$roleConfig->level)->pluck('levelName');
+                $jurisdiction[0] = strtolower($jurisdiction[0]);
+
                 $jurisdictions = JurisdictionType::where('_id',$roleConfig->jurisdiction_type_id)->pluck('jurisdictions');
                 $jurisdictions[0] = array_map('strtolower', $jurisdictions[0]);
 
                 if($this->request->filled('locations')) {
                     $location = $this->request->input('locations');
-                    $data = Location::where('jurisdiction_type_id',$roleConfig->jurisdiction_type_id)->whereIn(strtolower($jurisdiction[0]), $location[$jurisdiction[0]])->get($jurisdictions[0]);
+                    $data = Location::where('jurisdiction_type_id',$roleConfig->jurisdiction_type_id)->whereIn($jurisdiction[0], $location[$jurisdiction[0]])->get($jurisdictions[0]);
                 } else {
                     $data = Location::where('jurisdiction_type_id',$roleConfig->jurisdiction_type_id)->get($jurisdictions[0]);
                 }
