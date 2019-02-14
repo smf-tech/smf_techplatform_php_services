@@ -92,7 +92,7 @@ class LocationController extends Controller
         $user = $this->request->user();
         
         
-        $role = Role::find($user->role_id);
+        // $role = Role::find($user->role_id);
 
         $database = $this->setDatabaseConfig($this->request);
         DB::setDefaultConnection($database);   
