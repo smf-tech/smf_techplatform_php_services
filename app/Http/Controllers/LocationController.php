@@ -125,6 +125,7 @@ class LocationController extends Controller
                 $roleConfig = RoleConfig::where('role_id',$user->role_id)->first();
                 $jurisdiction = Jurisdiction::where('_id',$roleConfig->level)->pluck('levelName');
                 $jurisdictions = JurisdictionType::where('_id',$roleConfig->jurisdiction_type_id)->pluck('jurisdictions');
+                $jurisdictions[0] = array_map('strtolower', $jurisdictions[0]);
 
                 if($this->request->filled('locations')) {
                     $location = $this->request->input('locations');
