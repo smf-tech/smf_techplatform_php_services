@@ -240,10 +240,17 @@ class SurveyController extends Controller
             }else{
             DB::collection('survey_results')->insert($fields);
             }
-        }
-        else
-        { 
+        } else {
             $collection_name = 'entity_'.$survey->entity_id;
+            $entity = Entity::find($survey->entity_id);
+            if ($entity !== null) {
+                if (in_array(strtolower($entity->Name), ['structure', 'structure master', 'structuremaster'])) {
+                    $collection_name = 'structure_masters';
+                } elseif (in_array(strtolower($entity->Name), ['machine', 'machine master', 'machinemaster'])) {
+                    $collection_name = 'machine_masters';
+                }
+            }
+
             if(!empty($primaryValues)){
                 unset($fields['submit_count']);
                 $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
