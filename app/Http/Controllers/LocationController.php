@@ -77,7 +77,7 @@ class LocationController extends Controller
                 unset($level['_id']);
                 $result[] = $level;
             }
-            $response_data = array('status' =>'success','data' => array_unique($result, SORT_REGULAR),'message'=>'');
+            $response_data = array('status' =>'success','data' => array_values(array_unique($result, SORT_REGULAR)),'message'=>'');
             return response()->json($response_data); 
         }else{
             return response()->json([],404); 
