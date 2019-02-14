@@ -17,7 +17,6 @@ use App\Project;
 use App\Location;
 use App\Role;
 use App\RoleConfig;
-use App\JurisdictionType;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Input;
 
