@@ -37,6 +37,12 @@ class RoleController extends Controller
             // in the tenant database
         foreach($roles as $role)
         {
+                // Get Jurisdiction level
+            $roleConfig = RoleConfig::where('role_id', $role->id)->first();
+            $jurisdictionLevel = Jurisdiction::find($roleConfig->level);
+            unset($jurisdictionLevel['created_by'], $jurisdictionLevel['created_at'], $jurisdictionLevel['updated_at']);
+            $role->jurisdictionLevel = $jurisdictionLevel;
+
             $project = Project::find($role->project_id);
 
                 // Adding element project to the role object
@@ -46,18 +52,15 @@ class RoleController extends Controller
                 $jurisdiction = Jurisdiction::where(['levelName' => $level])->first();
                 unset($jurisdiction['created_by'], $jurisdiction['created_at'], $jurisdiction['updated_at']);
                 $levels[] = $jurisdiction;
+                if ($jurisdictionLevel->levelName === $level) {
+                    break;
+                }
             }
             $project->jurisdictions = $levels;
             unset($project['created_at'], $project['updated_at']);
             $role->project = $project;
                 // Removing element project_id from the role object
             unset($role->project_id);
-
-                // Get Jurisdiction level
-            $roleConfig = RoleConfig::where('role_id', $role->id)->first();
-            $jurisdictionLevel = Jurisdiction::find($roleConfig->level);
-            unset($jurisdictionLevel['created_by'], $jurisdictionLevel['created_at'], $jurisdictionLevel['updated_at']);
-            $role->jurisdictionLevel = $jurisdictionLevel;
         }
 
         $response_data = array('status' =>'success','data' => $roles,'message'=>'');
