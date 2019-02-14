@@ -92,13 +92,6 @@ class LocationController extends Controller
         
         
         $role = Role::find($user->role_id);
-        
-        // // When given an array, the has method will determine if all of the 
-        // // specified values are present on the request
-        // if (!$this->request->has(['jurisdictionTypeId', 'projectId'])) 
-        // {         
-        //     $role = Role::where('_id',$user->role_id)->get();
-        // }
 
         $database = $this->setDatabaseConfig($this->request);
         DB::setDefaultConnection($database);   
@@ -128,16 +121,22 @@ class LocationController extends Controller
         {
             // $locations = Location::where('jurisdiction_type_id',$role[0]->jurisdiction_type_id)->get();
 
+            if(isset($user->role_id)) {
+                $roleConfig = RoleConfig::where('role_id',$user->role_id)->first();
+                $jurisdiction = Jurisdiction::where('_id',$roleConfig->level)->pluck('levelName');
+                $jurisdictions = JurisdictionType::where('_id',$roleConfig->jurisdiction_type_id)->pluck('jurisdictions');
 
-            $roleConfig = RoleConfig::where('role_id',$user->role_id)->first();
-            $jurisdiction = Jurisdiction::where('_id',$roleConfig->level)->pluck('levelName');
-            $location = $this->request->input('location');
-            $jurisdictions = JurisdictionType::where('_id',$roleConfig->jurisdiction_type_id)->pluck('jurisdictions');
+                if($this->request->filled('locations')) {
+                    $location = $this->request->input('locations');
+                    $data = Location::where('jurisdiction_type_id',$roleConfig->jurisdiction_type_id)->whereIn($jurisdiction[0], $location[$jurisdiction[0]])->get($jurisdictions[0]);
+                } else {
+                    $data = Location::where('jurisdiction_type_id',$roleConfig->jurisdiction_type_id)->get($jurisdictions[0]);
+                }
 
-             $data = Location::where('jurisdiction_type_id',$roleConfig->jurisdiction_type_id)->whereIn($jurisdiction[0], $location[$jurisdiction[0]])->get($jurisdictions[0]);
+                return response()->json(['status'=>'success','data'=>$data,'message'=>''],200); 
+            }
 
-
-             return response()->json(['status'=>'success','data'=>$data,'message'=>''],200); 
+            return response()->json(['status'=>'error','data'=>'','message'=>'You Do Not Have A Role In The Organisation'],403);                 
         }
         
             if($status === "success")
@@ -148,7 +147,6 @@ class LocationController extends Controller
                 }
                 return response()->json(['status'=>'success','data'=>$locations,'message'=>''],200); 
             }
-            else
-                return response()->json(['status'=>'error','data'=>null,'message'=>'Invalid data entered'],404); 
+                return response()->json(['status'=>'error','data'=>'','message'=>'Invalid data entered'],404); 
     }
 }
