@@ -129,7 +129,7 @@ class LocationController extends Controller
 
                 if($this->request->filled('locations')) {
                     $location = $this->request->input('locations');
-                    $data = Location::where('jurisdiction_type_id',$roleConfig->jurisdiction_type_id)->whereIn($jurisdiction[0], $location[$jurisdiction[0]])->get($jurisdictions[0]);
+                    $data = Location::where('jurisdiction_type_id',$roleConfig->jurisdiction_type_id)->whereIn(strtolower($jurisdiction[0]), $location[$jurisdiction[0]])->get($jurisdictions[0]);
                 } else {
                     $data = Location::where('jurisdiction_type_id',$roleConfig->jurisdiction_type_id)->get($jurisdictions[0]);
                 }
