@@ -113,7 +113,7 @@ class UserController extends Controller
 
         $roles = RoleConfig::where('approver_role', $loggedInUser->role_id)->get(['role_id']);
 
-        if($roles) {
+        if($roles != '[]') {
 
             DB::setDefaultConnection('mongodb');
 
