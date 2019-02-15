@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Organisation;
 use App\Project;
+use App\Associate;
 use Dingo\Api\Routing\Helpers;
 use Illuminate\Support\Facades\DB;
 
@@ -32,10 +33,37 @@ class OrganisationController extends Controller
         return $organisation;
     }
 
-    public function listorgs(){
+    public function listOrgs()
+    {
         $organisations = Organisation::where('orgshow','<>',0)->get();
+
+        foreach ($organisations as &$organisation) {
+            $organisation['type'] = 'organisation';
+            $organisation['associateOrgId'] = $organisation->id;
+
+            DB::setDefaultConnection('mongodb');
+            $databaseName = $this->setDatabaseConfig($this->request, $organisation->id);
+            if (empty($databaseName)) {
+                continue;
+            }
+            DB::setDefaultConnection($databaseName);
+
+            $associates = Associate::all();
+
+            if ($associates->count()) {
+                foreach ($associates as $associate) {
+                    $organisations[] = [
+                        '_id' => $associate->id,
+                        'name' => $associate->name,
+                        'service' => '',
+                        'type' => $associate->type,
+                        'associateOrgId' => $organisation->id
+                    ];
+                }
+            }
+        }
         $response_data = array('status' =>'success','data' => $organisations,'message'=>'');
-        return response()->json($response_data);      
+        return response()->json($response_data);
     }
 
     public function getorgprojects($org_id){

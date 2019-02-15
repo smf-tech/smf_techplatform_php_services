@@ -16,11 +16,19 @@ class Controller extends BaseController
      */
     public function setDatabaseConfig(Request $request, $orgId = null)
     {
-        if ($orgId === null) {
-            $orgId = $request->user()->org_id;
+        $organisation = null;
+        if ($orgId instanceof Organisation) {
+            $organisation = $orgId;
+        } else {
+            if ($orgId === null) {
+                $orgId = $request->user()->org_id;
+            }
+            $organisation = Organisation::find($orgId);
         }
-        $organisation = Organisation::find($orgId);
-        $database = $organisation->name.'_'.$orgId;
+        if ($organisation === null) {
+            return;
+        }
+        $database = $organisation->name.'_'.$organisation->id;
 
         \Illuminate\Support\Facades\Config::set('database.connections.'.$database, array(
             'driver'    => 'mongodb',

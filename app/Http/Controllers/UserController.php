@@ -49,6 +49,15 @@ class UserController extends Controller
             $update_data = $this->request->all();
 //            $user->uploadProfilePicture($update_data['profile_picture']);
             //return $update_data;
+
+            if (isset($update_data['type']) && !empty($update_data['type'])) {
+                if ($update_data['type'] !== 'organisation') {
+                    $update_data['associate_id'] = $update_data['org_id'];
+                    $orgId = \App\Role::find($update_data['role_id'])->org_id;
+                    $update_data['org_id'] = $orgId;
+                }
+            }
+
             $update_data['dob'] = strtotime($update_data['dob']);
             $user->update($update_data);
             /*if(array_key_exists('role_id',$update_data)){

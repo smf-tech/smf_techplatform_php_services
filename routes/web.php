@@ -39,7 +39,7 @@ $api->version('v1',function($api){
 
         $api->get('message/otp','MessageAuthController@sendOTP');
         $api->get('token','MessageAuthController@verifyOTP');
-        $api->get('organizations','OrganisationController@listorgs');
+        $api->get('organizations','OrganisationController@listOrgs');
         $api->get('projects/{org_id}','OrganisationController@getorgprojects');
         $api->get('states','LocationController@getstates');
         $api->get('location/level/{orgId}/{jurisdictionTypeId}/{jurisdictionLevel}','LocationController@getLevelData');
