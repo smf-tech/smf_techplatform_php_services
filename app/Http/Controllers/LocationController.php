@@ -58,26 +58,17 @@ class LocationController extends Controller
         $database = $this->setDatabaseConfig($request, $orgId);
         DB::setDefaultConnection($database);
         $jurisdictionType = JurisdictionType::find($jurisdictionTypeId);
-        $data = [];
+        $levels = [];
         if($jurisdictionType !== null){
-            $levels = [];
             $jurisdictions = $jurisdictionType->jurisdictions;
             foreach ($jurisdictions as $jurisdisction) {
-                $levels[] = strtolower($jurisdisction);
+                $levels[$jurisdisction] = DB::table($jurisdisction)->get();
                 if ($jurisdisction == $jurisdictionLevel) {
                     break;
                 }
             }
 
-            $result = [];
-            $levels = Location::where([
-                'jurisdiction_type_id' => $jurisdictionTypeId,
-            ])->get($levels)->toArray();
-            foreach ($levels as $level) {
-                unset($level['_id']);
-                $result[] = $level;
-            }
-            $response_data = array('status' =>'success','data' => array_values(array_unique($result, SORT_REGULAR)),'message'=>'');
+            $response_data = array('status' =>'success','data' => $levels,'message'=>'');
             return response()->json($response_data); 
         }else{
             return response()->json([],404); 
