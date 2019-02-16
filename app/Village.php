@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Village  extends \Jenssegers\Mongodb\Eloquent\Model
 {
+    protected $table = 'Village';
+
     protected $fillable=['Name','state_id','district_id','taluka_id'];
 
     public function district()

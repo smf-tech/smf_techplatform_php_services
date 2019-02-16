@@ -24,6 +24,8 @@ class LocationController extends Controller
 {
     use Helpers;
 
+    protected static $condition = '';
+
     protected $request;
 
     public function __construct(Request $request)
@@ -61,14 +63,26 @@ class LocationController extends Controller
         $levels = [];
         if($jurisdictionType !== null){
             $jurisdictions = $jurisdictionType->jurisdictions;
-            foreach ($jurisdictions as $jurisdisction) {
-                $levels[$jurisdisction] = DB::table($jurisdisction)->get();
-                if ($jurisdisction == $jurisdictionLevel) {
+            foreach ($jurisdictions as $jurisdiction) {
+                $levels[] = strtolower($jurisdiction);
+                if ($jurisdiction == $jurisdictionLevel) {
                     break;
                 }
             }
-
-            $response_data = array('status' =>'success','data' => $levels,'message'=>'');
+            $queryBuilder = Location::where('jurisdiction_type_id', $jurisdictionTypeId);
+            $fields = [];
+            foreach ($levels as $level) {
+                $queryBuilder->with($level);
+                $fields[] = $level . '_id';
+            }
+            $locations = $queryBuilder->get($fields);
+            $data = $locations->filter(function(&$value, $key) use ($jurisdictionLevel) {
+                if ($value[strtolower($jurisdictionLevel) . '_id'] != self::$condition) {
+                    self::$condition = $value[strtolower($jurisdictionLevel) . '_id'];
+                    return true;
+                }
+            })->values();
+            $response_data = array('status' =>'success','data' => $data,'message'=>'');
             return response()->json($response_data); 
         }else{
             return response()->json([],404); 
@@ -80,6 +94,7 @@ class LocationController extends Controller
     {
         // Obtaining all details of the logged-in user
         $user = $this->request->user();
+        $userLocation = $user->location;
         
         
         // $role = Role::find($user->role_id);
@@ -114,17 +129,16 @@ class LocationController extends Controller
 
             if(isset($user->role_id)) {
                 $roleConfig = RoleConfig::where('role_id',$user->role_id)->first();
+
                 $jurisdiction = Jurisdiction::where('_id',$roleConfig->level)->pluck('levelName');
-                $jurisdiction[0] = strtolower($jurisdiction[0]);
+                $level = strtolower($jurisdiction[0]);
 
-                $jurisdictions = JurisdictionType::where('_id',$roleConfig->jurisdiction_type_id)->pluck('jurisdictions');
-                $jurisdictions[0] = array_map('strtolower', $jurisdictions[0]);
+                $jurisdictionTypes = JurisdictionType::where('_id',$roleConfig->jurisdiction_type_id)->pluck('jurisdictions')[0];
 
-                if($this->request->filled('locations')) {
-                    $location = $this->request->input('locations');
-                    $data = Location::where('jurisdiction_type_id',$roleConfig->jurisdiction_type_id)->whereIn($jurisdiction[0], $location[$jurisdiction[0]])->get($jurisdictions[0]);
+                if($userLocation !== null && isset($userLocation[$level]) && !empty($userLocation[$level])) {
+                    $data = Location::where('jurisdiction_type_id',$roleConfig->jurisdiction_type_id)->whereIn($level . '_id', $userLocation[$level])->with('state', 'district', 'taluka', 'village')->get();
                 } else {
-                    $data = Location::where('jurisdiction_type_id',$roleConfig->jurisdiction_type_id)->get($jurisdictions[0]);
+                    $data = Location::where('jurisdiction_type_id',$roleConfig->jurisdiction_type_id)->with('state', 'district', 'taluka', 'village')->get();
                 }
 
                 return response()->json(['status'=>'success','data'=>$data,'message'=>''],200); 
