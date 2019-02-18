@@ -136,25 +136,7 @@ class LocationController extends Controller
                 $jurisdictions = JurisdictionType::where('_id',$roleConfig->jurisdiction_type_id)->pluck('jurisdictions')[0];
 
                 if($userLocation !== null && isset($userLocation[$level]) && !empty($userLocation[$level])) {
-                    $locations = Location::where('jurisdiction_type_id',$roleConfig->jurisdiction_type_id)->whereIn($level . '_id', $userLocation[$level]);
-                    foreach ($jurisdictions as $jurisdictionLevel) {
-                        $levels[] = strtolower($jurisdictionLevel);
-                        if (strtolower($jurisdictionLevel) == $level) {
-                            break;
-                        }
-                    }
-                    $fields = [];
-                    foreach ($levels as $levelField) {
-                        $locations->with($levelField);
-                        $fields[] = $levelField . '_id';
-                    }
-                    $result = $locations->get($fields);
-                    $data = $result->filter(function(&$value, $key) use ($level) {
-                        if ($value[strtolower($level) . '_id'] != self::$condition) {
-                            self::$condition = $value[strtolower($level) . '_id'];
-                            return true;
-                        }
-                    })->values();
+                    $data = Location::where('jurisdiction_type_id',$roleConfig->jurisdiction_type_id)->whereIn($level . '_id', $userLocation[$level])->with('state', 'district', 'taluka', 'village')->get();
                 } else {
                     $data = Location::where('jurisdiction_type_id',$roleConfig->jurisdiction_type_id)->with('state', 'district', 'taluka', 'village')->get();
                 }
