@@ -26,8 +26,8 @@ class MessageAuthController extends Controller
             DB::collection('user_otp_verify')->insert(['ph_no'=>$ph_no , 'otp'=>$six_digit_random_number , 'time'=>date("Y/m/d H:i:s",time()) ]  );
         }
         
-        $http = new \GuzzleHttp\Client;
-        $sendsmscall = $http->get('http://www.smsjust.com/sms/user/urlsms.php?username=avmabd&pass=avmabd@123&senderid=MVMSMF&dest_mobileno='.$ph_no.'&message=%3C%23%3E%20Your%20Sujalam%20Suphalam%20password%20is:'.$six_digit_random_number.'&response=Y');
+        //$http = new \GuzzleHttp\Client;
+        //$sendsmscall = $http->get('http://www.smsjust.com/sms/user/urlsms.php?username=avmabd&pass=avmabd@123&senderid=MVMSMF&dest_mobileno='.$ph_no.'&message=%3C%23%3E%20Your%20Sujalam%20Suphalam%20password%20is:'.$six_digit_random_number.'&response=Y');
 
         $content = array('otp'=>$six_digit_random_number);
         $response_data = array('status' =>'success','data' => $content,'message'=>'Otp Sent successfully');
