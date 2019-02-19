@@ -321,7 +321,8 @@ class SurveyController extends Controller
             return response()->json(['status'=>'success','metadata'=>[],'values'=>[],'message'=>'']);
         }
 
-        $result = ['form'=>['form_id'=>$survey_id,'user_id'=>$surveyResults[0]['user_id'],'created_at'=>$surveyResults[0]['created_at']]];
+        $responseCount = $surveyResults->count();
+        $result = ['form'=>['form_id'=>$survey_id,'user_id'=>$surveyResults[0]['user_id'],'created_at'=>$surveyResults[0]['created_at'],'submit_count'=>$responseCount]];
 
         $values = [];
 
