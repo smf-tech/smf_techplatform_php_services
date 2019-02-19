@@ -37,13 +37,13 @@ class StructureTrackingController extends Controller
             $databaseName = $this->setDatabaseConfig($this->request);
             DB::setDefaultConnection($databaseName);
             $structureTracking = StructureTracking::create($data);
-            if (isset($data['ff_appointed']) && !empty($data['ff_appointed'])) {
-                foreach ($data['ff_appointed'] as $singleFF) {
-                    $ffInstance = FFAppointed::create($singleFF);
-                    $ffInstance->structureTracking()->associate($structureTracking);
-                    $ffInstance->save();
-                }
-            }
+            $ffInstance = FFAppointed::create([
+                'name' => $data['ff_name'],
+                'mobile_number' => $data['ff_mobile_number'],
+                'training_completed' => $data['ff_training_completed']
+            ]);
+            $ffInstance->structureTracking()->associate($structureTracking);
+            $ffInstance->save();
             if (isset($data['volunteers']) && !empty($data['volunteers'])) {
                 foreach ($data['volunteers'] as $volunteer) {
                     $volunteerInstance = Volunteer::create($volunteer);

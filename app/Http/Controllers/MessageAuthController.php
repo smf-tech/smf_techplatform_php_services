@@ -57,9 +57,9 @@ class MessageAuthController extends Controller
         $user=User::where('phone',$ph_no)->first();
         //var_dump($user);exit;
        //$user= DB::collection('users')->where('phone',$ph_no)->first();
+        $http = new \GuzzleHttp\Client;
         if(isset($user)){
            //generate Oauth token using the 
-           $http = new \GuzzleHttp\Client;
            $pwd = $request->get('password', $ph_no);
             $response = $http->post('http://localhost/oauth/token', [
             'form_params' => [

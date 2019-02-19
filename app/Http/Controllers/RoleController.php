@@ -30,7 +30,7 @@ class RoleController extends Controller
 
         if(!$roles->isEmpty() && $roles !== null)
         {
-            $database = $this->setDatabaseConfig($request);
+            $database = $this->setDatabaseConfig($request,$org_id);
             DB::setDefaultConnection($database); 
 
             // For each role we obtain jurisdiction details & project details from the resp. collections

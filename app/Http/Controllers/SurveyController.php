@@ -16,7 +16,7 @@ use Illuminate\Http\Response;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Arr;
-
+use Validator;
 
 class SurveyController extends Controller
 {
@@ -42,7 +42,7 @@ class SurveyController extends Controller
         $primaryKeys = $survey->form_keys;
 
         $fields = array();           
-        $fields['form_id']=$survey_id;
+       
         $fields['user_id']=$user->id;
 
         $primaryValues = array();
@@ -83,6 +83,7 @@ class SurveyController extends Controller
         
         if($survey->entity_id == null)
         {
+            $fields['form_id']=$survey_id;
             // If the set of values are present in the collection then an update occurs and 'submit_count' gets incremented
             if(isset($user_submitted)){
                 $fields['submit_count']= $user_submitted['submit_count']+1;   
@@ -100,7 +101,8 @@ class SurveyController extends Controller
         }
         else
         {
-            DB::collection('entity_'.$survey->entity_id)->where('form_id','=',$survey_id)
+            $fields['survey_id']=$survey_id;
+            DB::collection('entity_'.$survey->entity_id)->where('survey_id','=',$survey_id)
                                                 ->where('user_id','=',$user->id)
                                                 ->where(function($q) use ($primaryValues)
                                                 {
@@ -177,7 +179,7 @@ class SurveyController extends Controller
         $primaryKeys = isset($survey->form_keys)?$survey->form_keys:[];
 
         $fields = array();
-        $fields['form_id'] = $survey_id;
+        
         $fields['user_id'] = $user->id;
 
         $primaryValues = array();
@@ -214,6 +216,7 @@ class SurveyController extends Controller
         if($survey->entity_id == null)
         {
             $collection_name = 'survey_results';
+            $fields['form_id'] = $survey_id;
 
             if(!empty($primaryValues)){
                 // 'getUserResponse' function defined below, it queries the collection $collection_name using the parameters
@@ -242,6 +245,8 @@ class SurveyController extends Controller
             }
         } else {
             $collection_name = 'entity_'.$survey->entity_id;
+            $fields['survey_id'] = $survey_id;
+
             $entity = Entity::find($survey->entity_id);
             if ($entity !== null) {
                 if (in_array(strtolower($entity->Name), ['structure', 'structure master', 'structuremaster'])) {
@@ -316,15 +321,19 @@ class SurveyController extends Controller
             return response()->json(['status'=>'success','metadata'=>[],'values'=>[],'message'=>'']);
         }
 
-        $result = ['form'=>['form_id'=>$survey_id,'user_id'=>$surveyResults[0]['user_id'],'created_at'=>$surveyResults[0]['created_at'],'updated_at'=>$surveyResults[0]['updated_at']]];
+        $responseCount = $surveyResults->count();
+        $result = ['form'=>['form_id'=>$survey_id,'user_id'=>$surveyResults[0]['user_id'],'created_at'=>$surveyResults[0]['created_at'],'submit_count'=>$responseCount]];
 
         $values = [];
 
-        foreach($surveyResults as $surveyResult)
+        foreach($surveyResults as &$surveyResult)
         {
+            if (!isset($surveyResult['form_id'])) {
+                $surveyResult['form_id'] = $survey_id;
+            }
             // Excludes values 'form_id','user_id','created_at','updated_at' from the $surveyResult array
             //  and stores it in values
-            $values[] = Arr::except($surveyResult,['survey_id','user_id','created_at','updated_at']);
+            $values[] = Arr::except($surveyResult,['survey_id','user_id','created_at']);
         }
 
         return response()->json(['status'=>'success','metadata'=>$result,'values'=>$values,'message'=>'']);
