@@ -122,11 +122,7 @@ class LocationController extends Controller
             else
                 $status = "error";      
                 
-        }
-        else
-        {
-            // $locations = Location::where('jurisdiction_type_id',$role[0]->jurisdiction_type_id)->get();
-
+        } else {
             if(isset($user->role_id)) {
                 $roleConfig = RoleConfig::where('role_id',$user->role_id)->first();
 
@@ -136,7 +132,11 @@ class LocationController extends Controller
                 $jurisdictions = JurisdictionType::where('_id',$roleConfig->jurisdiction_type_id)->pluck('jurisdictions')[0];
 
                 if($userLocation !== null && isset($userLocation[$level]) && !empty($userLocation[$level])) {
-                    $data = Location::where('jurisdiction_type_id',$roleConfig->jurisdiction_type_id)->whereIn($level . '_id', $userLocation[$level])->with('state', 'district', 'taluka', 'village')->get();
+                    $locations = Location::where('jurisdiction_type_id',$roleConfig->jurisdiction_type_id);
+                    foreach ($jurisdictions as $singleLevel) {
+                        $locations->whereIn(strtolower($singleLevel) . '_id', $userLocation[strtolower($singleLevel)]);
+                    }
+                    $data = $locations->with('state', 'district', 'taluka', 'village')->get();
                 } else {
                     $data = Location::where('jurisdiction_type_id',$roleConfig->jurisdiction_type_id)->with('state', 'district', 'taluka', 'village')->get();
                 }
