@@ -326,8 +326,11 @@ class SurveyController extends Controller
 
         $values = [];
 
-        foreach($surveyResults as $surveyResult)
+        foreach($surveyResults as &$surveyResult)
         {
+            if (!isset($surveyResult['form_id'])) {
+                $surveyResult['form_id'] = $survey_id;
+            }
             // Excludes values 'form_id','user_id','created_at','updated_at' from the $surveyResult array
             //  and stores it in values
             $values[] = Arr::except($surveyResult,['survey_id','user_id','created_at']);
