@@ -134,7 +134,9 @@ class LocationController extends Controller
                 if($userLocation !== null && isset($userLocation[$level]) && !empty($userLocation[$level])) {
                     $locations = Location::where('jurisdiction_type_id',$roleConfig->jurisdiction_type_id);
                     foreach ($jurisdictions as $singleLevel) {
-                        $locations->whereIn(strtolower($singleLevel) . '_id', $userLocation[strtolower($singleLevel)]);
+                        if (isset($userLocation[strtolower($singleLevel)])) {
+                            $locations->whereIn(strtolower($singleLevel) . '_id', $userLocation[strtolower($singleLevel)]);
+                        }
                     }
                     $data = $locations->with('state', 'district', 'taluka', 'village')->get();
                 } else {
