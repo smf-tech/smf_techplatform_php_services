@@ -34,8 +34,7 @@ class MachineTrackingController extends Controller
 
     public function machineDeploy()
     {
-        $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database);      
+        $database = $this->connectTenantDatabase($this->request);
 
         $deployedMachine = new MachineTracking;
         $deployedMachine->village = $this->request->village;
@@ -74,8 +73,7 @@ class MachineTrackingController extends Controller
 
     public function getDeploymentInfo()
     {
-        $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database); 
+        $database = $this->connectTenantDatabase($this->request);
 
         if($this->request->input('deployed'))
         {
@@ -87,8 +85,7 @@ class MachineTrackingController extends Controller
 
     public function machineShift()
     {
-        $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database); 
+        $database = $this->connectTenantDatabase($this->request);
         
         $machine = MachineTracking::where('village',$this->request->moved_from_village)
                                 ->where('structure_code',$this->request->old_structure_code)
@@ -114,8 +111,7 @@ class MachineTrackingController extends Controller
 
     public function getShiftingInfo()
     {      
-        $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database); 
+        $database = $this->connectTenantDatabase($this->request);
 
         return response()->json([
                                     'status'=>'success',
@@ -127,8 +123,7 @@ class MachineTrackingController extends Controller
 
     public function machineMoU()
     {
-        $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database); 
+        $database = $this->connectTenantDatabase($this->request);
         
         $machine = MachineTracking::where('mou_details','!=',null)->get();
         

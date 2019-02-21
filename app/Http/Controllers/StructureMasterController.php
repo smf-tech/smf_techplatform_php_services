@@ -19,8 +19,7 @@ class StructureMasterController extends Controller
     public function get()
     {
         try {
-            $databaseName = $this->setDatabaseConfig($this->request);
-            DB::setDefaultConnection($databaseName);
+            $databaseName = $this->connectTenantDatabase($this->request);
             return response()->json([
                 'status' => 'success',
                 'data' => StructureMaster::all('structure_code'),

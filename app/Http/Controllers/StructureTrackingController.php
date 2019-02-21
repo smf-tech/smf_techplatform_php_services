@@ -34,8 +34,7 @@ class StructureTrackingController extends Controller
             }
             $data['status'] = self::PREPARED;
             $data['created_by'] = $userId;
-            $databaseName = $this->setDatabaseConfig($this->request);
-            DB::setDefaultConnection($databaseName);
+            $databaseName = $this->connectTenantDatabase($this->request);
             $structureTracking = StructureTracking::create($data);
             $ffInstance = FFAppointed::create([
                 'name' => $data['ff_name'],
@@ -81,8 +80,7 @@ class StructureTrackingController extends Controller
                     400
                 );
             }
-            $databaseName = $this->setDatabaseConfig($this->request);
-            DB::setDefaultConnection($databaseName);
+            $databaseName = $this->connectTenantDatabase($this->request);
             $prepared = $this->request->prepared === 'true' ? self::COMPLETED : self::PREPARED;
             return response()->json([
                 'status' => 'success',
@@ -122,8 +120,7 @@ class StructureTrackingController extends Controller
             }
             $data['status'] = self::COMPLETED;
             $data['created_by'] = $userId;
-            $databaseName = $this->setDatabaseConfig($this->request);
-            DB::setDefaultConnection($databaseName);
+            $databaseName = $this->connectTenantDatabase($this->request);
             $structureTracking = StructureTracking::create($data);
             if (isset($data['ff_appointed']) && !empty($data['ff_appointed'])) {
                 foreach ($data['ff_appointed'] as $singleFF) {

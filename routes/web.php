@@ -62,7 +62,7 @@ $api->version('v1',function($api){
         $api->put('users/{phone}', ['uses' => 'UserController@update']);
         $api->get('modules/{org_id}/{role_id}','RoleController@getroleconfig');
         $api->put('users/approval/{phone}', ['uses' => 'UserController@approveuser']);
-        $api->post('users/profile-upload', 'UserController@upload');
+        $api->post('upload-image', 'UserController@upload');
 
         $api->get('forms/schema','SurveyController@getSurveys');
         $api->get('forms/schema/{form_id}','SurveyController@getSurveyDetails');

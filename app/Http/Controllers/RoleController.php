@@ -30,8 +30,7 @@ class RoleController extends Controller
 
         if(!$roles->isEmpty() && $roles !== null)
         {
-            $database = $this->setDatabaseConfig($request,$org_id);
-            DB::setDefaultConnection($database); 
+            $database = $this->connectTenantDatabase($request,$org_id);
 
             // For each role we obtain jurisdiction details & project details from the resp. collections
             // in the tenant database
@@ -77,7 +76,7 @@ class RoleController extends Controller
         $user = $request->user();
         $org = Organisation::find($org_id);
         if($org){
-            $dbName = $org->name.'_'.$org_id;
+            /*$dbName = $org->name.'_'.$org_id;
             \Illuminate\Support\Facades\Config::set('database.connections.'.$dbName, array(
                 'driver'    => 'mongodb',
                 'host'      => '127.0.0.1',
@@ -85,7 +84,8 @@ class RoleController extends Controller
                 'username'  => '',
                 'password'  => '',  
             ));
-            DB::setDefaultConnection($dbName); 
+            DB::setDefaultConnection($dbName); */
+            $databaseName = $this->connectTenantDatabase($request,$org_id);
 
             $role_config=RoleConfig::where('role_id', $role_id)->get()->first();
             $default_modules = $on_approve_modules = [];

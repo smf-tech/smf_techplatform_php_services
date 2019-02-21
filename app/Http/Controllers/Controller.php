@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Laravel\Lumen\Routing\Controller as BaseController;
 use Illuminate\Http\Request;
 use App\Organisation;
+use Illuminate\Support\Facades\DB;
 
 class Controller extends BaseController
 {
@@ -14,7 +15,7 @@ class Controller extends BaseController
      * @param Request $request
      * @return string
      */
-    public function setDatabaseConfig(Request $request, $orgId = null)
+    public function connectTenantDatabase(Request $request, $orgId = null)
     {
         $organisation = null;
         if ($orgId instanceof Organisation) {
@@ -37,6 +38,7 @@ class Controller extends BaseController
             'username'  => '',
             'password'  => '',
         ));
+        DB::setDefaultConnection($database);
         return $database;
     }
 }

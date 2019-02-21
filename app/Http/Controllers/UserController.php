@@ -79,8 +79,7 @@ class UserController extends Controller
         $userForApproval = User::where('phone', $phone)->first();
         $loggedInUser = $this->request->user();
 
-        $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database); 
+        $database = $this->connectTenantDatabase($this->request);
 
         $userRole = RoleConfig::where('role_id',$userForApproval->role_id)->first();
 
@@ -105,11 +104,23 @@ class UserController extends Controller
 
     public function upload()
     {
-        if ($this->request->file('profilePhoto')->isValid()) {
-            $fileInstance = $this->request->file('profilePhoto');
+        if (!$this->request->filled('type')) {
+                return response()->json(['status' => 'error', 'data' => '', 'message' => 'Please specify type field and values must be either form, profile or story'], 400);
+        }
+        $types = ['profile' => 'BJS/Images/profile', 'form' => 'BJS/Images/forms', 'story' => 'BJS/Images/stories'];
+        if (!isset($types[$this->request->type])) {
+                return response()->json(['status' => 'error', 'data' => '', 'message' => 'Invalid type value'], 400);
+        }
+        if ($this->request->file('image')->isValid()) {
+            $fileInstance = $this->request->file('image');
             $name = $fileInstance->getClientOriginalName();
             //https://mybucket.s3.amazonaws.com/myfolder/afile.jpg
-            var_dump($this->request->file('profilePhoto')->storeAs('profile-photoes', $name, 's3'));
+            $s3Path = $this->request->file('image')->storeAs($types[$this->request->type], $name, 's3');
+            if ($s3Path == null) {
+                return response()->json(['status' => 'error', 'data' => '', 'message' => 'Error while uploading an image'], 400);
+            }
+            $result = 'https://' . env('AWS_BUCKET') . '.' . env('AWS_URL') . '/' . $s3Path;
+            return response()->json(['status' => 'success', 'data' => ['url' => $result], 'message' => 'Image successfully uploaded in S3']);
         }
     }
 
@@ -117,8 +128,7 @@ class UserController extends Controller
     {
         $loggedInUser = $this->request->user();
 
-        $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database); 
+        $database = $this->connectTenantDatabase($this->request);
 
         $roles = RoleConfig::where('approver_role', $loggedInUser->role_id)->get(['role_id']);
 

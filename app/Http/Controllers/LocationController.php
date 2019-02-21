@@ -57,8 +57,7 @@ class LocationController extends Controller
 
     public function getLevelData(Request $request, $orgId, $jurisdictionTypeId, $jurisdictionLevel)
     {
-        $database = $this->setDatabaseConfig($request, $orgId);
-        DB::setDefaultConnection($database);
+        $database = $this->connectTenantDatabase($request, $orgId);
         $jurisdictionType = JurisdictionType::find($jurisdictionTypeId);
         $levels = [];
         if($jurisdictionType !== null){
@@ -99,8 +98,7 @@ class LocationController extends Controller
         
         // $role = Role::find($user->role_id);
 
-        $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database);   
+        $database = $this->connectTenantDatabase($this->request);
 
         $status = "success";
 

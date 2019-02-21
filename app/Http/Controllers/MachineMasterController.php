@@ -18,8 +18,7 @@ class MachineMasterController extends Controller
 
     public function getMachineCode()
     {
-        $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database);      
+        $database = $this->connectTenantDatabase($this->request);
 
         try {
             return response()->json([
