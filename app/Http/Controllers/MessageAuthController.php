@@ -115,5 +115,26 @@ class MessageAuthController extends Controller
 	public function getTestEndpoint(Request $request){
 	   $content = array('name'=>'test');
 	   return response()->json($content);
-	}
+    }
+    
+    public function refreshToken(Request $request){
+        //get the refresh token from the request
+        $refresh_token =$request->refresh_token;
+        $http = new \GuzzleHttp\Client;
+        //call the Oauth Api to refresh the token
+        $response = $http->post('http://localhost/oauth/token', [
+            'form_params' => [
+                                'grant_type' => 'refresh_token',
+                                'client_id' => '5c1c78a9d503a33b29274ca4',
+                                'client_secret' => 'CL8isQUG6Ch3DUoAhgCfLbwTayZZCPUx21uZ2mxN',
+                                'refresh_token' => $refresh_token,
+                                'scope' => '*'
+                    ],
+            ]);
+
+        $refresh_token_response = json_decode((string)$response->getBody(), true);
+        $response_data = array('status' =>'success','data' => $refresh_token_response,'message'=>'');
+        return response()->json($response_data);           
+        
+    }
 }
