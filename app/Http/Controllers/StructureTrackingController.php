@@ -29,9 +29,6 @@ class StructureTrackingController extends Controller
         try {
             $userId = $this->request->user()->id;
             $data = $this->request->all();
-            if (isset($data['reporting_date']) && !empty($data['reporting_date'])) {
-                $data['reporting_date'] = Carbon::createFromFormat('Y-m-d', $data['reporting_date'])->toDateTimeString();
-            }
             $data['status'] = self::PREPARED;
             $data['created_by'] = $userId;
             $databaseName = $this->connectTenantDatabase($this->request);
@@ -104,20 +101,6 @@ class StructureTrackingController extends Controller
         try {
             $userId = $this->request->user()->id;
             $data = $this->request->all();
-            foreach ($data as $key => &$value) {
-                if (
-                        in_array($key, ['reporting_date', 'work_start_date', 'work_end_date'])
-                        &&
-                        !empty($value)
-                        &&
-                        $value !== NULL
-                    ) {
-                    $value = Carbon::createFromFormat(
-                            'Y-m-d',
-                            $value
-                        )->toDateTimeString();
-                }
-            }
             $data['status'] = self::COMPLETED;
             $data['created_by'] = $userId;
             $databaseName = $this->connectTenantDatabase($this->request);

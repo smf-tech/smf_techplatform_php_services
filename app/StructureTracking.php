@@ -18,7 +18,11 @@ class StructureTracking extends Model
         'work_end_date',
         'status',
         'created_by',
-        'updated_by'
+        'updated_by',
+        'structure_images_1',
+        'structure_images_2',
+        'structure_images_3',
+        'structure_images_4'
     ];
 
     public function volunteers()
