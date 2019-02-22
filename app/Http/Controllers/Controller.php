@@ -29,16 +29,15 @@ class Controller extends BaseController
         if ($organisation === null) {
             return;
         }
-        $database = $organisation->name.'_'.$organisation->id;
+        $dbName = $organisation->name.'_'.$organisation->id;
 
-        \Illuminate\Support\Facades\Config::set('database.connections.'.$database, array(
-            'driver'    => 'mongodb',
-            'host'      => '127.0.0.1',
-            'database'  => $database,
-            'username'  => '',
-            'password'  => '',
-        ));
-        DB::setDefaultConnection($database);
-        return $database;
+        $mongoDBConfig = config('database.connections.mongodb');
+        $mongoDBConfig['database'] = $dbName;
+        \Illuminate\Support\Facades\Config::set(
+            'database.connections.' . $dbName,
+            $mongoDBConfig
+        );
+        DB::setDefaultConnection($dbName);
+        return $dbName;
     }
 }
