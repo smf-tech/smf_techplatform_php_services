@@ -40,15 +40,8 @@ class UserController extends Controller
     public function update($phone)
     {
         $user = User::where('phone', $phone)->first();
-        if($user){
-//            if ($this->request->hasFile('profile_picture')) {
-//                $this->validate($this->request, [
-//                    'profile_picture' => 'image'
-//                ]);
-//            }
+        if($user) {
             $update_data = $this->request->all();
-//            $user->uploadProfilePicture($update_data['profile_picture']);
-            //return $update_data;
 
             if (isset($update_data['type']) && !empty($update_data['type'])) {
                 if ($update_data['type'] !== 'organisation') {
@@ -58,15 +51,8 @@ class UserController extends Controller
                 }
             }
 
-            $update_data['dob'] = strtotime($update_data['dob']);
             $user->update($update_data);
-            /*if(array_key_exists('role_id',$update_data)){
-                $role = Role::find($update_data['role_id']);
-                if($role){
-                    $user->assignRole($role->name);
-                }
-            }*/
-            $user->dob = date('Y-m-d',$user->dob);
+
             return response()->json(['status'=>'success', 'data'=>$user, 'message'=>''],200);
         }else{
             return response()->json(['status'=>'error', 'data'=>$user, 'message'=>'Invalid Mobile Number'],404);
