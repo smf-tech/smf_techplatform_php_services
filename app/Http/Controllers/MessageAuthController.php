@@ -119,7 +119,7 @@ class MessageAuthController extends Controller
     
     public function refreshToken(Request $request){
         //get the refresh token from the request
-        $data = $this->request->all();
+        $data = $request->all();
         $grant_type =$data['grant_type'];
         $client_id =$data['client_id'];
         $client_secret =$data['client_secret'];
