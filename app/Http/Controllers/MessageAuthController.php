@@ -28,7 +28,7 @@ class MessageAuthController extends Controller
         
         $http = new \GuzzleHttp\Client;
         $autoreadcode = env('AUTOREAD_SMS_CODE','JftAsR+UI44');
-        $sendsmscall = $http->get('http://www.smsjust.com/sms/user/urlsms.php?username=avmabd&pass=avmabd@123&senderid=MVMSMF&dest_mobileno='.$ph_no.'&message=%3C%23%3E%20The%20password%20is:'.$six_digit_random_number.' '.$autoreadcode.'&response=Y');
+        $sendsmscall = $http->get('http://www.smsjust.com/sms/user/urlsms.php?username=avmabd&pass=avmabd@123&senderid=MVMSMF&dest_mobileno='.$ph_no.'&message=%3C%23%3E%20The%20password%20is:'.$six_digit_random_number.' '.urlencode($autoreadcode).'&response=Y');
 
         $content = array('otp'=>$six_digit_random_number);
         $response_data = array('status' =>'success','data' => $content,'message'=>'Otp Sent successfully');
