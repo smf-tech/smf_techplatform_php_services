@@ -4,17 +4,15 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 use App\MachineTracking;
+use App\Village;
 
 class ShiftingRecord extends \Jenssegers\Mongodb\Eloquent\Model
 {
     protected $table = 'shifting_records';
 
     protected $fillable = [
-
-        'moved_from_village',
         'old_structure_code',
         'machine_code',
-        'moved_to_village',
         'new_structure_code',
         'structure_status',
         'demobilisation_date',
@@ -32,8 +30,18 @@ class ShiftingRecord extends \Jenssegers\Mongodb\Eloquent\Model
         'diesel_available_at_destination'
         
     ];
-    public function machineTrackings()
+    public function machineTracking()
     {
         return $this->belongsTo(MachineTracking::class);
+    }
+
+    public function movedFromVillage()
+    {
+        return $this->belongsTo(Village::class);
+    }
+
+    public function movedToVillage()
+    {
+        return $this->belongsTo(Village::class);
     }
 }

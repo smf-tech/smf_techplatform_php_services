@@ -101,8 +101,8 @@ class UserController extends Controller
             $fileInstance = $this->request->file('image');
             $name = $fileInstance->getClientOriginalName();
             //https://mybucket.s3.amazonaws.com/myfolder/afile.jpg
-            $s3Path = $this->request->file('image')->storeAs($types[$this->request->type], $name, 's3');
-            if ($s3Path == null) {
+            $s3Path = $this->request->file('image')->storePubliclyAs($types[$this->request->type], $name, 's3');
+            if ($s3Path == null || !$s3Path) {
                 return response()->json(['status' => 'error', 'data' => '', 'message' => 'Error while uploading an image'], 400);
             }
             $result = 'https://' . env('AWS_BUCKET') . '.' . env('AWS_URL') . '/' . $s3Path;
