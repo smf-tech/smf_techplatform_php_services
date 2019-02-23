@@ -40,6 +40,7 @@ class OrganisationController extends Controller
         foreach ($organisations as &$organisation) {
             $organisation['type'] = 'organisation';
             $organisation['associateOrgId'] = $organisation->id;
+            $organisation['name'] = strtoupper($organisation['name']);
 
             DB::setDefaultConnection('mongodb');
             $databaseName = $this->connectTenantDatabase($this->request, $organisation->id);
