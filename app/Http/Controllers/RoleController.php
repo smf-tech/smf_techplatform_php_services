@@ -31,6 +31,9 @@ class RoleController extends Controller
         if(!$roles->isEmpty() && $roles !== null)
         {
             $database = $this->connectTenantDatabase($request,$org_id);
+            if ($database === null) {
+                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+            }
 
             // For each role we obtain jurisdiction details & project details from the resp. collections
             // in the tenant database
@@ -85,7 +88,10 @@ class RoleController extends Controller
                 'password'  => '',  
             ));
             DB::setDefaultConnection($dbName); */
-            $databaseName = $this->connectTenantDatabase($request,$org_id);
+            $database = $this->connectTenantDatabase($request,$org_id);
+            if ($database === null) {
+                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+            }
 
             $role_config=RoleConfig::where('role_id', $role_id)->get()->first();
             $default_modules = $on_approve_modules = [];

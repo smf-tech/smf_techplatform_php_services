@@ -34,7 +34,10 @@ class MachineTrackingController extends Controller
 
     public function machineDeploy()
     {
-        $this->connectTenantDatabase($this->request);
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
 
         $deployedMachine = new MachineTracking;
         $deployedMachine->village()->associate(\App\Village::find($this->request->village));
@@ -65,6 +68,9 @@ class MachineTrackingController extends Controller
     public function getDeploymentInfo()
     {
         $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
 
         if($this->request->input('deployed'))
         {
@@ -76,7 +82,10 @@ class MachineTrackingController extends Controller
 
     public function machineShift()
     {
-        $this->connectTenantDatabase($this->request);
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
         $data = $this->request->all();
         $machine = MachineTracking::where('village_id',$this->request->moved_from_village)
                                 ->where('structure_code',$this->request->old_structure_code)
@@ -103,6 +112,9 @@ class MachineTrackingController extends Controller
     public function getShiftingInfo()
     {
         $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
 
         return response()->json([
                                     'status'=>'success',
@@ -114,7 +126,10 @@ class MachineTrackingController extends Controller
 
     public function machineMoU()
     {
-        $this->connectTenantDatabase($this->request);
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
         
         $machine = MachineTracking::where('mou_details','!=',null)->get();
         

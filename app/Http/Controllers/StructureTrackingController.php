@@ -30,7 +30,10 @@ class StructureTrackingController extends Controller
             $data = $this->request->all();
             $data['status'] = self::PREPARED;
             $data['created_by'] = $userId;
-            $this->connectTenantDatabase($this->request);
+            $database = $this->connectTenantDatabase($this->request);
+            if ($database === null) {
+                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+            }
             $structureTracking = StructureTracking::create($data);
             if (isset($data['village']) && !empty($data['village'])) {
                 $village = Village::find($data['village']);
@@ -84,7 +87,10 @@ class StructureTrackingController extends Controller
                     400
                 );
             }
-            $this->connectTenantDatabase($this->request);
+            $database = $this->connectTenantDatabase($this->request);
+            if ($database === null) {
+                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+            }
             $prepared = $this->request->prepared === 'true' ? self::COMPLETED : self::PREPARED;
             return response()->json([
                 'status' => 'success',
@@ -110,7 +116,10 @@ class StructureTrackingController extends Controller
             $data = $this->request->all();
             $data['status'] = $data['status'] == true ? self::COMPLETED : self::PREPARED;
             $data['created_by'] = $userId;
-            $this->connectTenantDatabase($this->request);
+            $database = $this->connectTenantDatabase($this->request);
+            if ($database === null) {
+                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+            }
             $structureTracking = StructureTracking::updateOrCreate(['village_id' => $data['village'], 'structure_code' => $data['structure_code']], $data);
             if ($structureTracking->village() === null || (isset($data['village']) && $structureTracking->village->id != $data['village'])) {
                 $village = Village::find($data['village']);
