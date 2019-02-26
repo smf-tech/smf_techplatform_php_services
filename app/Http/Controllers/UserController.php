@@ -28,13 +28,23 @@ class UserController extends Controller
 
     public function getUserDetails() {
         $user = $this->request->user();
-        return $user;
+        if($user) {
+            return response()->json(['status'=>'success', 'data'=>$user, 'message'=>''],200);
+        }else{
+            return response()->json(['status'=>'error', 'data'=>$user, 'message'=>'User Not Found'],404);
+        }
     }
 
-    public function show()
+    public function show($phone)
     {
-        $users = User::all();
-        return $users;
+        $user = User::where('phone', $phone)->first();
+        if($user) {
+            return response()->json(['status'=>'success', 'data'=>$user, 'message'=>''],200);
+        }else{
+            return response()->json(['status'=>'error', 'data'=>$user, 'message'=>'User Not Found'],404);
+        }
+        
+        return $user;
     }
 
     public function update($phone)
