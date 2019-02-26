@@ -27,7 +27,7 @@ class Controller extends BaseController
             $organisation = Organisation::find($orgId);
         }
         if ($organisation === null) {
-            return;
+            return null;
         }
         $dbName = $organisation->name.'_'.$organisation->id;
 

@@ -69,17 +69,11 @@ class OrganisationController extends Controller
     public function getorgprojects($org_id){
         $org = Organisation::find($org_id);
         if($org){
-            //$dbName = $org->name.'_'.$org_id;
             $databaseName = $this->connectTenantDatabase($this->request,$org_id);
-            /*\Illuminate\Support\Facades\Config::set('database.connections.'.$dbName, array(
-                'driver'    => 'mongodb',
-                'host'      => '127.0.0.1',
-                'database'  => $dbName,
-                'username'  => '',
-                'password'  => '',  
-            ));
-            DB::setDefaultConnection($dbName);*/ 
-            
+            if ($databaseName === null) {
+                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+            }
+
             $projects = Project::get(['name']); 
             $response_data = array('status' =>'success','data' => $projects,'message'=>'');
             return response()->json($response_data,200); 

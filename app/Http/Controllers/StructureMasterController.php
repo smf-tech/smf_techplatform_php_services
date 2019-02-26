@@ -19,7 +19,10 @@ class StructureMasterController extends Controller
     public function get()
     {
         try {
-            $databaseName = $this->connectTenantDatabase($this->request);
+            $database = $this->connectTenantDatabase($this->request);
+            if ($database === null) {
+                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+            }
             return response()->json([
                 'status' => 'success',
                 'data' => StructureMaster::all('structure_code'),

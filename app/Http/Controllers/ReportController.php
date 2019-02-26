@@ -24,7 +24,10 @@ class ReportController extends Controller
      */
     public function index($id = null)
     {
-        $databaseName = $this->connectTenantDatabase($this->request);
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
         if ($id !== null) {
             try {
                 return response()->json(

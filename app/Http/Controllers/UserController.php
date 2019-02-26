@@ -76,11 +76,14 @@ class UserController extends Controller
         $loggedInUser = $this->request->user();
 
         $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
 
         $userRole = RoleConfig::where('role_id',$userForApproval->role_id)->first();
 
         if(!isset($userRole->approver_role)) {
-
+            DB::setDefaultConnection('mongodb');
             $userForApproval->update(['approve_status'=>'approved']);
             return response()->json(['status'=>'success', 'data'=>$userForApproval, 'message'=>''],200);
         }
@@ -101,9 +104,20 @@ class UserController extends Controller
     public function upload()
     {
         if (!$this->request->filled('type')) {
-                return response()->json(['status' => 'error', 'data' => '', 'message' => 'Please specify type field and values must be either form, profile or story'], 400);
+                return response()->json(
+                    [
+                        'status' => 'error',
+                        'data' => '',
+                        'message' => 'Please specify type field and values must be either form, profile or story'
+                    ],
+                    400
+                );
         }
-        $types = ['profile' => 'BJS/Images/profile', 'form' => 'BJS/Images/forms', 'story' => 'BJS/Images/stories'];
+        $types = [
+            'profile' => 'BJS/Images/profile',
+            'form' => 'BJS/Images/forms',
+            'story' => 'BJS/Images/stories'
+        ];
         if (!isset($types[$this->request->type])) {
                 return response()->json(['status' => 'error', 'data' => '', 'message' => 'Invalid type value'], 400);
         }
@@ -125,6 +139,9 @@ class UserController extends Controller
         $loggedInUser = $this->request->user();
 
         $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
 
         $roles = RoleConfig::where('approver_role', $loggedInUser->role_id)->get(['role_id']);
 

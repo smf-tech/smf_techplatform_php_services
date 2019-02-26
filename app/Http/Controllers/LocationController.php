@@ -58,6 +58,9 @@ class LocationController extends Controller
     public function getLevelData(Request $request, $orgId, $jurisdictionTypeId, $jurisdictionLevel)
     {
         $database = $this->connectTenantDatabase($request, $orgId);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
         $jurisdictionType = JurisdictionType::find($jurisdictionTypeId);
         $levels = [];
         if($jurisdictionType !== null){
@@ -99,6 +102,9 @@ class LocationController extends Controller
         // $role = Role::find($user->role_id);
 
         $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
 
         $status = "success";
 
