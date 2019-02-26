@@ -131,9 +131,9 @@ class SurveyController extends Controller
 
         // Obtaining '_id','name','active','editable','multiple_entry','category_id','microservice_id','project_id','entity_id','assigned_roles' of Surveys
         // alongwith corresponding details of 'microservice','project','category','entity'
-        $data = Survey::select('_id','name','active','editable','multiple_entry','category_id','microservice_id','project_id','entity_id','assigned_roles')
+        $data = Survey::select('_id','name','active','editable','multiple_entry','category_id','microservice_id','project_id','entity_id','assigned_roles','created_at')
         ->with('microservice','project','category','entity')
-        ->where('assigned_roles','=',$user->role_id)->get(); 
+        ->where('assigned_roles','=',$user->role_id)->orderBy('created_at')->get();
 
         foreach($data as $row)
         {
