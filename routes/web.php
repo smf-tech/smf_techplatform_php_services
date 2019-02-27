@@ -73,6 +73,11 @@ $api->version('v1',function($api){
         $api->put('forms/result/{form_id}','SurveyController@updateSurvey');
 
         $api->get('locations', 'LocationController@getLocations');
+        $api->get('districts', 'LocationController@getDistricts');
+        $api->get('talukas', 'LocationController@getTalukas');
+        $api->get('villages', 'LocationController@getVillages');
+        $api->get('clusters', 'LocationController@getClusters');
+
         $api->get('jurisdiction-types[/{id}]', 'JurisdictionTypeController@index');
         $api->get('reports[/{id}]', 'ReportController@index');
 
@@ -91,6 +96,7 @@ $api->version('v1',function($api){
         $api->get('machine/mou','MachineTrackingController@machineMoU');
         $api->get('machine/code', 'MachineMasterController@getMachineCode');
 
+        $api->post('machine', 'MachineMasterController@createMachineCode');
     });
 
 });

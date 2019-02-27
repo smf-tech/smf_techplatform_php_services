@@ -55,6 +55,83 @@ class LocationController extends Controller
         return response()->json($response_data); 
     }
 
+    public function getDistricts()
+    {
+        $database = $this->setDatabaseConfig($this->request);
+        DB::setDefaultConnection($database); 
+
+        $districts = District::all();
+
+        if($districts == '[]')
+            return response()->json([
+            'status' => 'success',
+            'data' => '',
+            'message' => 'No districts present'
+            ],200);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $districts,
+            'message' => 'Getting a list of all Districts'
+        ],200);
+    }
+
+    public function getTalukas()
+    {
+        $database = $this->setDatabaseConfig($this->request);
+        DB::setDefaultConnection($database); 
+
+        $talukas = Taluka::all();
+
+        if($talukas == '[]')
+            return response()->json([
+            'status' => 'success',
+            'data' => '',
+            'message' => 'No talukas present'
+            ],200);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $talukas,
+            'message' => 'Getting a list of all Talukas'
+        ],200);
+    }
+
+    public function getVillages()
+    {
+        $database = $this->setDatabaseConfig($this->request);
+        DB::setDefaultConnection($database); 
+
+        $villages = Village::all();
+
+        if($villages == '[]')
+            return response()->json([
+            'status' => 'success',
+            'data' => '',
+            'message' => 'No villages present'
+            ],200);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $villages,
+            'message' => 'Getting a list of all Villages'
+        ],200);
+    }
+
+    public function getClusters()
+    {
+        $database = $this->setDatabaseConfig($this->request);
+        DB::setDefaultConnection($database); 
+
+        $clusters = Cluster::all();
+
+        if($clusters == '[]')
+            return response()->json([
+            'status' => 'success',
+            'data' => '',
+            'message' => 'No clusters present'
+            ],200);
+    }
     public function getLevelData(Request $request, $orgId, $jurisdictionTypeId, $jurisdictionLevel)
     {
         $database = $this->connectTenantDatabase($request, $orgId);
