@@ -60,16 +60,16 @@ class StructureMasterController extends Controller
                                  'talav'=>'TLAV','dam'=>'DAM','canal'=>'CANL','mnb'=>'MNB','cnb'=>'CNB');
             
             $data = $this->request->all();
-            $district = District::find($this->request->input('district_id'));
-            $taluka= Taluka::find($this->request->input('taluka_id'));
-            $village= Village::find($this->request->input('village_id'));
+            $district = District::find($this->request->input('district_id'));
+            $taluka = Taluka::find($this->request->input('taluka_id'));
+            $village = Village::find($this->request->input('village_id'));
             $department_code = $department_abbr[$this->request->input('structure_owner_department')];
             $structuretype_code = $struct_abbr[$this->request->input('type')];
           
-            $structures = StructureMaster::where('structure_code','LIKE',$district->abbr.'/'.$taluka->abbr.'/'.$village->name.'/'.$department_code.'/'.$structuretype_code.'%')->max('structure_code');
+            $structures =StructureMaster::where('structure_code','LIKE',$district->abbr.'/'.$taluka->abbr.'/'.$village->name.'/'.$department_code.'/'.$structuretype_code.'%')->max('structure_code');
             if($structures){
                 $numberoffset = strlen($district->abbr.'/'.$taluka->abbr.'/'.$village->name.'/'.$department_code.'/'.$structuretype_code);
-                $queueValue = substr($structures ,$numberoffset)+1;
+                $queueValue = substr($structures ,$numberoffset)+1;
             }else{
                 $queueValue = 1;  
             }
