@@ -19,8 +19,10 @@ class MachineMasterController extends Controller
 
     public function getMachineCode()
     {
-        $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database);      
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
 
         try {
             return response()->json([

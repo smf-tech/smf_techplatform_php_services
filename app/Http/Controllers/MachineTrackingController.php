@@ -34,32 +34,25 @@ class MachineTrackingController extends Controller
 
     public function machineDeploy()
     {
-        $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database);      
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
 
         $deployedMachine = new MachineTracking;
-        $deployedMachine->village = $this->request->village;
+        $deployedMachine->village()->associate(\App\Village::find($this->request->village));
 
-        $dateTime = Carbon::now()->toDateTimeString();
-
-        $deployedMachine->date_deployed = $dateTime;
+        $deployedMachine->date_deployed = $this->request->date_deployed;
         $deployedMachine->structure_code = $this->request->structure_code;
         $deployedMachine->machine_code = $this->request->machine_code;
         $deployedMachine->deployed = true;
         $deployedMachine->status = $this->request->status;
 
         if($this->request->filled('last_deployed')) {
-            
-            $dateTime = Carbon::createFromFormat(
-                'Y-m-d',
-                $this->request->last_deployed
-            )->toDateTimeString();
-
-            $deployedMachine->last_deployed = $dateTime;
+            $deployedMachine->last_deployed = $this->request->last_deployed;
         }
 
         if($this->request->filled('mou_id')) {
-
             $machine = MachineMou::where('mou_id',$this->request->input('mou_id'))->first();
             $deployedMachine->mou_details = $machine->toArray();
         }
@@ -74,12 +67,14 @@ class MachineTrackingController extends Controller
 
     public function getDeploymentInfo()
     {
-        $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database); 
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
 
         if($this->request->input('deployed'))
         {
-            $deployedMachines = MachineTracking::where('deployed',true)->get();
+            $deployedMachines = MachineTracking::where('deployed',true)->with('village')->get();
         }
         
         return response()->json(['status'=>'success','data'=>$deployedMachines,'message'=>'']);
@@ -87,48 +82,54 @@ class MachineTrackingController extends Controller
 
     public function machineShift()
     {
-        $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database); 
-        
-        $machine = MachineTracking::where('village',$this->request->moved_from_village)
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
+        $data = $this->request->all();
+        $machine = MachineTracking::where('village_id',$this->request->moved_from_village)
                                 ->where('structure_code',$this->request->old_structure_code)
                                 ->where('machine_code',$this->request->machine_code)
                                 ->first();
 
-
-        $data = $this->request->all();
-                                
         $shiftingRecord = ShiftingRecord::create($data);
+        $shiftingRecord->movedFromVillage()->associate(\App\Village::find($data['moved_from_village']));
+        $shiftingRecord->movedToVillage()->associate(\App\Village::find($data['moved_to_village']));
+        $shiftingRecord->machineTracking()->associate($machine);
+        $shiftingRecord->save();
 
         $shifting_id = $shiftingRecord->getIdAttribute();
 
         $record_id = [ 'shiftingId' => $shifting_id];
-        
+
         $machine->status = 'shifted';
+
         $machine->save();
 
-        $machine->shiftingRecords()->save($shiftingRecord);
-
-        return response()->json(['status'=>'success','data'=>$record_id,'message'=>'']);       
+        return response()->json(['status'=>'success','data'=>$record_id,'message'=>'']);
     }
 
     public function getShiftingInfo()
-    {      
-        $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database); 
+    {
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
 
         return response()->json([
                                     'status'=>'success',
                                     'data'=> MachineTracking::where('status','shifted')
-                                                            ->with('shiftingRecords')
+                                                            ->with('shiftingRecords', 'shiftingRecords.movedFromVillage', 'shiftingRecords.movedToVillage', 'village')
                                                             ->get(),
                                     'message'=>'']); 
     }
 
     public function machineMoU()
     {
-        $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database); 
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
         
         $machine = MachineTracking::where('mou_details','!=',null)->get();
         

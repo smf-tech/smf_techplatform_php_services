@@ -28,27 +28,30 @@ class UserController extends Controller
 
     public function getUserDetails() {
         $user = $this->request->user();
-        return $user;
+        if($user) {
+            return response()->json(['status'=>'success', 'data'=>$user, 'message'=>''],200);
+        }else{
+            return response()->json(['status'=>'error', 'data'=>$user, 'message'=>'User Not Found'],404);
+        }
     }
 
-    public function show()
+    public function show($phone)
     {
-        $users = User::all();
-        return $users;
+        $user = User::where('phone', $phone)->first();
+        if($user) {
+            return response()->json(['status'=>'success', 'data'=>$user, 'message'=>''],200);
+        }else{
+            return response()->json(['status'=>'error', 'data'=>$user, 'message'=>'User Not Found'],404);
+        }
+        
+        return $user;
     }
 
     public function update($phone)
     {
         $user = User::where('phone', $phone)->first();
-        if($user){
-//            if ($this->request->hasFile('profile_picture')) {
-//                $this->validate($this->request, [
-//                    'profile_picture' => 'image'
-//                ]);
-//            }
+        if($user) {
             $update_data = $this->request->all();
-//            $user->uploadProfilePicture($update_data['profile_picture']);
-            //return $update_data;
 
             if (isset($update_data['type']) && !empty($update_data['type'])) {
                 if ($update_data['type'] !== 'organisation') {
@@ -58,15 +61,8 @@ class UserController extends Controller
                 }
             }
 
-            $update_data['dob'] = strtotime($update_data['dob']);
             $user->update($update_data);
-            /*if(array_key_exists('role_id',$update_data)){
-                $role = Role::find($update_data['role_id']);
-                if($role){
-                    $user->assignRole($role->name);
-                }
-            }*/
-            $user->dob = date('Y-m-d',$user->dob);
+
             return response()->json(['status'=>'success', 'data'=>$user, 'message'=>''],200);
         }else{
             return response()->json(['status'=>'error', 'data'=>$user, 'message'=>'Invalid Mobile Number'],404);
@@ -79,13 +75,15 @@ class UserController extends Controller
         $userForApproval = User::where('phone', $phone)->first();
         $loggedInUser = $this->request->user();
 
-        $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database); 
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
 
         $userRole = RoleConfig::where('role_id',$userForApproval->role_id)->first();
 
         if(!isset($userRole->approver_role)) {
-
+            DB::setDefaultConnection('mongodb');
             $userForApproval->update(['approve_status'=>'approved']);
             return response()->json(['status'=>'success', 'data'=>$userForApproval, 'message'=>''],200);
         }
@@ -105,11 +103,34 @@ class UserController extends Controller
 
     public function upload()
     {
-        if ($this->request->file('profilePhoto')->isValid()) {
-            $fileInstance = $this->request->file('profilePhoto');
+        if (!$this->request->filled('type')) {
+                return response()->json(
+                    [
+                        'status' => 'error',
+                        'data' => '',
+                        'message' => 'Please specify type field and values must be either form, profile or story'
+                    ],
+                    400
+                );
+        }
+        $types = [
+            'profile' => 'BJS/Images/profile',
+            'form' => 'BJS/Images/forms',
+            'story' => 'BJS/Images/stories'
+        ];
+        if (!isset($types[$this->request->type])) {
+                return response()->json(['status' => 'error', 'data' => '', 'message' => 'Invalid type value'], 400);
+        }
+        if ($this->request->file('image')->isValid()) {
+            $fileInstance = $this->request->file('image');
             $name = $fileInstance->getClientOriginalName();
             //https://mybucket.s3.amazonaws.com/myfolder/afile.jpg
-            var_dump($this->request->file('profilePhoto')->storeAs('profile-photoes', $name, 's3'));
+            $s3Path = $this->request->file('image')->storePubliclyAs($types[$this->request->type], $name, 's3');
+            if ($s3Path == null || !$s3Path) {
+                return response()->json(['status' => 'error', 'data' => '', 'message' => 'Error while uploading an image'], 400);
+            }
+            $result = 'https://' . env('AWS_BUCKET') . '.' . env('AWS_URL') . '/' . $s3Path;
+            return response()->json(['status' => 'success', 'data' => ['url' => $result], 'message' => 'Image successfully uploaded in S3']);
         }
     }
 
@@ -117,8 +138,10 @@ class UserController extends Controller
     {
         $loggedInUser = $this->request->user();
 
-        $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database); 
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
 
         $roles = RoleConfig::where('approver_role', $loggedInUser->role_id)->get(['role_id']);
 

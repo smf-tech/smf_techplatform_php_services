@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Laravel\Lumen\Routing\Controller as BaseController;
 use Illuminate\Http\Request;
 use App\Organisation;
+use Illuminate\Support\Facades\DB;
 
 class Controller extends BaseController
 {
@@ -14,7 +15,7 @@ class Controller extends BaseController
      * @param Request $request
      * @return string
      */
-    public function setDatabaseConfig(Request $request, $orgId = null)
+    public function connectTenantDatabase(Request $request, $orgId = null)
     {
         $organisation = null;
         if ($orgId instanceof Organisation) {
@@ -26,17 +27,17 @@ class Controller extends BaseController
             $organisation = Organisation::find($orgId);
         }
         if ($organisation === null) {
-            return;
+            return null;
         }
-        $database = $organisation->name.'_'.$organisation->id;
+        $dbName = $organisation->name.'_'.$organisation->id;
 
-        \Illuminate\Support\Facades\Config::set('database.connections.'.$database, array(
-            'driver'    => 'mongodb',
-            'host'      => '127.0.0.1',
-            'database'  => $database,
-            'username'  => '',
-            'password'  => '',
-        ));
-        return $database;
+        $mongoDBConfig = config('database.connections.mongodb');
+        $mongoDBConfig['database'] = $dbName;
+        \Illuminate\Support\Facades\Config::set(
+            'database.connections.' . $dbName,
+            $mongoDBConfig
+        );
+        DB::setDefaultConnection($dbName);
+        return $dbName;
     }
 }

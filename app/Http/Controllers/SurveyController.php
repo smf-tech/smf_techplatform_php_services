@@ -33,8 +33,10 @@ class SurveyController extends Controller
 
     public function updateSurvey($survey_id)
     {
-        $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database); 
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
 
         $user = $this->request->user();
 
@@ -120,16 +122,18 @@ class SurveyController extends Controller
 
     public function getSurveys()
     {
-        $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database); 
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
 
         $user = $this->request->user();
 
         // Obtaining '_id','name','active','editable','multiple_entry','category_id','microservice_id','project_id','entity_id','assigned_roles' of Surveys
         // alongwith corresponding details of 'microservice','project','category','entity'
-        $data = Survey::select('_id','name','active','editable','multiple_entry','category_id','microservice_id','project_id','entity_id','assigned_roles')
+        $data = Survey::select('_id','name','active','editable','multiple_entry','category_id','microservice_id','project_id','entity_id','assigned_roles','created_at')
         ->with('microservice','project','category','entity')
-        ->where('assigned_roles','=',$user->role_id)->get(); 
+        ->where('assigned_roles','=',$user->role_id)->orderBy('created_at')->get();
 
         foreach($data as $row)
         {
@@ -147,8 +151,10 @@ class SurveyController extends Controller
 
     public function getSurveyDetails($survey_id)
     {
-        $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database); 
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
 
         // Obtaining '_id','name','json', active','editable','multiple_entry','category_id','microservice_id','project_id','entity_id','assigned_roles','form_keys' of a Survey
         // alongwith corresponding details of 'microservice','project','category','entity'
@@ -170,8 +176,10 @@ class SurveyController extends Controller
 
     public function createResponse($survey_id)
     {
-        $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database); 
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
 
         $user = $this->request->user();
 
@@ -301,8 +309,10 @@ class SurveyController extends Controller
 
     public function showResponse($survey_id)
     {
-        $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database); 
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
 
         $user = $this->request->user();
         

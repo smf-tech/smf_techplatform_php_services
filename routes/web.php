@@ -39,6 +39,7 @@ $api->version('v1',function($api){
 
         $api->get('message/otp','MessageAuthController@sendOTP');
         $api->get('token','MessageAuthController@verifyOTP');
+        $api->post('refreshtoken','MessageAuthController@refreshToken');
         $api->get('organizations','OrganisationController@listOrgs');
         $api->get('projects/{org_id}','OrganisationController@getorgprojects');
         $api->get('states','LocationController@getstates');
@@ -52,7 +53,7 @@ $api->version('v1',function($api){
 
     $api->group(['namespace'=>'App\Http\Controllers','middleware'=>['auth:api','cors']],function($api){
         $api->get('roles/{org_id}','RoleController@getorgroles');
-        $api->get('users','UserController@show');
+        //$api->get('user/{phone}','UserController@show');
         $api->get('user','UserController@getUserDetails');
 		
         $api->get('tasks','TaskController@show');
@@ -62,7 +63,7 @@ $api->version('v1',function($api){
         $api->put('users/{phone}', ['uses' => 'UserController@update']);
         $api->get('modules/{org_id}/{role_id}','RoleController@getroleconfig');
         $api->put('users/approval/{phone}', ['uses' => 'UserController@approveuser']);
-        $api->post('users/profile-upload', 'UserController@upload');
+        $api->post('upload-image', 'UserController@upload');
 
         $api->get('forms/schema','SurveyController@getSurveys');
         $api->get('forms/schema/{form_id}','SurveyController@getSurveyDetails');

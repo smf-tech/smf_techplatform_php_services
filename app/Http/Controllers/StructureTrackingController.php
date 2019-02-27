@@ -4,11 +4,10 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Dingo\Api\Routing\Helpers;
-use Illuminate\Support\Facades\DB;
 use App\StructureTracking;
-use Carbon\Carbon;
 use App\Volunteer;
 use App\FFAppointed;
+use App\Village;
 
 class StructureTrackingController extends Controller
 {
@@ -29,21 +28,28 @@ class StructureTrackingController extends Controller
         try {
             $userId = $this->request->user()->id;
             $data = $this->request->all();
-            if (isset($data['reporting_date']) && !empty($data['reporting_date'])) {
-                $data['reporting_date'] = Carbon::createFromFormat('Y-m-d', $data['reporting_date'])->toDateTimeString();
-            }
             $data['status'] = self::PREPARED;
             $data['created_by'] = $userId;
-            $databaseName = $this->setDatabaseConfig($this->request);
-            DB::setDefaultConnection($databaseName);
-            $structureTracking = StructureTracking::create($data);
-            if (isset($data['ff_appointed']) && !empty($data['ff_appointed'])) {
-                foreach ($data['ff_appointed'] as $singleFF) {
-                    $ffInstance = FFAppointed::create($singleFF);
-                    $ffInstance->structureTracking()->associate($structureTracking);
-                    $ffInstance->save();
-                }
+            $database = $this->connectTenantDatabase($this->request);
+            if ($database === null) {
+                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
             }
+            $structureTracking = StructureTracking::create($data);
+            if (isset($data['village']) && !empty($data['village'])) {
+                $village = Village::find($data['village']);
+                $structureTracking->village()->associate($village);
+                $structureTracking->save();
+            }
+            if (isset($data['ff_name']) && !empty($data['ff_name'])) {
+                $ffInstance = FFAppointed::create([
+                    'name' => $data['ff_name'],
+                    'mobile_number' => $data['ff_mobile_number'],
+                    'training_completed' => $data['ff_training_completed']
+                ]);
+                $ffInstance->structureTracking()->associate($structureTracking);
+                $ffInstance->save();
+            }
+
             if (isset($data['volunteers']) && !empty($data['volunteers'])) {
                 foreach ($data['volunteers'] as $volunteer) {
                     $volunteerInstance = Volunteer::create($volunteer);
@@ -81,12 +87,14 @@ class StructureTrackingController extends Controller
                     400
                 );
             }
-            $databaseName = $this->setDatabaseConfig($this->request);
-            DB::setDefaultConnection($databaseName);
+            $database = $this->connectTenantDatabase($this->request);
+            if ($database === null) {
+                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+            }
             $prepared = $this->request->prepared === 'true' ? self::COMPLETED : self::PREPARED;
             return response()->json([
                 'status' => 'success',
-                'data' => StructureTracking::where('status', $prepared)->with('ffs', 'volunteers')->get(),
+                'data' => StructureTracking::where('status', $prepared)->with('village', 'ffs', 'volunteers')->get(),
                 'message' => 'List of structures.'
             ]);
         } catch(\Exception $exception) {
@@ -106,43 +114,22 @@ class StructureTrackingController extends Controller
         try {
             $userId = $this->request->user()->id;
             $data = $this->request->all();
-            foreach ($data as $key => &$value) {
-                if (
-                        in_array($key, ['reporting_date', 'work_start_date', 'work_end_date'])
-                        &&
-                        !empty($value)
-                        &&
-                        $value !== NULL
-                    ) {
-                    $value = Carbon::createFromFormat(
-                            'Y-m-d',
-                            $value
-                        )->toDateTimeString();
-                }
-            }
-            $data['status'] = self::COMPLETED;
+            $data['status'] = $data['status'] == true ? self::COMPLETED : self::PREPARED;
             $data['created_by'] = $userId;
-            $databaseName = $this->setDatabaseConfig($this->request);
-            DB::setDefaultConnection($databaseName);
-            $structureTracking = StructureTracking::create($data);
-            if (isset($data['ff_appointed']) && !empty($data['ff_appointed'])) {
-                foreach ($data['ff_appointed'] as $singleFF) {
-                    $ffInstance = FFAppointed::create($singleFF);
-                    $ffInstance->structureTracking()->associate($structureTracking);
-                    $ffInstance->save();
-                }
+            $database = $this->connectTenantDatabase($this->request);
+            if ($database === null) {
+                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
             }
-            if (isset($data['volunteers']) && !empty($data['volunteers'])) {
-                foreach ($data['volunteers'] as $volunteer) {
-                    $volunteerInstance = Volunteer::create($volunteer);
-                    $volunteerInstance->structureTracking()->associate($structureTracking);
-                    $volunteerInstance->save();
-                }
+            $structureTracking = StructureTracking::updateOrCreate(['village_id' => $data['village'], 'structure_code' => $data['structure_code']], $data);
+            if ($structureTracking->village() === null || (isset($data['village']) && $structureTracking->village->id != $data['village'])) {
+                $village = Village::find($data['village']);
+                $structureTracking->village()->associate($village);
+                $structureTracking->save();
             }
             return response()->json([
                 'status' => 'success',
                 'data' => ['completionId' => $structureTracking->getIdAttribute()],
-                'message' => 'Structure completed successfully.'
+                'message' => 'Structure ' . $data['status'] . ' successfully.'
             ]);
         } catch(\Exception $exception) {
             return response()->json(

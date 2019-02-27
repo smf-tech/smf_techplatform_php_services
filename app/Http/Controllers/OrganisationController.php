@@ -40,13 +40,13 @@ class OrganisationController extends Controller
         foreach ($organisations as &$organisation) {
             $organisation['type'] = 'organisation';
             $organisation['associateOrgId'] = $organisation->id;
+            $organisation['name'] = strtoupper($organisation['name']);
 
             DB::setDefaultConnection('mongodb');
-            $databaseName = $this->setDatabaseConfig($this->request, $organisation->id);
+            $databaseName = $this->connectTenantDatabase($this->request, $organisation->id);
             if (empty($databaseName)) {
                 continue;
             }
-            DB::setDefaultConnection($databaseName);
 
             $associates = Associate::all();
 
@@ -69,16 +69,11 @@ class OrganisationController extends Controller
     public function getorgprojects($org_id){
         $org = Organisation::find($org_id);
         if($org){
-            $dbName = $org->name.'_'.$org_id;
-            \Illuminate\Support\Facades\Config::set('database.connections.'.$dbName, array(
-                'driver'    => 'mongodb',
-                'host'      => '127.0.0.1',
-                'database'  => $dbName,
-                'username'  => '',
-                'password'  => '',  
-            ));
-            DB::setDefaultConnection($dbName); 
-            
+            $databaseName = $this->connectTenantDatabase($this->request,$org_id);
+            if ($databaseName === null) {
+                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+            }
+
             $projects = Project::get(['name']); 
             $response_data = array('status' =>'success','data' => $projects,'message'=>'');
             return response()->json($response_data,200); 

@@ -25,6 +25,11 @@ class MessageAuthController extends Controller
         }else{
             DB::collection('user_otp_verify')->insert(['ph_no'=>$ph_no , 'otp'=>$six_digit_random_number , 'time'=>date("Y/m/d H:i:s",time()) ]  );
         }
+        
+        $http = new \GuzzleHttp\Client;
+        $autoreadcode = env('AUTOREAD_SMS_CODE','JftAsR+UI44');
+        $sendsmscall = $http->get('http://www.smsjust.com/sms/user/urlsms.php?username=avmabd&pass=avmabd@123&senderid=MVMSMF&dest_mobileno='.$ph_no.'&message=%3C%23%3E%20The%20password%20is:'.$six_digit_random_number.' '.urlencode($autoreadcode).'&response=Y');
+
         $content = array('otp'=>$six_digit_random_number);
         $response_data = array('status' =>'success','data' => $content,'message'=>'Otp Sent successfully');
 	    return response()->json($response_data);      
@@ -111,5 +116,32 @@ class MessageAuthController extends Controller
 	public function getTestEndpoint(Request $request){
 	   $content = array('name'=>'test');
 	   return response()->json($content);
-	}
+    }
+    
+    public function refreshToken(Request $request){
+        //get the refresh token from the request
+        $data = $request->all();
+        $grant_type =$data['grant_type'];
+        $client_id =$data['client_id'];
+        $client_secret =$data['client_secret'];
+        $scope =$data['scope'];
+        $refresh_token =$data['refresh_token'];
+
+        $http = new \GuzzleHttp\Client;
+        //call the Oauth Api to refresh the token
+        $response = $http->post('http://localhost/oauth/token', [
+            'form_params' => [
+                                'grant_type' => $grant_type,
+                                'client_id' => $client_id,
+                                'client_secret' => $client_secret,
+                                'refresh_token' => $refresh_token,
+                                'scope' => $scope
+                    ],
+            ]);
+
+        $refresh_token_response = json_decode((string)$response->getBody(), true);
+        $response_data = array('status' =>'success','data' => $refresh_token_response,'message'=>'');
+        return response()->json($response_data);           
+        
+    }
 }

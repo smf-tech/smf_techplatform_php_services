@@ -5,11 +5,11 @@ namespace App;
 use Jenssegers\Mongodb\Eloquent\Model as Model;
 use App\Volunteer;
 use App\FFAppointed;
+use App\Village;
 
 class StructureTracking extends Model
 {
     protected $fillable = [
-        'village',
         'structure_code',
         'work_type',
         'reporting_date',
@@ -18,7 +18,11 @@ class StructureTracking extends Model
         'work_end_date',
         'status',
         'created_by',
-        'updated_by'
+        'updated_by',
+        'structure_images_1',
+        'structure_images_2',
+        'structure_images_3',
+        'structure_images_4'
     ];
 
     public function volunteers()
@@ -29,5 +33,10 @@ class StructureTracking extends Model
     public function ffs()
     {
         return $this->hasMany(FFAppointed::class);
+    }
+
+    public function village()
+    {
+        return $this->belongsTo(Village::class);
     }
 }

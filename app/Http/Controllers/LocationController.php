@@ -134,8 +134,10 @@ class LocationController extends Controller
     }
     public function getLevelData(Request $request, $orgId, $jurisdictionTypeId, $jurisdictionLevel)
     {
-        $database = $this->setDatabaseConfig($request, $orgId);
-        DB::setDefaultConnection($database);
+        $database = $this->connectTenantDatabase($request, $orgId);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
         $jurisdictionType = JurisdictionType::find($jurisdictionTypeId);
         $levels = [];
         if($jurisdictionType !== null){
@@ -176,8 +178,10 @@ class LocationController extends Controller
         
         // $role = Role::find($user->role_id);
 
-        $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database);   
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
 
         $status = "success";
 
@@ -211,7 +215,9 @@ class LocationController extends Controller
                 if($userLocation !== null && isset($userLocation[$level]) && !empty($userLocation[$level])) {
                     $locations = Location::where('jurisdiction_type_id',$roleConfig->jurisdiction_type_id);
                     foreach ($jurisdictions as $singleLevel) {
-                        $locations->whereIn(strtolower($singleLevel) . '_id', $userLocation[strtolower($singleLevel)]);
+                        if (isset($userLocation[strtolower($singleLevel)])) {
+                            $locations->whereIn(strtolower($singleLevel) . '_id', $userLocation[strtolower($singleLevel)]);
+                        }
                     }
                     $data = $locations->with('state', 'district', 'taluka', 'village')->get();
                 } else {
