@@ -9,6 +9,7 @@ use App\StructureMaster;
 use App\District;
 use App\Taluka;
 use App\Village;
+use Carbon\Carbon;
 
 class StructureMasterController extends Controller
 {
@@ -58,8 +59,9 @@ class StructureMasterController extends Controller
             $struct_abbr = array('cct'=>'CCT','deep_cct'=>'DCCT','nala'=>'NALA',
                                  'talav'=>'TLAV','dam'=>'DAM','canal'=>'CANL','mnb'=>'MNB','cnb'=>'CNB');
             
-            $district = District::find($this->request->input('district_id'));
-            $taluka= Taluka::find($this->request->input('taluka_id'));
+            $data = $this->request->all();
+            $district = District::find($this->request->input('district_id'));
+            $taluka= Taluka::find($this->request->input('taluka_id'));
             $village= Village::find($this->request->input('village_id'));
             $department_code = $department_abbr[$this->request->input('structure_owner_department')];
             $structuretype_code = $struct_abbr[$this->request->input('type')];
@@ -72,11 +74,16 @@ class StructureMasterController extends Controller
                 $queueValue = 1;  
             }
             $structure_code = $district->abbr.'/'.$taluka->abbr.'/'.$village->name.'/'.$department_code.'/'.$structuretype_code.$queueValue;
-            return $structure_code ;
+            $data['created_by'] = $this->request->user()->id;
+            $data['structure_code'] = $structure_code;
+            // Gives current date and time in the format :  2019-01-24 10:30:46
+            $date = Carbon::now();
+            $data['created_at']=$date->toDateTimestring();
+            $data['updated_at']=$date->toDateTimestring();
             return response()->json([
                 'status' => 'success',
-                'data' => StructureMaster::all('structure_code'),
-                'message' => 'List of Structure codes.'
+                'data' => StructureMaster::create($data),
+                'message' => 'Created Record in Structure Master'
             ]);
         } catch(\Exception $exception) {
             return response()->json(
