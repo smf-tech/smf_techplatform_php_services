@@ -50,6 +50,7 @@ class UserController extends Controller
     public function update($phone)
     {
         $user = User::where('phone', $phone)->first();
+		$userLocation = $user->location;
         if($user) {
             $update_data = $this->request->all();
 
@@ -63,6 +64,34 @@ class UserController extends Controller
 
             $user->update($update_data);
 
+			if (isset($update_data['role_id'])) {
+				$this->connectTenantDatabase($this->request);
+				$roleConfig = RoleConfig::where('role_id', $update_data['role_id'])->first();
+				$level = $roleConfig->level;
+				$levelDetail = \App\Jurisdiction::find($level);
+				$jurisdictions = \App\JurisdictionType::where('_id',$roleConfig->jurisdiction_type_id)->pluck('jurisdictions')[0];
+				DB::setDefaultConnection('mongodb');
+				$approvers = User::where('role_id', $roleConfig->approver_role);
+				foreach ($jurisdictions as $singleLevel) {
+					if (isset($userLocation[strtolower($singleLevel)])) {
+						$approvers->whereIn('location.' . strtolower($singleLevel), $userLocation[strtolower($singleLevel)]);
+						if ($singleLevel == $levelDetail->name) {
+							break;
+						}
+					}
+				}
+
+				$approverList = $approvers->get();
+				$approverList->each(function($approver, $key) {
+					if (isset($approver->firebase_id) && !empty($approver->firebase_id)) {
+						$params = [
+							'phone' => $phone,
+							'update_status' => 'approved'
+						];
+						$this->sendPushNotification(self::NOTIFICATION_TYPE_APPROVAL, $approver->firebase_id, $params);
+					}
+				});
+			}
             return response()->json(['status'=>'success', 'data'=>$user, 'message'=>''],200);
         }else{
             return response()->json(['status'=>'error', 'data'=>$user, 'message'=>'Invalid Mobile Number'],404);

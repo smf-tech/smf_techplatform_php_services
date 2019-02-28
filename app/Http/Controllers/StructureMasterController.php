@@ -57,7 +57,20 @@ class StructureMasterController extends Controller
                                      'irrigation_department'=>'IRG'
                                     );
             $struct_abbr = array('cct'=>'CCT','deep_cct'=>'DCCT','nala'=>'NALA',
-                                 'talav'=>'TLAV','dam'=>'DAM','canal'=>'CANL','mnb'=>'MNB','cnb'=>'CNB');
+                                 'talav'=>'TLAV','dam'=>'DAM','canal'=>'CANL',
+                                 'mnb'=>'MNB','cnb'=>'CNB','farm_pond'=>'FRMP',
+                                 'river'=>'RIVR','mi_tank'=>'MITK',
+                                 'percolation_tank'=>'PCTK',
+                                 'kt_ware'=>'KTWR','graded_contour_bunding'=>'GCB',
+                                 'contour_bunding-CB'=>'CB',
+                                 'inlet_outlet_farm_pond_IO'=>'FP[I]',
+                                 'trench_cum_mount_or_cow_protection_trench-TCM'=>'TCM',
+                                 'cpt'=>'CPT',
+                                 'earthen_gully_plug_EGP'=>'EGP',
+                                 'nala_rundikaran_kholikaran-NRK'=>'NRK',
+                                 'compartment_bunding-CB'=>'CMPB',
+                                 'village_cleaning-VC'=>'VC',
+                                 'dhalicha_bandh'=>'GCB','vantale'=>'FSTP');
             
             $data = $this->request->all();
             $district = District::find($this->request->input('district_id'));
@@ -84,7 +97,7 @@ class StructureMasterController extends Controller
                 'status' => 'success',
                 'data' => StructureMaster::create($data),
                 'message' => 'Created Record in Structure Master'
-            ]);
+            ],201);
         } catch(\Exception $exception) {
             return response()->json(
                     [
