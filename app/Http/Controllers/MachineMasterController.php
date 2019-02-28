@@ -58,16 +58,12 @@ class MachineMasterController extends Controller
         $database = $this->setDatabaseConfig($this->request);
         DB::setDefaultConnection($database); 
 
-        // return gettype($this->request->all()); //array
-
         $data = $this->request->all();
         $district = District::find($this->request->input('district_id'));
         // $machines = MachineMaster::where('machine_code','LIKE',$district->abbr.'%')->get(['machine_code']);
-        // return $machines;
         $machines = MachineMaster::where('machine_code','LIKE',$district->abbr.'%')->max('machine_code');
         // $queueValue = substr($machines,2,3) + 1;
         $queueValue = substr($machines,2,-6) + 1;
-        // return $machines.'   '.substr($machines,2,-6);
         $modelNumber = $values[$this->request->input('machine_make')][$this->request->input('machine_model')];
         $finalCode = $district->abbr.$queueValue.$this->request->input('machine_make').$modelNumber[0].$modelNumber[1];
         
@@ -78,6 +74,6 @@ class MachineMasterController extends Controller
             'status' => 'success',
             'data' => MachineMaster::create($data),
             'message' => 'Creation of a new record in Machine Master'
-        ],200);
+        ],201);
     }
 }

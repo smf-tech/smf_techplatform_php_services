@@ -17,6 +17,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Arr;
 use Validator;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class SurveyController extends Controller
 {
@@ -193,7 +194,7 @@ class SurveyController extends Controller
         $primaryValues = array();
 
         // Looping through the response object from the body
-        foreach($this->request->response as $key=>$value)
+        foreach($this->request->all() as $key=>$value)
         {
             // Checking if the key is marked as a primary key and storing the value 
             // in primaryValues if it is
@@ -318,13 +319,39 @@ class SurveyController extends Controller
         
         $survey = Survey::find($survey_id);
 
+        $limit = $this->request->input('limit') ?:50;
+        $offset = $this->request->input('offset') ?:0;
+        $order = $this->request->input('order') ?:'asc';
+        $field = $this->request->input('field') ?:'created_at';
+        $page = $this->request->input('page') ?:1;
+
         if($survey->entity_id == null)
         {
-            $surveyResults = DB::collection('survey_results')->where('form_id','=',$survey_id)->where('user_id','=',$user->id)->get();
+            // $surveyResults = DB::collection('survey_results')
+            //                     ->where('form_id','=',$survey_id)
+            //                     ->where('user_id','=',$user->id)
+            //                     ->orderBy($field,$order)
+            //                     ->skip(1)->get();
+
+            
+            // $surveyResults = $surveyResults->toArray();
+            // return new \Illuminate\Pagination\LengthAwarePaginator($surveyResults, $limit, $page);
+         
+            
+
+            $surveyResults = DB::collection('survey_results')
+                                ->where('form_id','=',$survey_id)
+                                ->where('user_id','=',$user->id)
+                                ->orderBy($field,$order)
+                                ->simplePaginate($limit);
         }
         else
         {               
-            $surveyResults = DB::collection('entity_'.$survey->entity_id)->where('survey_id','=',$survey_id)->where('user_id','=',$user->id)->get();
+            $surveyResults = DB::collection('entity_'.$survey->entity_id)
+                                ->where('survey_id','=',$survey_id)
+                                ->where('user_id','=',$user->id)
+                                ->orderBy($field,$order)
+                                ->simplePaginate($limit);
         }           
 
         if ($surveyResults->count() === 0) {

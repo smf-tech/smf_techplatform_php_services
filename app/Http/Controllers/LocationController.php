@@ -57,8 +57,10 @@ class LocationController extends Controller
 
     public function getDistricts()
     {
-        $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database); 
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
 
         $districts = District::all();
 
@@ -78,8 +80,10 @@ class LocationController extends Controller
 
     public function getTalukas()
     {
-        $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database); 
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        } 
 
         $talukas = Taluka::all();
 
@@ -99,8 +103,10 @@ class LocationController extends Controller
 
     public function getVillages()
     {
-        $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database); 
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
 
         $villages = Village::all();
 
@@ -120,8 +126,10 @@ class LocationController extends Controller
 
     public function getClusters()
     {
-        $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database); 
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
 
         $clusters = Cluster::all();
 
@@ -130,6 +138,12 @@ class LocationController extends Controller
             'status' => 'success',
             'data' => '',
             'message' => 'No clusters present'
+            ],200);
+
+        return response()->json([
+                'status' => 'success',
+                'data' => $clusters,
+                'message' => 'Getting a list of all Clusters'
             ],200);
     }
     public function getLevelData(Request $request, $orgId, $jurisdictionTypeId, $jurisdictionLevel)
