@@ -77,12 +77,12 @@ class StructureTrackingController extends Controller
     public function get()
     {
         try {
-            if (!$this->request->filled('prepared')) {
+            if (!$this->request->filled('prepared') && !$this->request->filled('completed')) {
                 return response()->json(
                         [
                         'status' => 'error',
                         'data' => null,
-                        'message' => 'prepared parameter is missing'
+                        'message' => 'prepared or completed parameter is missing'
                     ],
                     400
                 );
@@ -91,12 +91,35 @@ class StructureTrackingController extends Controller
             if ($database === null) {
                 return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
             }
-            $prepared = $this->request->prepared === 'true' ? self::COMPLETED : self::PREPARED;
-            return response()->json([
-                'status' => 'success',
-                'data' => StructureTracking::where('status', $prepared)->with('village', 'ffs', 'volunteers')->get(),
-                'message' => 'List of structures.'
-            ]);
+			$userLocation = $this->request->user()->location;
+			$structures = [];
+			if (isset($userLocation['village']) && !empty($userLocation['village'])) {
+				if ($this->request->prepared === 'true') {
+					$structures = StructureTracking::where('status', self::PREPARED)
+							->whereIn('village_id', $userLocation['village'])
+							->with('village', 'ffs', 'volunteers')
+							->get();
+				} elseif ($this->request->prepared === 'false') {
+					$structureCodes = [];
+					$structureTrackingList = StructureTracking::whereIn('village_id', $userLocation['village'])->get();
+					$structureTrackingList->each(function($structureTracking, $key) {
+						$structureCodes[] = $structureTracking->structure_code;
+					});
+					$structures = \App\StructureMaster::whereIn('village_id', $userLocation['village'])
+							->whereNotIn('structure_code', $structureCodes)
+							->get();
+				} elseif ($this->request->completed === 'true') {
+					$structures = StructureTracking::where('status', self::COMPLETED)
+							->whereIn('village_id', $userLocation['village'])
+							->with('village', 'ffs', 'volunteers')
+							->get();
+				}
+			}
+			return response()->json([
+				'status' => 'success',
+				'data' => $structures,
+				'message' => 'List of structures.'
+			]);
         } catch(\Exception $exception) {
             return response()->json(
                     [
