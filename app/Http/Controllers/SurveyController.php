@@ -324,6 +324,7 @@ class SurveyController extends Controller
         $order = $this->request->input('order') ?:'desc';
         $field = $this->request->input('field') ?:'created_at';
         $page = $this->request->input('page') ?:1;
+        $structureCode = $this->request->input('structure_code');
 
         // $eDate = $this->request->input('start_date') ?:Carbon::now('Asia/Calcutta');
         // // return $endDate->modify('-1 months');
