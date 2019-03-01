@@ -357,7 +357,11 @@ class SurveyController extends Controller
         if ($surveyResults->count() === 0) {
             return response()->json(['status'=>'success','metadata'=>[],'values'=>[],'message'=>'']);
         }
-
+        
+        $title_pretext=(isset($survey->pretext_title) && $survey->pretext_title != '')? $survey->pretext_title.' ' : '';
+        $title_posttext=(isset($survey->posttext_title) && $survey->posttext_title != '')? ' '.$survey->posttext_title : '';
+        $title_fields = isset($survey->title_fields)?$survey->title_fields:[];
+        $separator = isset($survey->separator)?$survey->separator:'';
         $responseCount = $surveyResults->count();
         $result = ['form'=>['form_id'=>$survey_id,'user_id'=>$surveyResults[0]['user_id'],'created_at'=>$surveyResults[0]['created_at'],'submit_count'=>$responseCount]];
 
@@ -368,6 +372,20 @@ class SurveyController extends Controller
             if (!isset($surveyResult['form_id'])) {
                 $surveyResult['form_id'] = $survey_id;
             }
+
+            $title_fields_str = '';
+            if(!empty($title_fields)){
+                if($separator != ''){
+                    $separator = ' '.$separator.' ';      
+                }
+                $field_values = [];
+                foreach($title_fields as $title_field){
+                    $field_values[] = $surveyResult[$title_field];
+                }
+                $title_fields_str = implode($separator,$field_values);
+            }
+            $form_title =$title_pretext.$title_fields_str.$title_posttext;
+            $surveyResult['form_title'] = $form_title;
             // Excludes values 'form_id','user_id','created_at','updated_at' from the $surveyResult array
             //  and stores it in values
             $values[] = Arr::except($surveyResult,['survey_id','user_id','created_at']);
