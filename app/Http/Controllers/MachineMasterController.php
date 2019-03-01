@@ -44,19 +44,21 @@ class MachineMasterController extends Controller
 
     public function createMachineCode()
     {
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
+
         $values = [
             'TH' => ['Model -1' => [200, 'A'], 'Model -2' => [210, 'A'], 'Model -3' =>[220, 'B'] ],
             'JB' => ['Model -1' => [205, 'A'], 'Model -2' => [215,'A'], 'Model -3' =>[220, 'B']],
-            'HY' => ['Model -1' => [210, 'A'], 'Model -2' => [215,'A']],
-            'SN' => ['Model -1' => [210,'A'], 'Model -2' => [220,'A'] ],
-            'KB' => ['Model -1' => [210,'B'], 'Model -2' => [220,'B'] ],
-            'KM' => ['Model -1' => [210,'B']],
-            'VL' => ['Model -1' => [210,'B']],
-            'CT' => ['Model -1' => [320,'B']]
+            'HY' => ['Model -1' => [210, 'A'], 'Model -2' => [215,'A'], 'Model -3' =>[]],
+            'SN' => ['Model -1' => [210,'A'], 'Model -2' => [220,'A'], 'Model -3' =>[] ],
+            'KB' => ['Model -1' => [210,'B'], 'Model -2' => [220,'B'], 'Model -3' =>[] ],
+            'KM' => ['Model -1' => [210,'B'], 'Model -2' =>[], 'Model -3' =>[]],
+            'VL' => ['Model -1' => [210,'B'], 'Model -2' =>[], 'Model -3' =>[]],
+            'CT' => ['Model -1' => [320,'B'], 'Model -2' =>[], 'Model -3' =>[]]
         ];
-
-        $database = $this->setDatabaseConfig($this->request);
-        DB::setDefaultConnection($database); 
 
         $data = $this->request->all();
         $district = District::find($this->request->input('district_id'));
@@ -65,6 +67,16 @@ class MachineMasterController extends Controller
         // $queueValue = substr($machines,2,3) + 1;
         $queueValue = substr($machines,2,-6) + 1;
         $modelNumber = $values[$this->request->input('machine_make')][$this->request->input('machine_model')];
+        if(empty($modelNumber)) {
+            return response()->json(
+                [
+                    'status' => 'error',
+                    'data' => '',
+                    'message' => 'Invalid Entry For Machine Model'
+                ],
+                400
+            );
+        }
         $finalCode = $district->abbr.$queueValue.$this->request->input('machine_make').$modelNumber[0].$modelNumber[1];
         
         $data['created_by'] = $this->request->user()->id;

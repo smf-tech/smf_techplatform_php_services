@@ -64,12 +64,13 @@ class LocationController extends Controller
 
         $districts = District::all();
 
-        if($districts == '[]')
+        if($districts->count() === 0) {
             return response()->json([
             'status' => 'success',
             'data' => '',
             'message' => 'No districts present'
             ],200);
+        }
 
         return response()->json([
             'status' => 'success',
@@ -87,12 +88,13 @@ class LocationController extends Controller
 
         $talukas = Taluka::all();
 
-        if($talukas == '[]')
+        if($talukas->count() === 0) {
             return response()->json([
             'status' => 'success',
             'data' => '',
             'message' => 'No talukas present'
             ],200);
+        }
 
         return response()->json([
             'status' => 'success',
@@ -110,12 +112,13 @@ class LocationController extends Controller
 
         $villages = Village::all();
 
-        if($villages == '[]')
+        if($villages->count() === 0) {
             return response()->json([
             'status' => 'success',
             'data' => '',
             'message' => 'No villages present'
             ],200);
+        }
 
         return response()->json([
             'status' => 'success',
@@ -133,12 +136,13 @@ class LocationController extends Controller
 
         $clusters = Cluster::all();
 
-        if($clusters == '[]')
+        if($clusters->count() === 0) {
             return response()->json([
             'status' => 'success',
             'data' => '',
             'message' => 'No clusters present'
             ],200);
+        }
 
         return response()->json([
                 'status' => 'success',

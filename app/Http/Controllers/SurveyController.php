@@ -51,7 +51,7 @@ class SurveyController extends Controller
         $primaryValues = array();
 
         // Looping through the response object from the body
-        foreach($this->request->response as $key=>$value)
+        foreach($this->request->all() as $key=>$value)
         {
             // Checking if the key is marked as a primary key and storing the value 
             // in primaryValues if it is
@@ -100,7 +100,7 @@ class SurveyController extends Controller
                                                     $q->where($key, '=', $value);
                                                 }
                                             })
-                                            ->update($fields,['upsert'=>true]); 
+                                            ->update($fields); 
         }
         else
         {
@@ -114,7 +114,7 @@ class SurveyController extends Controller
                                                         $q->where($key, '=', $value);
                                                    }
                                                 })
-                                                ->update($fields,['upsert'=>true]);                     
+                                                ->update($fields);                     
         }
 
         return response()->json(['status'=>'success','message'=>'']);
@@ -319,11 +319,39 @@ class SurveyController extends Controller
         
         $survey = Survey::find($survey_id);
 
-        $limit = $this->request->input('limit') ?:50;
+        $limit = (int)$this->request->input('limit') ?:50;
         $offset = $this->request->input('offset') ?:0;
-        $order = $this->request->input('order') ?:'asc';
+        $order = $this->request->input('order') ?:'desc';
         $field = $this->request->input('field') ?:'created_at';
         $page = $this->request->input('page') ?:1;
+
+        // $eDate = $this->request->input('start_date') ?:Carbon::now('Asia/Calcutta');
+        // // return $endDate->modify('-1 months');
+        // $sDate = $this->request->input('end_date') ?:Carbon::now('Asia/Calcutta')->subMonth();
+
+        if($this->request->filled('start_date')) {
+            $startDate = $this->request->input('start_date');
+        }
+        else {
+            $eDate = Carbon::now('Asia/Calcutta');
+            foreach($eDate as $key=>$value)
+            {
+                if($key == 'date')
+                    $endDate = $value;
+            }
+        }
+        
+        if($this->request->filled('end_date')) {
+            $endDate = $this->request->input('end_date');
+        }
+        else {
+            $sDate = Carbon::now('Asia/Calcutta')->subMonth();
+            foreach($sDate as $key=>$value)
+            {
+                if($key == 'date')
+                    $startDate = $value;
+            }
+        }
 
         if($survey->entity_id == null)
         {
@@ -335,25 +363,31 @@ class SurveyController extends Controller
 
             
             // $surveyResults = $surveyResults->toArray();
-            // return new \Illuminate\Pagination\LengthAwarePaginator($surveyResults, $limit, $page);
-         
-            
+
+            // $currentItems = array_slice($surveyResults, $limit * ($page - 1), $limit);
+            // $abc = new LengthAwarePaginator($currentItems, count($surveyResults), $limit, $page);
+            // $abc = new LengthAwarePaginator($surveyResults, count($surveyResults), $limit, $page);
+            // return $abc;
 
             $surveyResults = DB::collection('survey_results')
                                 ->where('form_id','=',$survey_id)
                                 ->where('user_id','=',$user->id)
+                                ->whereBetween('created_at',array($startDate,$endDate))
                                 ->orderBy($field,$order)
-                                ->simplePaginate($limit);
+                                ->paginate($limit);
         }
         else
         {               
             $surveyResults = DB::collection('entity_'.$survey->entity_id)
                                 ->where('survey_id','=',$survey_id)
                                 ->where('user_id','=',$user->id)
+                                ->whereBetween('created_at',array($startDate,$endDate))
                                 ->orderBy($field,$order)
-                                ->simplePaginate($limit);
+                                ->paginate($limit);
         }           
 
+        //  $surveyResults->total();
+        // return $surveyResults->lastPage();
         if ($surveyResults->count() === 0) {
             return response()->json(['status'=>'success','metadata'=>[],'values'=>[],'message'=>'']);
         }
@@ -373,6 +407,9 @@ class SurveyController extends Controller
             $values[] = Arr::except($surveyResult,['survey_id','user_id','created_at']);
         }
 
+        $result['Current page'] = 'Page '.$surveyResults->currentPage().' of '.$surveyResults->lastPage();
+        $result['Total number of records'] = $surveyResults->total();
+        // $result['Total number of pages'] = $surveyResults->lastPage();
         return response()->json(['status'=>'success','metadata'=>$result,'values'=>$values,'message'=>'']);
 
     }
