@@ -397,7 +397,7 @@ class SurveyController extends Controller
         $title_fields = isset($survey->title_fields)?$survey->title_fields:[];
         $separator = isset($survey->separator)?$survey->separator:'';
         $responseCount = $surveyResults->count();
-        $result = ['form'=>['form_id'=>$survey_id,'user_id'=>$surveyResults[0]['user_id'],'created_at'=>$surveyResults[0]['created_at'],'submit_count'=>$responseCount]];
+        $result[] = ['form'=>['form_id'=>$survey_id,'user_id'=>$surveyResults[0]['user_id'],'created_at'=>$surveyResults[0]['created_at'],'submit_count'=>$responseCount]];
 
         $values = [];
 
