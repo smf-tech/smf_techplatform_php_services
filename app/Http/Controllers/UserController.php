@@ -90,13 +90,14 @@ class UserController extends Controller
 				foreach ($jurisdictions as $singleLevel) {
 					if (isset($userLocation[strtolower($singleLevel)])) {
 						$approvers->whereIn('location.' . strtolower($singleLevel), $userLocation[strtolower($singleLevel)]);
-						if ($singleLevel == $levelDetail->name) {
+						if ($singleLevel == $levelDetail->levelName) {
 							break;
 						}
 					}
 				}
 
-				$approverList = $approvers->get();
+                $approverList = $approvers->get();
+                $this->connectTenantDatabase($this->request);
 				$approverList->each(function($approver, $key) {
 					if (isset($approver->firebase_id) && !empty($approver->firebase_id)) {
 						$params = [
