@@ -120,6 +120,14 @@ class SurveyController extends Controller
             $fields['form_id'] = $fields['survey_id'];
             unset($fields['survey_id']);
         }
+        if (isset($fields['village'])) {
+            $village = \App\Village::find($fields['village']);
+            $fields['village'] = $village;
+        }
+        if (isset($fields['talula'])) {
+            $taluka = \App\Taluka::find($fields['taluka']);
+            $fields['taluka'] = $taluka;
+        }
 
         return response()->json(['status'=>'success', 'data' => $fields, 'message'=>'']);
 
@@ -299,6 +307,14 @@ class SurveyController extends Controller
         if (isset($fields['survey_id'])) {
             $fields['form_id'] = $fields['survey_id'];
             unset($fields['survey_id']);
+        }
+        if (isset($fields['village'])) {
+            $village = \App\Village::find($fields['village']);
+            $fields['village'] = $village;
+        }
+        if (isset($fields['talula'])) {
+            $taluka = \App\Taluka::find($fields['taluka']);
+            $fields['taluka'] = $taluka;
         }
        
         return response()->json(['status'=>'success', 'data' => $fields, 'message'=>'']);
