@@ -180,7 +180,7 @@ class LocationController extends Controller
                     return true;
                 }
             })->values()->all();
-            $response_data = array('status' =>'success','data' => array_unique($data),'message'=>'');
+            $response_data = array('status' =>'success','data' => array_values(array_unique($data)),'message'=>'');
             return response()->json($response_data); 
         }else{
             return response()->json([],404); 
