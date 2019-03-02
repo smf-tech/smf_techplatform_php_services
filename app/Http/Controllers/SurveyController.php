@@ -169,6 +169,10 @@ class SurveyController extends Controller
         unset($data->microservice_id);
         unset($data->project_id);
         unset($data->entity_id);
+
+        if (isset($data['microservice']) && strpos($data['microservice']->route, '/forms/result') !== false) {
+            $data['microservice']->route = $data['microservice']->route . '/' . $survey_id;
+        }
         
         // json_decode function takes a JSON string and converts it into a PHP variable
         $data->json = json_decode($data->json,true);
