@@ -91,7 +91,7 @@ class SurveyController extends Controller
             if(isset($user_submitted)){
                 $fields['submit_count']= $user_submitted['submit_count']+1;   
             } 
-            DB::collection('survey_results')->where('form_id','=',$survey_id)
+            $form = DB::collection('survey_results')->where('form_id','=',$survey_id)
                                             ->where('user_id','=',$user->id)
                                             ->where(function($q) use ($primaryValues)
                                             {
@@ -105,7 +105,7 @@ class SurveyController extends Controller
         else
         {
             $fields['survey_id']=$survey_id;
-            DB::collection('entity_'.$survey->entity_id)->where('survey_id','=',$survey_id)
+            $form = DB::collection('entity_'.$survey->entity_id)->where('survey_id','=',$survey_id)
                                                 ->where('user_id','=',$user->id)
                                                 ->where(function($q) use ($primaryValues)
                                                 {
@@ -128,7 +128,7 @@ class SurveyController extends Controller
             $taluka = \App\Taluka::find($fields['taluka']);
             $fields['taluka'] = $taluka;
         }
-
+        $fields['_id']['$oid'] = $form->id;
         return response()->json(['status'=>'success', 'data' => $fields, 'message'=>'']);
 
     }
@@ -252,7 +252,7 @@ class SurveyController extends Controller
                 // else an insert occurs and 'submit_count' gets value 1
                 if(isset($user_submitted)){
                     $fields['submit_count']= $user_submitted['submit_count']+1;
-                    DB::collection('survey_results')->where('form_id','=',$survey_id)
+                    $form = DB::collection('survey_results')->where('form_id','=',$survey_id)
                     ->where('user_id','=',$user->id)
                     ->where(function($q) use ($primaryValues)
                     {
@@ -263,10 +263,10 @@ class SurveyController extends Controller
                     })
                     ->update($fields);
                 }else{
-                    DB::collection('survey_results')->insert($fields);
+                    $form = DB::collection('survey_results')->insert($fields);
                 }
             }else{
-            DB::collection('survey_results')->insert($fields);
+            $form = DB::collection('survey_results')->insert($fields);
             }
         } else {
             $collection_name = 'entity_'.$survey->entity_id;
@@ -285,7 +285,7 @@ class SurveyController extends Controller
                 unset($fields['submit_count']);
                 $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
                 if(isset($user_submitted)){
-                    DB::collection('entity_'.$survey->entity_id)->where('survey_id','=',$survey_id)
+                    $form = DB::collection('entity_'.$survey->entity_id)->where('survey_id','=',$survey_id)
                     ->where('user_id','=',$user->id)
                     ->where(function($q) use ($primaryValues)
                     {
@@ -296,11 +296,11 @@ class SurveyController extends Controller
                     })
                     ->update($fields);
                 }else{
-                    DB::collection('entity_'.$survey->entity_id)->insert($fields);
+                    $form = DB::collection('entity_'.$survey->entity_id)->insert($fields);
                 }
 
             }else{         
-            DB::collection('entity_'.$survey->entity_id)->insert($fields);
+            $form = DB::collection('entity_'.$survey->entity_id)->insert($fields);
             }
         }    
         
@@ -316,7 +316,7 @@ class SurveyController extends Controller
             $taluka = \App\Taluka::find($fields['taluka']);
             $fields['taluka'] = $taluka;
         }
-       
+        $fields['_id']['$oid'] = $form->id;
         return response()->json(['status'=>'success', 'data' => $fields, 'message'=>'']);
 
     }
