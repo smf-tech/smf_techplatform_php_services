@@ -98,7 +98,7 @@ class UserController extends Controller
 
                 $approverList = $approvers->get();
                 $this->connectTenantDatabase($this->request);
-				$approverList->each(function($approver, $key) {
+				$approverList->each(function($approver, $key) use ($phone) {
 					if (isset($approver->firebase_id) && !empty($approver->firebase_id)) {
 						$params = [
 							'phone' => $phone,
