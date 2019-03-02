@@ -80,9 +80,10 @@ class UserController extends Controller
 
 			if (isset($update_data['role_id'])) {
 				$this->connectTenantDatabase($this->request);
-				$roleConfig = RoleConfig::where('role_id', $update_data['role_id'])->first();
+                $roleConfig = RoleConfig::where('role_id', $update_data['role_id'])->first();
+                $approverRoleConfig = RoleConfig::where('role_id', $roleConfig->approver_role)->first();
 				$level = $roleConfig->level;
-				$levelDetail = \App\Jurisdiction::find($level);
+				$levelDetail = \App\Jurisdiction::find($approverRoleConfig->level);
 				$jurisdictions = \App\JurisdictionType::where('_id',$roleConfig->jurisdiction_type_id)->pluck('jurisdictions')[0];
 				DB::setDefaultConnection('mongodb');
 				$approvers = User::where('role_id', $roleConfig->approver_role);
