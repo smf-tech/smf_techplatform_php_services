@@ -62,6 +62,20 @@ class UserController extends Controller
                 }
             }
 
+            if (
+                (isset($update_data['org_id']) && $update_data['org_id'] != $user->org_id)
+                ||
+                (isset($update_data['prject_id']) && !is_array($user->project_id))
+                ||
+                (isset($update_data['project_id']) && $update_data['project_id'] != $user->project_id[0])
+                ||
+                (isset($update_data['role_id']) && $update_data['role_id'] != $user->role_id)
+                ) {
+                    $update_data['approve_status'] = 'pending';
+            }
+            if (isset($update_data['phone'])) {
+                unset($update_data['phone']);
+            }
             $user->update($update_data);
 
 			if (isset($update_data['role_id'])) {
@@ -91,7 +105,8 @@ class UserController extends Controller
 						$this->sendPushNotification(self::NOTIFICATION_TYPE_APPROVAL, $approver->firebase_id, $params);
 					}
 				});
-			}
+            }
+            $user['approvers'] = $approverList;
             return response()->json(['status'=>'success', 'data'=>$user, 'message'=>''],200);
         }else{
             return response()->json(['status'=>'error', 'data'=>$user, 'message'=>'Invalid Mobile Number'],404);
