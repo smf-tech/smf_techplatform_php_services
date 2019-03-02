@@ -124,10 +124,15 @@ class MachineTrackingController extends Controller
             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
         }
         $data = $this->request->all();
-        $machine = MachineTracking::where('village_id',$this->request->moved_from_village)
-                                ->where('structure_code',$this->request->old_structure_code)
-                                ->where('machine_code',$this->request->machine_code)
-                                ->first();
+        // $machine = MachineTracking::where('village_id',$this->request->moved_from_village)
+        //                         ->where('structure_code',$this->request->old_structure_code)
+        //                         ->where('machine_code',$this->request->machine_code)
+        //                         ->first();
+        $machine = MachineTracking::firstOrCreate([
+            'village_id' => $this->request->moved_from_village,
+            'structure_code' => $this->request->old_structure_code,
+            'machine_code' => $this->request->machine_code
+        ]);
 
         $shiftingRecord = ShiftingRecord::create($data);
         $shiftingRecord->movedFromVillage()->associate(\App\Village::find($data['moved_from_village']));
