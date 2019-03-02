@@ -116,8 +116,12 @@ class SurveyController extends Controller
                                                 })
                                                 ->update($fields);                     
         }
+        if (isset($fields['survey_id'])) {
+            $fields['form_id'] = $fields['survey_id'];
+            unset($fields['survey_id']);
+        }
 
-        return response()->json(['status'=>'success','message'=>'']);
+        return response()->json(['status'=>'success', 'data' => $fields, 'message'=>'']);
 
     }
 
@@ -292,8 +296,12 @@ class SurveyController extends Controller
             }
         }    
         
+        if (isset($fields['survey_id'])) {
+            $fields['form_id'] = $fields['survey_id'];
+            unset($fields['survey_id']);
+        }
        
-        return response()->json(['status'=>'success','message'=>'']);
+        return response()->json(['status'=>'success', 'data' => $fields, 'message'=>'']);
 
     }
 
