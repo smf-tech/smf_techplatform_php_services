@@ -99,9 +99,10 @@ class SurveyController extends Controller
                                                 {
                                                     $q->where($key, '=', $value);
                                                 }
-                                            })
-                                            ->update($fields);
-            $lastInsertedId = $form->id;
+                                            });
+            $responseId = $form->first()['_id'];
+            $form->update($fields);
+            // $lastInsertedId = $form->id;
         }
         else
         {
@@ -114,9 +115,10 @@ class SurveyController extends Controller
                                                    {
                                                         $q->where($key, '=', $value);
                                                    }
-                                                })
-                                                ->update($fields);
-            $lastInsertedId = $form->id;             
+                                                });
+            $responseId = $form->first()['_id'];
+            $form->update($fields);
+            // $lastInsertedId = $form->id;             
         }
         if (isset($fields['survey_id'])) {
             $fields['form_id'] = $fields['survey_id'];
@@ -130,7 +132,7 @@ class SurveyController extends Controller
             $taluka = \App\Taluka::find($fields['taluka']);
             $fields['taluka'] = $taluka;
         }
-        $fields['_id']['$oid'] = $lastInsertedId;
+        $fields['_id'] = $responseId;
         return response()->json(['status'=>'success', 'data' => $fields, 'message'=>'']);
 
     }
@@ -262,16 +264,17 @@ class SurveyController extends Controller
                        {
                             $q->where($key, '=', $value);
                        }
-                    })
-                    ->update($fields);
-                    $lastInsertedId = $form->id;
+                    });
+                    $fields['_id'] = $form->first()['_id'];
+                    $form->update($fields);
+                    // $lastInsertedId = $form->id;
                 }else{
                     $form = DB::collection('survey_results')->insert($fields);
-                    $lastInsertedId = DB::getPdo()->lastInsertedId();
+                    $fields['_id']['$oid'] = DB::getPdo()->lastInsertedId();
                 }
             }else{
             $form = DB::collection('survey_results')->insert($fields);
-            $lastInsertedId = DB::getPdo()->lastInsertedId();
+            $fields['_id']['$oid'] = DB::getPdo()->lastInsertedId();
             }
         } else {
             $collection_name = 'entity_'.$survey->entity_id;
@@ -298,17 +301,18 @@ class SurveyController extends Controller
                        {
                             $q->where($key, '=', $value);
                        }
-                    })
-                    ->update($fields);
-                    $lastInsertedId = $form->id;
+                    });
+                    $fields['_id'] = $form->first()['_id'];
+                    $form->update($fields);
+                    // $fields['_id']['$oid'] = $form->id;
                 }else{
                     $form = DB::collection('entity_'.$survey->entity_id)->insert($fields);
-                    $lastInsertedId = DB::getPdo()->lastInsertedId();
+                    $fields['_id']['$oid'] = DB::getPdo()->lastInsertedId();
                 }
 
             }else{         
             $form = DB::collection('entity_'.$survey->entity_id)->insert($fields);
-            $lastInsertedId = DB::getPdo()->lastInsertedId();
+            $fields['_id']['$oid'] = DB::getPdo()->lastInsertedId();
             }
         }    
         
@@ -324,7 +328,7 @@ class SurveyController extends Controller
             $taluka = \App\Taluka::find($fields['taluka']);
             $fields['taluka'] = $taluka;
         }
-        $fields['_id']['$oid'] = $lastInsertedId;
+        // $fields['_id']['$oid'] = $lastInsertedId;
         return response()->json(['status'=>'success', 'data' => $fields, 'message'=>'']);
 
     }
