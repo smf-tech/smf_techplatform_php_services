@@ -175,11 +175,12 @@ class LocationController extends Controller
             $locations = $queryBuilder->get($fields);
             $data = $locations->filter(function(&$value, $key) use ($jurisdictionLevel) {
                 if ($value[strtolower($jurisdictionLevel) . '_id'] != self::$condition) {
+                    unset($value['_id']);
                     self::$condition = $value[strtolower($jurisdictionLevel) . '_id'];
                     return true;
                 }
-            })->values();
-            $response_data = array('status' =>'success','data' => $data,'message'=>'');
+            })->values()->all();
+            $response_data = array('status' =>'success','data' => array_values(array_unique($data)),'message'=>'');
             return response()->json($response_data); 
         }else{
             return response()->json([],404); 

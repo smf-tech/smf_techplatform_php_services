@@ -94,21 +94,24 @@ class StructureTrackingController extends Controller
 			$userLocation = $this->request->user()->location;
 			$structures = [];
 			if (isset($userLocation['village']) && !empty($userLocation['village'])) {
-				if ($this->request->prepared === 'true') {
+				if ($this->request->filled('prepared') && $this->request->prepared === 'true') {
 					$structures = StructureTracking::where('status', self::PREPARED)
 							->whereIn('village_id', $userLocation['village'])
 							->with('village', 'ffs', 'volunteers')
 							->get();
-				} elseif ($this->request->prepared === 'false') {
+				} elseif ($this->request->filled('prepared') && $this->request->prepared === 'false') {
 					$structureCodes = [];
+					$stuctureLevels = ['state', 'district', 'taluka'];
 					$structureTrackingList = StructureTracking::whereIn('village_id', $userLocation['village'])->get();
 					$structureTrackingList->each(function($structureTracking, $key) {
 						$structureCodes[] = $structureTracking->structure_code;
 					});
-					$structures = \App\StructureMaster::whereIn('village_id', $userLocation['village'])
-							->whereNotIn('structure_code', $structureCodes)
-							->get();
-				} elseif ($this->request->completed === 'true') {
+					$structureRecords = \App\StructureMaster::whereNotIn('structure_code', $structureCodes);
+					foreach ($userLocation as $level => $location) {
+						$structureRecords = $structureRecords->whereIn($level . '_id', $location);
+					}
+					$structures = $structureRecords->get();
+				} elseif ($this->request->filled('completed') && $this->request->completed === 'true') {
 					$structures = StructureTracking::where('status', self::COMPLETED)
 							->whereIn('village_id', $userLocation['village'])
 							->with('village', 'ffs', 'volunteers')
@@ -128,8 +131,8 @@ class StructureTrackingController extends Controller
                         'message' => $exception->getMessage()
                     ],
                     404
-                );
-            }
+			);
+		}
     }
 
     public function complete()
@@ -144,7 +147,7 @@ class StructureTrackingController extends Controller
                 return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
             }
             $structureTracking = StructureTracking::updateOrCreate(['village_id' => $data['village'], 'structure_code' => $data['structure_code']], $data);
-            if ($structureTracking->village() === null || (isset($data['village']) && $structureTracking->village->id != $data['village'])) {
+            if (isset($data['village']) && $structureTracking->village !== null && $structureTracking->village->id != $data['village']) {
                 $village = Village::find($data['village']);
                 $structureTracking->village()->associate($village);
                 $structureTracking->save();

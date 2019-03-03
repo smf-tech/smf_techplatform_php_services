@@ -62,27 +62,43 @@ class UserController extends Controller
                 }
             }
 
+            if (
+                (isset($update_data['org_id']) && $update_data['org_id'] != $user->org_id)
+                ||
+                (isset($update_data['prject_id']) && !is_array($user->project_id))
+                ||
+                (isset($update_data['project_id']) && $update_data['project_id'] != $user->project_id[0])
+                ||
+                (isset($update_data['role_id']) && $update_data['role_id'] != $user->role_id)
+                ) {
+                    $update_data['approve_status'] = 'pending';
+            }
+            if (isset($update_data['phone'])) {
+                unset($update_data['phone']);
+            }
             $user->update($update_data);
 
 			if (isset($update_data['role_id'])) {
 				$this->connectTenantDatabase($this->request);
-				$roleConfig = RoleConfig::where('role_id', $update_data['role_id'])->first();
+                $roleConfig = RoleConfig::where('role_id', $update_data['role_id'])->first();
+                $approverRoleConfig = RoleConfig::where('role_id', $roleConfig->approver_role)->first();
 				$level = $roleConfig->level;
-				$levelDetail = \App\Jurisdiction::find($level);
+				$levelDetail = \App\Jurisdiction::find($approverRoleConfig->level);
 				$jurisdictions = \App\JurisdictionType::where('_id',$roleConfig->jurisdiction_type_id)->pluck('jurisdictions')[0];
 				DB::setDefaultConnection('mongodb');
 				$approvers = User::where('role_id', $roleConfig->approver_role);
 				foreach ($jurisdictions as $singleLevel) {
 					if (isset($userLocation[strtolower($singleLevel)])) {
 						$approvers->whereIn('location.' . strtolower($singleLevel), $userLocation[strtolower($singleLevel)]);
-						if ($singleLevel == $levelDetail->name) {
+						if ($singleLevel == $levelDetail->levelName) {
 							break;
 						}
 					}
 				}
 
-				$approverList = $approvers->get();
-				$approverList->each(function($approver, $key) {
+                $approverList = $approvers->get();
+                $this->connectTenantDatabase($this->request);
+				$approverList->each(function($approver, $key) use ($phone) {
 					if (isset($approver->firebase_id) && !empty($approver->firebase_id)) {
 						$params = [
 							'phone' => $phone,
@@ -91,7 +107,8 @@ class UserController extends Controller
 						$this->sendPushNotification(self::NOTIFICATION_TYPE_APPROVAL, $approver->firebase_id, $params);
 					}
 				});
-			}
+            }
+            $user['approvers'] = $approverList;
             return response()->json(['status'=>'success', 'data'=>$user, 'message'=>''],200);
         }else{
             return response()->json(['status'=>'error', 'data'=>$user, 'message'=>'Invalid Mobile Number'],404);

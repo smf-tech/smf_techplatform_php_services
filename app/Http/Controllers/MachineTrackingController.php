@@ -67,17 +67,54 @@ class MachineTrackingController extends Controller
 
     public function getDeploymentInfo()
     {
-        $database = $this->connectTenantDatabase($this->request);
-        if ($database === null) {
-            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
-        }
-
-        if($this->request->input('deployed'))
-        {
-            $deployedMachines = MachineTracking::where('deployed',true)->with('village')->get();
-        }
-        
-        return response()->json(['status'=>'success','data'=>$deployedMachines,'message'=>'']);
+		try {
+			if (!$this->request->filled('deployed')) {
+                return response()->json(
+                        [
+                        'status' => 'error',
+                        'data' => null,
+                        'message' => 'deployed parameter is missing'
+                    ],
+                    400
+                );
+            }
+			$database = $this->connectTenantDatabase($this->request);
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			}
+			$userLocation = $this->request->user()->location;
+			$machines = [];
+			if (isset($userLocation['village']) && !empty($userLocation['village'])) {
+				if ($this->request->deployed === 'true') {
+					$machines = MachineTracking::where('deployed',true)->whereIn('village_id', $userLocation['village'])->with('village')->get();
+				} else {
+					$machineCodes = [];
+					$machineLevels = ['state', 'district', 'taluka'];
+					$machineTrackingRecords = MachineTracking::whereIn('village_id', $userLocation['village'])->get();
+					$machineTrackingRecords->each(function($machineTracking, $key) {
+						$machineCodes[] = $machineTracking->machine_code;
+					});
+					$machineRecords = \App\MachineMaster::whereNotIn('machine_code', $machineCodes);
+					foreach ($userLocation as $level => $location) {
+						if (in_array($level, $machineLevels)) {
+							$machineRecords->whereIn($level . '_id', $location);
+						}
+					}
+					$machines = $machineRecords->get();
+				}
+			}
+			return response()->json([
+				'status' => 'success',
+				'data' => $machines,
+				'message' => 'List of machines.'
+			]);
+		} catch(\Exception $exception) {
+			return response()->json([
+                        'status' => 'error',
+                        'data' => null,
+                        'message' => $exception->getMessage()
+                    ], 400);
+		}
     }
 
     public function machineShift()
@@ -87,10 +124,15 @@ class MachineTrackingController extends Controller
             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
         }
         $data = $this->request->all();
-        $machine = MachineTracking::where('village_id',$this->request->moved_from_village)
-                                ->where('structure_code',$this->request->old_structure_code)
-                                ->where('machine_code',$this->request->machine_code)
-                                ->first();
+        // $machine = MachineTracking::where('village_id',$this->request->moved_from_village)
+        //                         ->where('structure_code',$this->request->old_structure_code)
+        //                         ->where('machine_code',$this->request->machine_code)
+        //                         ->first();
+        $machine = MachineTracking::firstOrCreate([
+            'village_id' => $this->request->moved_from_village,
+            'structure_code' => $this->request->old_structure_code,
+            'machine_code' => $this->request->machine_code
+        ]);
 
         $shiftingRecord = ShiftingRecord::create($data);
         $shiftingRecord->movedFromVillage()->associate(\App\Village::find($data['moved_from_village']));
