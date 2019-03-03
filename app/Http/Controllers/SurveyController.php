@@ -100,7 +100,8 @@ class SurveyController extends Controller
                                                     $q->where($key, '=', $value);
                                                 }
                                             })
-                                            ->update($fields); 
+                                            ->update($fields);
+            $lastInsertedId = $form->id;
         }
         else
         {
@@ -114,7 +115,8 @@ class SurveyController extends Controller
                                                         $q->where($key, '=', $value);
                                                    }
                                                 })
-                                                ->update($fields);                     
+                                                ->update($fields);
+            $lastInsertedId = $form->id;             
         }
         if (isset($fields['survey_id'])) {
             $fields['form_id'] = $fields['survey_id'];
@@ -128,7 +130,7 @@ class SurveyController extends Controller
             $taluka = \App\Taluka::find($fields['taluka']);
             $fields['taluka'] = $taluka;
         }
-        $fields['_id']['$oid'] = $form->id;
+        $fields['_id']['$oid'] = $lastInsertedId;
         return response()->json(['status'=>'success', 'data' => $fields, 'message'=>'']);
 
     }
@@ -262,11 +264,14 @@ class SurveyController extends Controller
                        }
                     })
                     ->update($fields);
+                    $lastInsertedId = $form->id;
                 }else{
                     $form = DB::collection('survey_results')->insert($fields);
+                    $lastInsertedId = DB::getPdo()->lastInsertedId();
                 }
             }else{
             $form = DB::collection('survey_results')->insert($fields);
+            $lastInsertedId = DB::getPdo()->lastInsertedId();
             }
         } else {
             $collection_name = 'entity_'.$survey->entity_id;
@@ -295,12 +300,15 @@ class SurveyController extends Controller
                        }
                     })
                     ->update($fields);
+                    $lastInsertedId = $form->id;
                 }else{
                     $form = DB::collection('entity_'.$survey->entity_id)->insert($fields);
+                    $lastInsertedId = DB::getPdo()->lastInsertedId();
                 }
 
             }else{         
             $form = DB::collection('entity_'.$survey->entity_id)->insert($fields);
+            $lastInsertedId = DB::getPdo()->lastInsertedId();
             }
         }    
         
@@ -316,7 +324,7 @@ class SurveyController extends Controller
             $taluka = \App\Taluka::find($fields['taluka']);
             $fields['taluka'] = $taluka;
         }
-        $fields['_id']['$oid'] = $form->id;
+        $fields['_id']['$oid'] = $lastInsertedId;
         return response()->json(['status'=>'success', 'data' => $fields, 'message'=>'']);
 
     }
