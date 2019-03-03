@@ -46,7 +46,7 @@ class SurveyController extends Controller
 
         $fields = array();           
        
-        $fields['user_id']=$user->id;
+        $fields['userName']=$user->id;
 
         $primaryValues = array();
 
@@ -75,7 +75,7 @@ class SurveyController extends Controller
                 $dateTime = $value;
         }
                 
-        $fields['updated_at'] = $dateTime; 
+        $fields['updatedDateTime'] = $dateTime; 
 
         // Selecting the collection to use depending on whether the survey has an entity_id or not
         $collection_name = isset($survey->entity_id)?'entity_'.$survey->entity_id:'survey_results'; 
@@ -92,7 +92,7 @@ class SurveyController extends Controller
                 $fields['submit_count']= $user_submitted['submit_count']+1;   
             } 
             DB::collection('survey_results')->where('form_id','=',$survey_id)
-                                            ->where('user_id','=',$user->id)
+                                            ->where('userName','=',$user->id)
                                             ->where(function($q) use ($primaryValues)
                                             {
                                                 foreach($primaryValues as $key => $value)
@@ -106,7 +106,7 @@ class SurveyController extends Controller
         {
             $fields['survey_id']=$survey_id;
             DB::collection('entity_'.$survey->entity_id)->where('survey_id','=',$survey_id)
-                                                ->where('user_id','=',$user->id)
+                                                ->where('userName','=',$user->id)
                                                 ->where(function($q) use ($primaryValues)
                                                 {
                                                     foreach($primaryValues as $key => $value)
@@ -189,7 +189,7 @@ class SurveyController extends Controller
 
         $fields = array();
         
-        $fields['user_id'] = $user->id;
+        $fields['userName'] = $user->id;
 
         $primaryValues = array();
 
@@ -218,8 +218,8 @@ class SurveyController extends Controller
                 $dateTime = $value;
         }
         $fields['submit_count'] = 1;
-        $fields['updated_at'] = $dateTime;
-        $fields['created_at'] = $dateTime;          
+        $fields['updatedDateTime'] = $dateTime;
+        $fields['createdDateTime'] = $dateTime;          
 
 
         if($survey->entity_id == null)
@@ -237,7 +237,7 @@ class SurveyController extends Controller
                 if(isset($user_submitted)){
                     $fields['submit_count']= $user_submitted['submit_count']+1;
                     DB::collection('survey_results')->where('form_id','=',$survey_id)
-                    ->where('user_id','=',$user->id)
+                    ->where('userName','=',$user->id)
                     ->where(function($q) use ($primaryValues)
                     {
                         foreach($primaryValues as $key => $value)
@@ -270,7 +270,7 @@ class SurveyController extends Controller
                 $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
                 if(isset($user_submitted)){
                     DB::collection('entity_'.$survey->entity_id)->where('survey_id','=',$survey_id)
-                    ->where('user_id','=',$user->id)
+                    ->where('userName','=',$user->id)
                     ->where(function($q) use ($primaryValues)
                     {
                         foreach($primaryValues as $key => $value)
@@ -296,7 +296,7 @@ class SurveyController extends Controller
     public function getUserResponse($user_id,$survey_id,$primaryValues,$collection_name){
         $formKey = $collection_name == 'survey_results' ? 'form_id' : 'survey_id';
         $response = DB::collection($collection_name)->where($formKey,'=',$survey_id)
-                                                  ->where('user_id','=',$user_id)
+                                                  ->where('userName','=',$user_id)
                                                   ->where(function($q) use ($primaryValues)
                                                   {
                                                       foreach($primaryValues as $key => $value)
@@ -322,7 +322,7 @@ class SurveyController extends Controller
         $limit = (int)$this->request->input('limit') ?:50;
         $offset = $this->request->input('offset') ?:0;
         $order = $this->request->input('order') ?:'desc';
-        $field = $this->request->input('field') ?:'created_at';
+        $field = $this->request->input('field') ?:'createdDateTime';
         $page = $this->request->input('page') ?:1;
 
         // $eDate = $this->request->input('start_date') ?:Carbon::now('Asia/Calcutta');
@@ -371,8 +371,8 @@ class SurveyController extends Controller
 
             $surveyResults = DB::collection('survey_results')
                                 ->where('form_id','=',$survey_id)
-                                ->where('user_id','=',$user->id)
-                                ->whereBetween('created_at',array($startDate,$endDate))
+                                ->where('userName','=',$user->id)
+                                ->whereBetween('createdDateTime',array($startDate,$endDate))
                                 ->orderBy($field,$order)
                                 ->paginate($limit);
         }
@@ -380,8 +380,8 @@ class SurveyController extends Controller
         {               
             $surveyResults = DB::collection('entity_'.$survey->entity_id)
                                 ->where('survey_id','=',$survey_id)
-                                ->where('user_id','=',$user->id)
-                                ->whereBetween('created_at',array($startDate,$endDate))
+                                ->where('userName','=',$user->id)
+                                ->whereBetween('createdDateTime',array($startDate,$endDate))
                                 ->orderBy($field,$order)
                                 ->paginate($limit);
         }           
@@ -397,7 +397,7 @@ class SurveyController extends Controller
         $title_fields = isset($survey->title_fields)?$survey->title_fields:[];
         $separator = isset($survey->separator)?$survey->separator:'';
         $responseCount = $surveyResults->count();
-        $result = ['form'=>['form_id'=>$survey_id,'user_id'=>$surveyResults[0]['user_id'],'created_at'=>$surveyResults[0]['created_at'],'submit_count'=>$responseCount]];
+        $result = ['form'=>['form_id'=>$survey_id,'userName'=>$surveyResults[0]['userName'],'createdDateTime'=>$surveyResults[0]['createdDateTime'],'submit_count'=>$responseCount]];
 
         $values = [];
 
@@ -422,7 +422,7 @@ class SurveyController extends Controller
             $surveyResult['form_title'] = $form_title;
             // Excludes values 'form_id','user_id','created_at','updated_at' from the $surveyResult array
             //  and stores it in values
-            $values[] = Arr::except($surveyResult,['survey_id','user_id','created_at']);
+            $values[] = Arr::except($surveyResult,['survey_id','userName','createdDateTime']);
         }
 
         $result['Current page'] = 'Page '.$surveyResults->currentPage().' of '.$surveyResults->lastPage();
