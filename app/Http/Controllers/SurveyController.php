@@ -17,7 +17,8 @@ use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Arr;
 use Validator;
-use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Input;
+// use Illuminate\Pagination\LengthAwarePaginator;
 
 class SurveyController extends Controller
 {
@@ -42,25 +43,11 @@ class SurveyController extends Controller
         $user = $this->request->user();
 
         $survey = Survey::find($survey_id);
-        $primaryKeys = $survey->form_keys;
 
-        $fields = array();           
-       
+        $fields = $this->request->except(['responseId']);
+        $responseId = $this->request->input('responseId');
+        
         $fields['userName']=$user->id;
-
-        $primaryValues = array();
-
-        // Looping through the response object from the body
-        foreach($this->request->all() as $key=>$value)
-        {
-            // Checking if the key is marked as a primary key and storing the value 
-            // in primaryValues if it is
-            if(in_array($key,$primaryKeys))
-            {
-                $primaryValues[$key] = $value;
-            }
-            $fields[$key] = $value;
-        }        
 
         // Gives current date and time in the format :  2019-01-24 10:30:46
         $date = Carbon::now();
@@ -79,11 +66,10 @@ class SurveyController extends Controller
 
         // Selecting the collection to use depending on whether the survey has an entity_id or not
         $collection_name = isset($survey->entity_id)?'entity_'.$survey->entity_id:'survey_results'; 
+        $user_submitted = DB::collection($collection_name)->where('_id',$this->request->input('responseId'))
+                                                        ->get()->first();
 
         // Function defined below, it queries the collection $collection_name using the parameters
-        // $user->id,$survey_id,$primaryValues and returns the results
-        $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
-        
         if($survey->entity_id == null)
         {
             $fields['form_id']=$survey_id;
@@ -91,34 +77,18 @@ class SurveyController extends Controller
             if(isset($user_submitted)){
                 $fields['submit_count']= $user_submitted['submit_count']+1;   
             } 
-            $form = DB::collection('survey_results')->where('form_id','=',$survey_id)
+            $form = DB::collection('survey_results')->where('_id', '=',$responseId)
+                                            ->where('form_id','=',$survey_id)
                                             ->where('userName','=',$user->id)
-                                            ->where(function($q) use ($primaryValues)
-                                            {
-                                                foreach($primaryValues as $key => $value)
-                                                {
-                                                    $q->where($key, '=', $value);
-                                                }
-                                            });
-            $responseId = $form->first()['_id'];
-            $form->update($fields);
-            // $lastInsertedId = $form->id;
+                                            ->update($fields);
         }
         else
         {
             $fields['survey_id']=$survey_id;
-            $form = DB::collection('entity_'.$survey->entity_id)->where('survey_id','=',$survey_id)
+            $form = DB::collection('entity_'.$survey->entity_id)->where('_id', '=' ,$responseId)
+                                                ->where('survey_id','=',$survey_id)
                                                 ->where('userName','=',$user->id)
-                                                ->where(function($q) use ($primaryValues)
-                                                {
-                                                    foreach($primaryValues as $key => $value)
-                                                   {
-                                                        $q->where($key, '=', $value);
-                                                   }
-                                                });
-            $responseId = $form->first()['_id'];
-            $form->update($fields);
-            // $lastInsertedId = $form->id;             
+                                                ->update($fields);
         }
         if (isset($fields['survey_id'])) {
             $fields['form_id'] = $fields['survey_id'];
@@ -128,11 +98,12 @@ class SurveyController extends Controller
             $village = \App\Village::find($fields['village']);
             $fields['village'] = $village;
         }
-        if (isset($fields['talula'])) {
+        if (isset($fields['taluka'])) {
             $taluka = \App\Taluka::find($fields['taluka']);
             $fields['taluka'] = $taluka;
         }
         $fields['_id'] = $responseId;
+
         return response()->json(['status'=>'success', 'data' => $fields, 'message'=>'']);
 
     }
