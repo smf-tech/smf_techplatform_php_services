@@ -65,9 +65,9 @@ class UserController extends Controller
             if (
                 (isset($update_data['org_id']) && $update_data['org_id'] != $user->org_id)
                 ||
-                (isset($update_data['prject_id']) && !is_array($user->project_id))
-                ||
-                (isset($update_data['project_id']) && $update_data['project_id'] != $user->project_id[0])
+                ((isset($update_data['prject_id']) && !is_array($user->project_id))
+                &&
+                ($update_data['project_id'] != $user->project_id[0]))
                 ||
                 (isset($update_data['role_id']) && $update_data['role_id'] != $user->role_id)
                 ) {
