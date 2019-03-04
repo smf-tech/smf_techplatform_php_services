@@ -241,11 +241,13 @@ class SurveyController extends Controller
                     // $lastInsertedId = $form->id;
                 }else{
                     $form = DB::collection('survey_results')->insert($fields);
-                    $fields['_id']['$oid'] = DB::getPdo()->lastInsertedId();
+//                    $fields['_id']['$oid'] = DB::getPdo()->lastInsertedId();
+					$fields['_id']['$oid'] = '';
                 }
             }else{
             $form = DB::collection('survey_results')->insert($fields);
-            $fields['_id']['$oid'] = DB::getPdo()->lastInsertedId();
+//            $fields['_id']['$oid'] = DB::getPdo()->lastInsertedId();
+			$fields['_id']['$oid'] = '';
             }
         } else {
             $collection_name = 'entity_'.$survey->entity_id;
@@ -278,12 +280,14 @@ class SurveyController extends Controller
                     // $fields['_id']['$oid'] = $form->id;
                 }else{
                     $form = DB::collection('entity_'.$survey->entity_id)->insert($fields);
-                    $fields['_id']['$oid'] = DB::getPdo()->lastInsertedId();
+//                    $fields['_id']['$oid'] = DB::getPdo()->lastInsertedId();
+					$fields['_id']['$oid'] = '';
                 }
 
             }else{         
             $form = DB::collection('entity_'.$survey->entity_id)->insert($fields);
-            $fields['_id']['$oid'] = DB::getPdo()->lastInsertedId();
+//            $fields['_id']['$oid'] = DB::getPdo()->lastInsertedId();
+			$fields['_id']['$oid'] = '';
             }
         }    
         
@@ -425,7 +429,7 @@ class SurveyController extends Controller
                 }
                 $field_values = [];
                 foreach($title_fields as $title_field){
-                    $field_values[] = $surveyResult[$title_field];
+                    $field_values[] = isset($surveyResult[$title_field]) ? $surveyResult[$title_field] : '';
                 }
                 $title_fields_str = implode($separator,$field_values);
             }
