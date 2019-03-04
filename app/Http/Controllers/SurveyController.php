@@ -458,7 +458,7 @@ class SurveyController extends Controller
                 }
                 $field_values = [];
                 foreach($title_fields as $title_field){
-                    $field_values[] = $surveyResult[$title_field];
+                    $field_values[] = isset($surveyResult[$title_field]) ? $surveyResult[$title_field] : '';
                 }
                 $title_fields_str = implode($separator,$field_values);
             }
