@@ -87,7 +87,7 @@ $api->version('v1',function($api){
         $api->get('structure/prepare', 'StructureTrackingController@get');
         $api->post('structure/complete', 'StructureTrackingController@complete');
         $api->get('structure/code', 'StructureMasterController@get');
-        $api->post('structure', 'StructureMasterController@structureCreate');
+        $api->post('structure/{form_id}', 'StructureMasterController@structureCreate');
 
         $api->post('machine/deploy','MachineTrackingController@machineDeploy');
         $api->get('machine/deploy','MachineTrackingController@getDeploymentInfo');

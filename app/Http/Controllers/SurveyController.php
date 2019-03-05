@@ -412,7 +412,7 @@ class SurveyController extends Controller
             // $abc = new LengthAwarePaginator($currentItems, count($surveyResults), $limit, $page);
             // $abc = new LengthAwarePaginator($surveyResults, count($surveyResults), $limit, $page);
             // return $abc;
-
+            $collection_name = 'survey_results';
             $surveyResults = DB::collection('survey_results')
                                 ->where('form_id','=',$survey_id)
                                 ->where('userName','=',$user->id)
@@ -421,7 +421,8 @@ class SurveyController extends Controller
                                 ->paginate($limit);
         }
         else
-        {               
+        {    
+            $collection_name = 'entity_'.$survey->entity_id;           
             $surveyResults = DB::collection('entity_'.$survey->entity_id)
                                 ->where('survey_id','=',$survey_id)
                                 ->where('userName','=',$user->id)
@@ -436,10 +437,6 @@ class SurveyController extends Controller
             return response()->json(['status'=>'success','metadata'=>[],'values'=>[],'message'=>'']);
         }
         
-        $title_pretext=(isset($survey->pretext_title) && $survey->pretext_title != '')? $survey->pretext_title.' ' : '';
-        $title_posttext=(isset($survey->posttext_title) && $survey->posttext_title != '')? ' '.$survey->posttext_title : '';
-        $title_fields = isset($survey->title_fields)?$survey->title_fields:[];
-        $separator = isset($survey->separator)?$survey->separator:'';
         $responseCount = $surveyResults->count();
         $result = ['form'=>['form_id'=>$survey_id,'userName'=>$surveyResults[0]['userName'],'createdDateTime'=>$surveyResults[0]['createdDateTime'],'submit_count'=>$responseCount]];
 
@@ -451,18 +448,7 @@ class SurveyController extends Controller
                 $surveyResult['form_id'] = $survey_id;
             }
 
-            $title_fields_str = '';
-            if(!empty($title_fields)){
-                if($separator != ''){
-                    $separator = ' '.$separator.' ';      
-                }
-                $field_values = [];
-                foreach($title_fields as $title_field){
-                    $field_values[] = isset($surveyResult[$title_field]) ? $surveyResult[$title_field] : '';
-                }
-                $title_fields_str = implode($separator,$field_values);
-            }
-            $form_title =$title_pretext.$title_fields_str.$title_posttext;
+            $form_title =$this->generateFormTitle($survey,$surveyResult['_id'],$collection_name);
             $surveyResult['form_title'] = $form_title;
             // Excludes values 'form_id','user_id','created_at','updated_at' from the $surveyResult array
             //  and stores it in values

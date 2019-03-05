@@ -44,7 +44,7 @@ class StructureMasterController extends Controller
             }
     }
 
-    public function structureCreate(){
+    public function structureCreate($form_id){
         try {
             $database = $this->connectTenantDatabase($this->request);
             if ($database === null) {
@@ -73,9 +73,9 @@ class StructureMasterController extends Controller
                                  'dhalicha_bandh'=>'GCB','vantale'=>'FSTP');
             
             $data = $this->request->all();
-            $district = District::find($this->request->input('district_id'));
-            $taluka = Taluka::find($this->request->input('taluka_id'));
-            $village = Village::find($this->request->input('village_id'));
+            $district = District::find($this->request->input('district'));
+            $taluka = Taluka::find($this->request->input('taluka'));
+            $village = Village::find($this->request->input('village'));
             $department_code = $department_abbr[$this->request->input('structure_owner_department')];
             $structuretype_code = $struct_abbr[$this->request->input('type')];
           
@@ -91,11 +91,19 @@ class StructureMasterController extends Controller
             $data['structure_code'] = $structure_code;
             // Gives current date and time in the format :  2019-01-24 10:30:46
             $date = Carbon::now();
-            $data['created_at']=$date->toDateTimestring();
-            $data['updated_at']=$date->toDateTimestring();
+            $data['createdDateTime']=$date->getTimestamp();
+            $data['updatedDateTime']=$date->getTimestamp();
+            $structure_master = StructureMaster::create($data);
+            $structure_master->district()->associate($district);
+            $structure_master->taluka()->associate($taluka);
+            $structure_master->village()->associate($village);
+            $structure_master->save();
+            $structure_master = $structure_master->toArray();
+            //var_dump($structure_master);exit;
+            $structure_master['form_title'] = $this->generateFormTitle($form_id,$structure_master['_id'],'structure_masters'); 
             return response()->json([
                 'status' => 'success',
-                'data' => StructureMaster::create($data),
+                'data' => $structure_master,
                 'message' => 'Created Record in Structure Master'
             ],201);
         } catch(\Exception $exception) {

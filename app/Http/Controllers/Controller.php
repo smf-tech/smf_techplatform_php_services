@@ -14,6 +14,7 @@ use LaravelFCM\Facades\FCM;
 
 use App\NotificationSchema;
 use App\NotificationLog;
+use App\Survey;
 
 class Controller extends BaseController
 {
@@ -117,5 +118,48 @@ class Controller extends BaseController
 		$notificationLog->save();
 
 		return true;
+    }
+
+     /**
+     * generates form title for a particular form id and form response
+     *
+     * @param string $form_obj_id form schema object id
+     * @param string $formresponse_obj_id form response object id
+	 * @param string $collection_name name of collection where form response is stored
+     *
+     * @return string 
+     */   
+    public function generateFormTitle($form_obj_id,$formresponse_obj_id,$collection_name='form_results'){
+        if ($form_obj_id instanceof Survey) {
+            $form_obj = $form_obj_id;
+        }else{
+            $form_obj = Survey::find($form_obj_id);
+        }
+        
+        $formresponse_obj = DB::collection($collection_name)->where('_id', $formresponse_obj_id)->first();
+
+        if (is_null($formresponse_obj) || is_null($form_obj)) {
+            return '';
+        }
+
+        $title_pretext=(isset($form_obj->pretext_title) && $form_obj->pretext_title != '')? $form_obj->pretext_title.' ' : '';
+        $title_posttext=(isset($form_obj->posttext_title) && $form_obj->posttext_title != '')? ' '.$form_obj->posttext_title : '';
+        $title_fields = isset($form_obj->title_fields)?$form_obj->title_fields:[];
+        $separator = isset($form_obj->separator)?$form_obj->separator:'';
+
+        $title_fields_str = '';
+        if(!empty($title_fields)){
+            if($separator != ''){
+                $separator = ' '.$separator.' ';      
+            }
+            $field_values = [];
+            foreach($title_fields as $title_field){
+                $field_values[] = isset($formresponse_obj[$title_field]) ? $formresponse_obj[$title_field] : '';
+            }
+            $title_fields_str = implode($separator,$field_values);
+        }
+        $form_title =$title_pretext.$title_fields_str.$title_posttext;
+        return $form_title;
+
     }
 }
