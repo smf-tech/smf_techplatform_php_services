@@ -22,7 +22,8 @@ class StructureTracking extends Model
         'structure_images_1',
         'structure_images_2',
         'structure_images_3',
-        'structure_images_4'
+        'structure_images_4',
+		'form_id'
     ];
 
     public function volunteers()

@@ -23,13 +23,14 @@ class StructureTrackingController extends Controller
         $this->request = $request;
     }
 
-    public function prepare()
+    public function prepare($formId)
     {
         try {
             $userId = $this->request->user()->id;
             $data = $this->request->all();
             $data['status'] = self::PREPARED;
-            $data['created_by'] = $userId;
+            $data['userName'] = $userId;
+			$data['form_id'] = $formId;
             $database = $this->connectTenantDatabase($this->request);
             if ($database === null) {
                 return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
@@ -59,7 +60,12 @@ class StructureTrackingController extends Controller
             }
             return response()->json([
                 'status' => 'success',
-                'data' => ['preparationId' => $structureTracking->getIdAttribute()],
+                'data' => [
+					'_id' => [
+						'$oid' => $structureTracking->getIdAttribute()
+					],
+					'form_title' => $this->generateFormTitle($formId, $structureTracking->getIdAttribute(), $structureTracking->getTable())
+				],
                 'message' => 'Structure prepared successfully.'
             ]);
         } catch(\Exception $exception) {
@@ -74,7 +80,74 @@ class StructureTrackingController extends Controller
         }
     }
 
-    public function get()
+	public function updatePreparedStructure(Request $request, $structureId)
+	{
+		try {
+			$database = $this->connectTenantDatabase($request);
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			}
+			$structure = StructureTracking::find($structureId);
+			if ($structure !== null) {
+				$formId = $structure->form_id;
+				$primaryKeys = \App\Survey::find($formId)->form_keys;
+				$data = $this->request->all();
+				foreach ($data as $field => $value) {
+					if (in_array($field, $primaryKeys) && $value != $structure->{$value}) {
+						return response()->json(
+							[
+							'status' => 'error',
+							'data' => null,
+							'message' => 'Please do not change value of Primary keys'
+						],
+						400
+					);
+					}
+				}
+				$structure->update($data);
+				if (isset($data['ff_name']) && !empty($data['ff_name'])) {
+					$ff = FFAppointed::where('structure_traking_id', $structureId)->first();
+					if ($ff != null && ($ff->name != $data['ff_name'] || $ff->mobile_number != $data['ff_mobile_number'] || $ff->training_completed != $data['ff_training_completed'])) {
+						$ff->update([
+							'name' => $data['ff_name'],
+							'mobile_number' => $data['ff_mobile_number'],
+							'training_completed' => $data['ff_training_completed']
+						]);
+					}
+				}
+				$result = [
+					'_id' => [
+						'$oid' => $structureId
+					],
+					'form_title' => $this->generateFormTitle($formId, $structureId, $structure->getTable())
+				];
+				return response()->json([
+                'status' => 'success',
+                'data' => $result,
+                'message' => 'Structure updated successfully.'
+            ]);
+			}
+			return response()->json(
+                    [
+                        'status' => 'error',
+                        'data' => null,
+                        'message' => 'Record not found'
+                    ],
+                    404
+                );
+		} catch(\Exception $exception) {
+			return response()->json(
+                    [
+                        'status' => 'error',
+                        'data' => null,
+                        'message' => $exception->getMessage()
+                    ],
+                    404
+			);
+		}
+	}
+
+	public function get()
     {
         try {
             if (!$this->request->filled('prepared') && !$this->request->filled('completed')) {
