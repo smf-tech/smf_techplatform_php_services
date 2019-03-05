@@ -89,7 +89,8 @@ $api->version('v1',function($api){
         $api->get('structure/code', 'StructureMasterController@get');
         $api->post('structure/{form_id}', 'StructureMasterController@structureCreate');
 
-        $api->post('machine/deploy','MachineTrackingController@machineDeploy');
+        $api->post('machine/deploy/{form_id}','MachineTrackingController@machineDeploy');
+        $api->put('machine/deploy/{machine_id}','MachineTrackingController@machineDeployUpdate');
         $api->get('machine/deploy','MachineTrackingController@getDeploymentInfo');
         $api->post('machine/shift','MachineTrackingController@machineShift');
         $api->get('machine/shift', 'MachineTrackingController@getShiftingInfo');

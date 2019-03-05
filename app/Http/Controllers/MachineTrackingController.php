@@ -32,7 +32,7 @@ class MachineTrackingController extends Controller
     }
 
 
-    public function machineDeploy()
+    public function machineDeploy($form_id)
     {
         $database = $this->connectTenantDatabase($this->request);
         if ($database === null) {
@@ -58,11 +58,57 @@ class MachineTrackingController extends Controller
         }
 
         $deployedMachine->created_by = $this->request->user()->id;
+        $deployedMachine->form_id = $form_id;
         $deployedMachine->save();
 
-        $deploymentId = [ 'deploymentId'=> $deployedMachine->id];
+        $result = [
+            '_id' => [
+                '$oid' => $deployedMachine->id
+            ],
+            'form_title' => $this->generateFormTitle($form_id,$deployedMachine->id,'machine_tracking')
+        ]; 
         
-        return response()->json(['status'=>'success','data'=>$deploymentId,'message'=>'']);
+        return response()->json(['status'=>'success','data'=>$result,'message'=>'']);
+    }
+
+    public function machineDeployUpdate($machine_id)
+    {
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
+
+        $deployedMachine = MachineTracking::find($machine_id);
+
+        $deployedMachine->village()->associate(\App\Village::find($this->request->village));
+
+        $deployedMachine->date_deployed = $this->request->date_deployed;
+        $deployedMachine->structure_code = $this->request->structure_code;
+        $deployedMachine->machine_code = $this->request->machine_code;
+        $deployedMachine->deployed = true;
+        $deployedMachine->status = $this->request->status;
+
+        if($this->request->filled('last_deployed')) {
+            $deployedMachine->last_deployed = $this->request->last_deployed;
+        }
+
+        if($this->request->filled('mou_id')) {
+            $machine = MachineMou::where('mou_id',$this->request->input('mou_id'))->first();
+            $deployedMachine->mou_details = $machine->toArray();
+        }
+
+        $deployedMachine->created_by = $this->request->user()->id;
+        $deployedMachine->form_id = $form_id;
+        $deployedMachine->save();
+
+        $result = [
+            '_id' => [
+                '$oid' => $deployedMachine->id
+            ],
+            'form_title' => $this->generateFormTitle($form_id,$deployedMachine->id,'machine_tracking')
+        ]; 
+        
+        return response()->json(['status'=>'success','data'=>$result,'message'=>'']);
     }
 
     public function getDeploymentInfo()

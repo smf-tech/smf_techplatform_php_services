@@ -129,7 +129,7 @@ class Controller extends BaseController
      *
      * @return string 
      */   
-    public function generateFormTitle($form_obj_id,$formresponse_obj_id,$collection_name='form_results'){
+    public function generateFormTitle($form_obj_id,$formresponse_obj_id,$collection_name='survey_results'){
         if ($form_obj_id instanceof Survey) {
             $form_obj = $form_obj_id;
         }else{

@@ -100,10 +100,15 @@ class StructureMasterController extends Controller
             $structure_master->save();
             $structure_master = $structure_master->toArray();
             //var_dump($structure_master);exit;
-            $structure_master['form_title'] = $this->generateFormTitle($form_id,$structure_master['_id'],'structure_masters'); 
+            $result = [
+                '_id' => [
+                    '$oid' => $structure_master['_id']
+                ],
+                'form_title' => $this->generateFormTitle($form_id,$structure_master['_id'],'structure_masters') 
+            ]; 
             return response()->json([
                 'status' => 'success',
-                'data' => $structure_master,
+                'data' => $result,
                 'message' => 'Created Record in Structure Master'
             ],201);
         } catch(\Exception $exception) {
