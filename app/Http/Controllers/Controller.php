@@ -154,7 +154,7 @@ class Controller extends BaseController
             }
             $field_values = [];
             foreach($title_fields as $title_field){
-                $field_values[] = isset($formresponse_obj[$title_field]) ? $formresponse_obj[$title_field] : '';
+                $field_values[] = isset($formresponse_obj[trim($title_field)]) ? $formresponse_obj[trim($title_field)] : '';
             }
             $title_fields_str = implode($separator,$field_values);
         }
