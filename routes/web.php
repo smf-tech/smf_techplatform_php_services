@@ -96,6 +96,7 @@ $api->version('v1',function($api){
         $api->post('machine/shift','MachineTrackingController@machineShift');
         $api->get('machine/shift', 'MachineTrackingController@getShiftingInfo');
         $api->get('machine/mou','MachineTrackingController@machineMoU');
+        $api->post('machine/mou','MachineTrackingController@machineDeploy');
         $api->get('machine/code', 'MachineMasterController@getMachineCode');
 
         $api->post('machine', 'MachineMasterController@createMachineCode');
