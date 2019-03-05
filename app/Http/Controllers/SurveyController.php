@@ -33,7 +33,7 @@ class SurveyController extends Controller
     }
 
 
-    public function updateSurvey($survey_id)
+    public function updateSurvey($survey_id,$responseId)
     {
         $database = $this->connectTenantDatabase($this->request);
         if ($database === null) {
@@ -44,8 +44,8 @@ class SurveyController extends Controller
 
         $survey = Survey::find($survey_id);
 
-        $fields = $this->request->except(['responseId']);
-        $responseId = $this->request->input('responseId');
+        $fields = $this->request->all();
+        // $responseId = $this->request->input('responseId');
         
         $fields['userName']=$user->id;
 
@@ -66,7 +66,7 @@ class SurveyController extends Controller
 
         // Selecting the collection to use depending on whether the survey has an entity_id or not
         $collection_name = isset($survey->entity_id)?'entity_'.$survey->entity_id:'survey_results'; 
-        $user_submitted = DB::collection($collection_name)->where('_id',$this->request->input('responseId'))
+        $user_submitted = DB::collection($collection_name)->where('_id',$responseId)
                                                         ->get()->first();
 
         // Function defined below, it queries the collection $collection_name using the parameters
@@ -90,21 +90,24 @@ class SurveyController extends Controller
                                                 ->where('userName','=',$user->id)
                                                 ->update($fields);
         }
-        if (isset($fields['survey_id'])) {
-            $fields['form_id'] = $fields['survey_id'];
-            unset($fields['survey_id']);
-        }
-        if (isset($fields['village'])) {
-            $village = \App\Village::find($fields['village']);
-            $fields['village'] = $village;
-        }
-        if (isset($fields['taluka'])) {
-            $taluka = \App\Taluka::find($fields['taluka']);
-            $fields['taluka'] = $taluka;
-        }
-        $fields['_id'] = $responseId;
+        // if (isset($fields['survey_id'])) {
+        //     $fields['form_id'] = $fields['survey_id'];
+        //     unset($fields['survey_id']);
+        // }
+        // if (isset($fields['village'])) {
+        //     $village = \App\Village::find($fields['village']);
+        //     $fields['village'] = $village;
+        // }
+        // if (isset($fields['taluka'])) {
+        //     $taluka = \App\Taluka::find($fields['taluka']);
+        //     $fields['taluka'] = $taluka;
+        // }
+        
+        
+        $data['_id']['$oid'] = $responseId;
+        $data['form_title'] = $survey->name;
 
-        return response()->json(['status'=>'success', 'data' => $fields, 'message'=>'']);
+        return response()->json(['status'=>'success', 'data' => $data, 'message'=>'']);
 
     }
 
@@ -226,28 +229,30 @@ class SurveyController extends Controller
                  // If the set of values are present in the collection then an update occurs and 'submit_count' gets incremented
                 // else an insert occurs and 'submit_count' gets value 1
                 if(isset($user_submitted)){
+
+
+
                     $fields['submit_count']= $user_submitted['submit_count']+1;
-                    $form = DB::collection('survey_results')->where('form_id','=',$survey_id)
-                    ->where('userName','=',$user->id)
-                    ->where(function($q) use ($primaryValues)
-                    {
-                        foreach($primaryValues as $key => $value)
-                       {
-                            $q->where($key, '=', $value);
-                       }
-                    });
-                    $fields['_id'] = $form->first()['_id'];
-                    $form->update($fields);
-                    // $lastInsertedId = $form->id;
-                }else{
-                    $form = DB::collection('survey_results')->insert($fields);
-//                    $fields['_id']['$oid'] = DB::getPdo()->lastInsertedId();
-					$fields['_id']['$oid'] = '';
+                    $form = DB::collection('survey_results')
+                        ->where('form_id','=',$survey_id)
+                        ->where('userName','=',$user->id)
+                        ->where(function($q) use ($primaryValues)
+                        {
+                            foreach($primaryValues as $key => $value)
+                        {
+                                $q->where($key, '=', $value);
+                        }
+                        });
+                        
+                        $form->update($fields);
+                        $data['_id'] = $form->first()['_id'];
+                } else {
+                    $form = DB::collection('survey_results')->insertGetId($fields);
+					$data['_id'] = $form;
                 }
-            }else{
-            $form = DB::collection('survey_results')->insert($fields);
-//            $fields['_id']['$oid'] = DB::getPdo()->lastInsertedId();
-			$fields['_id']['$oid'] = '';
+            } else {
+                $form = DB::collection('survey_results')->insertGetId($fields);
+			    $data['_id'] = $form;
             }
         } else {
             $collection_name = 'entity_'.$survey->entity_id;
@@ -262,10 +267,11 @@ class SurveyController extends Controller
                 }
             }
 
-            if(!empty($primaryValues)){
+            if(!empty($primaryValues)) {
                 unset($fields['submit_count']);
                 $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
-                if(isset($user_submitted)){
+                
+                if(isset($user_submitted)) {
                     $form = DB::collection('entity_'.$survey->entity_id)->where('survey_id','=',$survey_id)
                     ->where('userName','=',$user->id)
                     ->where(function($q) use ($primaryValues)
@@ -275,36 +281,36 @@ class SurveyController extends Controller
                             $q->where($key, '=', $value);
                        }
                     });
-                    $fields['_id'] = $form->first()['_id'];
+                        
                     $form->update($fields);
-                    // $fields['_id']['$oid'] = $form->id;
-                }else{
-                    $form = DB::collection('entity_'.$survey->entity_id)->insert($fields);
-//                    $fields['_id']['$oid'] = DB::getPdo()->lastInsertedId();
-					$fields['_id']['$oid'] = '';
+                    $data['_id'] = $form->first()['_id'];
+
+                } else {                    
+                    $form = DB::collection('entity_'.$survey->entity_id)->insertGetId($fields);
+					$data['_id'] = $form;
                 }
 
-            }else{         
-            $form = DB::collection('entity_'.$survey->entity_id)->insert($fields);
-//            $fields['_id']['$oid'] = DB::getPdo()->lastInsertedId();
-			$fields['_id']['$oid'] = '';
+            } else {         
+                $form = DB::collection('entity_'.$survey->entity_id)->insertGetId($fields);
+			    $data['_id'] = $form;
             }
         }    
         
-        if (isset($fields['survey_id'])) {
-            $fields['form_id'] = $fields['survey_id'];
-            unset($fields['survey_id']);
-        }
-        if (isset($fields['village'])) {
-            $village = \App\Village::find($fields['village']);
-            $fields['village'] = $village;
-        }
-        if (isset($fields['talula'])) {
-            $taluka = \App\Taluka::find($fields['taluka']);
-            $fields['taluka'] = $taluka;
-        }
-        // $fields['_id']['$oid'] = $lastInsertedId;
-        return response()->json(['status'=>'success', 'data' => $fields, 'message'=>'']);
+        // if (isset($fields['survey_id'])) {
+        //     $fields['form_id'] = $fields['survey_id'];
+        //     unset($fields['survey_id']);
+        // }
+        // if (isset($fields['village'])) {
+        //     $village = \App\Village::find($fields['village']);
+        //     $fields['village'] = $village;
+        // }
+        // if (isset($fields['talula'])) {
+        //     $taluka = \App\Taluka::find($fields['taluka']);
+        //     $fields['taluka'] = $taluka;
+        // }
+
+        $data['form_title'] = $survey->name;
+        return response()->json(['status'=>'success', 'data' => $data, 'message'=>'']);
 
     }
 

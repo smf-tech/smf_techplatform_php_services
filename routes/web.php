@@ -70,7 +70,7 @@ $api->version('v1',function($api){
 
         $api->get('forms/result/{form_id}','SurveyController@showResponse');
         $api->post('forms/result/{form_id}','SurveyController@createResponse');
-        $api->put('forms/result/{form_id}','SurveyController@updateSurvey');
+        $api->put('forms/result/{form_id}/{response_id}','SurveyController@updateSurvey');
 
         $api->get('locations', 'LocationController@getLocations');
         $api->get('districts', 'LocationController@getDistricts');
