@@ -43,11 +43,28 @@ class SurveyController extends Controller
         $user = $this->request->user();
 
         $survey = Survey::find($survey_id);
+        $primaryKeys = $survey->form_keys;
 
-        $fields = $this->request->all();
+        $fields = array();
         // $responseId = $this->request->input('responseId');
         
         $fields['userName']=$user->id;
+
+
+        $primaryValues = array();
+
+        // Looping through the response object from the body
+        foreach($this->request->all() as $key=>$value)
+        {
+            // Checking if the key is marked as a primary key and storing the value 
+            // in primaryValues if it is
+            if(in_array($key,$primaryKeys))
+            {
+                $primaryValues[$key] = $value;
+            }
+            $fields[$key] = $value;
+        }        
+
 
         // Gives current date and time in the format :  2019-01-24 10:30:46
         $date = Carbon::now();
@@ -65,9 +82,11 @@ class SurveyController extends Controller
         $fields['updatedDateTime'] = $dateTime; 
 
         // Selecting the collection to use depending on whether the survey has an entity_id or not
-        $collection_name = isset($survey->entity_id)?'entity_'.$survey->entity_id:'survey_results'; 
-        $user_submitted = DB::collection($collection_name)->where('_id',$responseId)
-                                                        ->get()->first();
+        $collection_name = isset($survey->entity_id)?'entity_'.$survey->entity_id:'survey_results';
+        $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name); 
+        return $user_submitted;
+        // $user_submitted = DB::collection($collection_name)->where('_id',$responseId)
+        //                                                 ->get()->first();
 
         // Function defined below, it queries the collection $collection_name using the parameters
         if($survey->entity_id == null)
@@ -160,7 +179,7 @@ class SurveyController extends Controller
         unset($data->project_id);
         unset($data->entity_id);
 
-        if (isset($data['microservice']) && strpos($data['microservice']->route, '/forms/result') !== false) {
+        if (isset($data['microservice'])) {
             $data['microservice']->route = $data['microservice']->route . '/' . $survey_id;
         }
         
