@@ -162,4 +162,28 @@ class Controller extends BaseController
         return $form_title;
 
     }
+
+	/**
+	 * Compares location data
+	 * @param array $requestLocation
+	 * @param array $storedLocation
+	 * @return boolean
+	 */
+	public function compareLocation(array $requestLocation, array $storedLocation)
+	{
+		$requestJurisdictions = array_keys($requestLocation);
+		$storedJurisdictions = array_keys($storedLocation);
+
+		if ($requestJurisdictions != $storedJurisdictions) {
+			return true;
+		}
+
+		foreach ($requestJurisdictions as $jurisdiction) {
+			if ($requestLocation[$jurisdiction] != $storedLocation[$jurisdiction]) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 }

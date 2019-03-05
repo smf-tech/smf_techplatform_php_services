@@ -83,7 +83,8 @@ $api->version('v1',function($api){
 
         $api->get('users/approvals','UserController@approvalList');
 
-        $api->post('structure/prepare', 'StructureTrackingController@prepare');
+        $api->post('structure/prepare/{formId}', 'StructureTrackingController@prepare');
+		$api->put('structure/prepare/{structureId}', 'StructureTrackingController@updatePreparedStructure');
         $api->get('structure/prepare', 'StructureTrackingController@get');
         $api->post('structure/complete', 'StructureTrackingController@complete');
         $api->get('structure/code', 'StructureMasterController@get');
