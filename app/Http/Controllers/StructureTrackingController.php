@@ -35,6 +35,27 @@ class StructureTrackingController extends Controller
             if ($database === null) {
                 return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
             }
+			$primaryKeys = \App\Survey::find($formId)->form_keys;
+			$condition = ['userName' => $userId];
+			foreach ($data as $field => $value) {
+				if (in_array($field, $primaryKeys) && !empty($value)) {
+					if ($field == 'village') {
+						$field .= '_id';
+					}
+					$condition[$field] = $value;
+				}
+			}
+			$existingStructure = StructureTracking::where($condition)->first();
+			if ($existingStructure !== null) {
+				return response()->json(
+						[
+						'status' => 'error',
+						'data' => null,
+						'message' => 'Structure already exists. Please change the parameters.'
+					],
+					400
+				);
+			}
             $structureTracking = StructureTracking::create($data);
             if (isset($data['village']) && !empty($data['village'])) {
                 $village = Village::find($data['village']);
@@ -89,22 +110,14 @@ class StructureTrackingController extends Controller
 			}
 			$structure = StructureTracking::find($structureId);
 			if ($structure !== null) {
+				$data = $request->all();
 				$formId = $structure->form_id;
-				$primaryKeys = \App\Survey::find($formId)->form_keys;
-				$data = $this->request->all();
-				foreach ($data as $field => $value) {
-					if (in_array($field, $primaryKeys) && $value != $structure->{$value}) {
-						return response()->json(
-							[
-							'status' => 'error',
-							'data' => null,
-							'message' => 'Please do not change value of Primary keys'
-						],
-						400
-					);
-					}
-				}
 				$structure->update($data);
+				if (isset($data['village']) && $data['village'] != $structure->village_id) {
+					$structure->village()->dissociate();
+					$structure->village()->associate(Village::find($data['village']));
+					$structure->save();
+				}
 				if (isset($data['ff_name']) && !empty($data['ff_name'])) {
 					$ff = FFAppointed::where('structure_traking_id', $structureId)->first();
 					if ($ff != null && ($ff->name != $data['ff_name'] || $ff->mobile_number != $data['ff_mobile_number'] || $ff->training_completed != $data['ff_training_completed'])) {
