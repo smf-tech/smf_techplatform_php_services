@@ -65,19 +65,24 @@ class UserController extends Controller
             if (
                 (isset($update_data['org_id']) && $update_data['org_id'] != $user->org_id)
                 ||
-                ((isset($update_data['prject_id']) && !is_array($user->project_id))
-                &&
-                ($update_data['project_id'] != $user->project_id[0]))
+                (isset($update_data['project_id']) && !is_array($user->project_id))
+                ||
+                ($update_data['project_id'] != $user->project_id[0])
                 ||
                 (isset($update_data['role_id']) && $update_data['role_id'] != $user->role_id)
+				||
+				(isset($update_data['location']) && $user->location == null)
+				||
+				(isset($update_data['location']) && $user->location != null && $this->compareLocation($update_data['location'], $user->location))
                 ) {
                     $update_data['approve_status'] = 'pending';
             }
             if (isset($update_data['phone'])) {
                 unset($update_data['phone']);
             }
-            $user->update($update_data);
 
+            $user->update($update_data);
+			$approverList = [];
 			if (isset($update_data['role_id'])) {
 				$this->connectTenantDatabase($this->request);
                 $roleConfig = RoleConfig::where('role_id', $update_data['role_id'])->first();
