@@ -224,4 +224,18 @@ class MachineTrackingController extends Controller
         return response()->json(['status'=>'success','data'=>$machine,'message'=>'']);    
     }
 
+    public function createMachineMoU($form_id)
+    {
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
+        
+        $mouDetails = $this->request->all();
+        $machine = MachineMou::create($mouDetails);
+        $data['_id']['$oid'] = $machine->id;
+        $data['form_title'] = $this->generateFormTitle($form_id,$machine->id,'machine_mou');
+
+        return response()->json(['status'=>'success','data'=>$data,'message'=>'']); 
+    }
 }
