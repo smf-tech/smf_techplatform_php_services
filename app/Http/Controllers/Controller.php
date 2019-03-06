@@ -15,11 +15,19 @@ use LaravelFCM\Facades\FCM;
 use App\NotificationSchema;
 use App\NotificationLog;
 use App\Survey;
+use App\ApprovalLog;
 
 class Controller extends BaseController
 {
 
     const NOTIFICATION_TYPE_APPROVAL = 'user_approval';
+
+	const ENTITY_USER = 'user';
+	const ENTITY_LEAVE = 'leave';
+
+	const STATUS_PENDING = 'pending';
+	const STATUS_APPROVED = 'approved';
+	const STATUS_REJECTED = 'rejected';
 
     /**
      * Sets database configuration
@@ -29,6 +37,7 @@ class Controller extends BaseController
      */
     public function connectTenantDatabase(Request $request, $orgId = null)
     {
+		DB::setDefaultConnection('mongodb');
         $organisation = null;
         if ($orgId instanceof Organisation) {
             $organisation = $orgId;
@@ -71,7 +80,7 @@ class Controller extends BaseController
             case self::NOTIFICATION_TYPE_APPROVAL:
                 $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_APPROVAL)->first();
 				$service = $notificationSchema->service . '/' . $params['phone'];
-				$parameters = ['update_status' => $params['update_status']];
+				$parameters = ['update_status' => $params['update_status'], 'approval_log_id' => $params['approval_log_id']];
                 break;
         }
 
@@ -184,6 +193,81 @@ class Controller extends BaseController
 			if ($requestLocation[$jurisdiction] != $storedLocation[$jurisdiction]) {
 				return true;
 			}
+		}
+		return false;
+	}
+
+	/**
+	 * Creates Approval Log record.
+	 *
+	 * @param Request $request
+	 * @param string $entityId
+	 * @param string $entityType
+	 * @param array $approverIds
+	 * @param string $status
+	 * @param string $userName
+	 * @param string $reason
+	 * @return string
+	 */
+	public function addApprovalLog($request, $entityId, $entityType, $approverIds, $status, $userName, $reason = null)
+	{
+		$this->connectTenantDatabase($request);
+		$approverLog = ApprovalLog::create([
+			'entity_id' => $entityId,
+			'entity_type' => $entityType,
+			'approver_ids' => $approverIds,
+			'status' => $status,
+			'userName' => $userName,
+			'reason' => $reason,
+			'createdDateTime' => \Carbon\Carbon::now()->getTimestamp(),
+			'updatedDateTime' => \Carbon\Carbon::now()->getTimestamp()
+		]);
+		return $approverLog->id;
+	}
+
+	/**
+	 * Get approvers based on location of User
+	 *
+	 * @param Request $request
+	 * @param string $roleId
+	 * @param array $userLocation
+	 * @return array
+	 */
+	public function getApprovers(Request $request, $roleId, $userLocation)
+	{
+		$this->connectTenantDatabase($request);
+		$roleConfig = \App\RoleConfig::where('role_id', $roleId)->first();
+		$approverRoleConfig = \App\RoleConfig::where('role_id', $roleConfig->approver_role)->first();
+		$levelDetail = \App\Jurisdiction::find($approverRoleConfig->level);
+		$jurisdictions = \App\JurisdictionType::where('_id',$roleConfig->jurisdiction_type_id)->pluck('jurisdictions')[0];
+		DB::setDefaultConnection('mongodb');
+		$approvers = \App\User::where('role_id', $roleConfig->approver_role);
+		foreach ($jurisdictions as $singleLevel) {
+			if (isset($userLocation[strtolower($singleLevel)])) {
+				$approvers->whereIn('location.' . strtolower($singleLevel), $userLocation[strtolower($singleLevel)]);
+				if ($singleLevel == $levelDetail->levelName) {
+					break;
+				}
+			}
+		}
+
+		return $approvers->get()->all();
+	}
+
+	/**
+	 * Returns status
+	 *
+	 * @param string $status
+	 * @return boolean|string
+	 */
+	public function getStatus($status)
+	{
+		if ($status == self::STATUS_PENDING) {
+			return self::STATUS_PENDING;
+		} elseif ($status == self::STATUS_APPROVED) {
+			return self::STATUS_APPROVED;
+		} elseif ($status == self::STATUS_REJECTED) {
+			return self::STATUS_REJECTED;
 		}
 		return false;
 	}

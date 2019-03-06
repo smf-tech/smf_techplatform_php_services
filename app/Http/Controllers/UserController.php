@@ -10,6 +10,7 @@ use Dingo\Api\Routing\Helpers;
 use App\Organisation;
 use App\RoleConfig;
 use Illuminate\Support\Facades\DB;
+use App\ApprovalLog;
 
 class UserController extends Controller
 {
@@ -50,6 +51,7 @@ class UserController extends Controller
     public function update($phone)
     {
         $user = User::where('phone', $phone)->first();
+		$userId = $user->id;
 		$userLocation = $user->location;
         if($user) {
             $update_data = $this->request->all();
@@ -83,36 +85,34 @@ class UserController extends Controller
 
             $user->update($update_data);
 			$approverList = [];
+			$approverIds = [];
+			$firebaseIds = [];
+			$approvalLogId = '';
 			if (isset($update_data['role_id'])) {
-				$this->connectTenantDatabase($this->request);
-                $roleConfig = RoleConfig::where('role_id', $update_data['role_id'])->first();
-                $approverRoleConfig = RoleConfig::where('role_id', $roleConfig->approver_role)->first();
-				$level = $roleConfig->level;
-				$levelDetail = \App\Jurisdiction::find($approverRoleConfig->level);
-				$jurisdictions = \App\JurisdictionType::where('_id',$roleConfig->jurisdiction_type_id)->pluck('jurisdictions')[0];
-				DB::setDefaultConnection('mongodb');
-				$approvers = User::where('role_id', $roleConfig->approver_role);
-				foreach ($jurisdictions as $singleLevel) {
-					if (isset($userLocation[strtolower($singleLevel)])) {
-						$approvers->whereIn('location.' . strtolower($singleLevel), $userLocation[strtolower($singleLevel)]);
-						if ($singleLevel == $levelDetail->levelName) {
-							break;
-						}
+                $approverList = $this->getApprovers($this->request, $update_data['role_id'], $userLocation);
+
+                $this->connectTenantDatabase($this->request);
+				foreach($approverList as $approver) {
+					$approverIds[] = $approver['id'];
+					if (isset($approver['firebase_id']) && !empty($approver['firebase_id'])) {
+						$firebaseIds[] = $approver['firebase_id'];
 					}
 				}
-
-                $approverList = $approvers->get();
-                $this->connectTenantDatabase($this->request);
-				$approverList->each(function($approver, $key) use ($phone) {
-					if (isset($approver->firebase_id) && !empty($approver->firebase_id)) {
-						$params = [
-							'phone' => $phone,
-							'update_status' => 'approved'
-						];
-						$this->sendPushNotification(self::NOTIFICATION_TYPE_APPROVAL, $approver->firebase_id, $params);
-					}
-				});
             }
+			if (isset($update_data['approve_status']) && $update_data['approve_status'] === self::STATUS_PENDING) {
+				$approvalLogId = $this->addApprovalLog($this->request, $userId, self::ENTITY_USER, $approverIds, self::STATUS_PENDING, $userId);
+			}
+			foreach ($firebaseIds as $firebaseId) {
+				$this->sendPushNotification(
+					self::NOTIFICATION_TYPE_APPROVAL,
+					$firebaseId,
+					[
+						'phone' => $phone,
+						'update_status' => self::STATUS_APPROVED,
+						'approval_log_id' => $approvalLogId
+					]
+				);
+			}
             $user['approvers'] = $approverList;
             return response()->json(['status'=>'success', 'data'=>$user, 'message'=>''],200);
         }else{
@@ -121,35 +121,37 @@ class UserController extends Controller
         
     }
 
-    public function approveuser($phone){
-
-        $userForApproval = User::where('phone', $phone)->first();
-        $loggedInUser = $this->request->user();
-
+    public function approveuser($approvalLogId)
+	{
         $database = $this->connectTenantDatabase($this->request);
         if ($database === null) {
             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
         }
-
-        $userRole = RoleConfig::where('role_id',$userForApproval->role_id)->first();
-
-        if(!isset($userRole->approver_role)) {
-            DB::setDefaultConnection('mongodb');
-            $userForApproval->update(['approve_status'=>'approved']);
-            return response()->json(['status'=>'success', 'data'=>$userForApproval, 'message'=>''],200);
-        }
-        if($userRole->approver_role == $loggedInUser->role_id){
-
-            $put_params = $this->request->all();
-            $update_data = ['approve_status'=>$put_params['update_status']];
-            $userForApproval->update($update_data);
-            return response()->json(['status'=>'success', 'data'=>$userForApproval, 'message'=>''],200);
-
-        }else{
-
-            return response()->json(['status'=>'error', 'data'=>'', 'message'=>'You do not have approver role for the given user'],403);
-
-        }
+		$approvalLog = ApprovalLog::find($approvalLogId);
+		if ($approvalLog === null) {
+			return response()->json(['status' => 'error', 'data' => '', 'message' => 'No approval record found.'], 403);
+		}
+		if (!$this->request->filled('update_status')) {
+			return response()->json(['status' => 'error', 'data' => '', 'message' => 'Status is missing.'], 403);
+		}
+		$status = $this->getStatus($this->request->update_status);
+		if ($status === false) {
+			return response()->json(['status' => 'error', 'data' => '', 'message' => 'Invalid value passed.'], 403);
+		}
+		switch($approvalLog->entity_type) {
+			case self::ENTITY_USER:
+				DB::setDefaultConnection('mongodb');
+				$user = User::find($approvalLog->entity_id);
+				$user->update([
+					'approve_status' => $status
+				]);
+				break;
+		}
+		$this->connectTenantDatabase($this->request);
+		$approvalLog->update([
+			'status' => $status
+		]);
+		return response()->json(['status'=>'success', 'data'=>'Status changed successfully', 'message'=>'']);
     }
 
     public function upload()
@@ -221,4 +223,53 @@ class UserController extends Controller
                     403);
         }
     }
+
+	public function getApprovalLog()
+	{
+		try {
+			$database = $this->connectTenantDatabase($this->request);
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			}
+			if (!$this->request->filled('status')) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'Status is missing.'], 403);
+			}
+			$status = $this->getStatus($this->request->status);
+			if ($status === false) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'Invalid value passed.'], 403);
+			}
+			$approvalLogs = ApprovalLog::where(['status' => $status])->get()->all();
+			foreach ($approvalLogs as &$approvalLog) {
+				switch($approvalLog->entity_type) {
+					case self::ENTITY_USER:
+						DB::setDefaultConnection('mongodb');
+						$user = User::find($approvalLog->entity_id);
+						$organisation = Organisation::find($user->org_id);
+						$role = \App\Role::find($user->role_id);
+						$this->connectTenantDatabase($this->request);
+						$project = \App\Project::find($user->project_id);
+						$approver['entity'] = [
+							'user' => [
+								'name' => $user->name,
+								'role' => $role,
+								'location' => $user->location,
+								'project' => $project,
+								'organisation' => $organisation
+							]
+						];
+						break;
+				}
+			};
+			return response()->json(['status' => 'success', 'data' => $approvalLogs, 'Fetched approval logs']);
+		} catch(\Exception $exception) {
+			return response()->json(
+                    [
+                        'status' => 'error',
+                        'data' => null,
+                        'message' => $exception->getMessage()
+                    ],
+                    404
+                );
+		}
+	}
 }

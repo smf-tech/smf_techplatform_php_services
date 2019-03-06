@@ -62,7 +62,7 @@ $api->version('v1',function($api){
         $api->get('orgs','OrganisationController@show');
         $api->put('users/{phone}', ['uses' => 'UserController@update']);
         $api->get('modules/{org_id}/{role_id}','RoleController@getroleconfig');
-        $api->put('users/approval/{phone}', ['uses' => 'UserController@approveuser']);
+        $api->put('users/approval/{approvalLogId}', ['uses' => 'UserController@approveuser']);
         $api->post('upload-image', 'UserController@upload');
 
         $api->get('forms/schema','SurveyController@getSurveys');
@@ -102,6 +102,8 @@ $api->version('v1',function($api){
         $api->get('machine/code', 'MachineMasterController@getMachineCode');
 
         $api->post('machine', 'MachineMasterController@createMachineCode');
+
+		$api->get('user/approvals', 'UserController@getApprovalLog');
     });
 
 });
