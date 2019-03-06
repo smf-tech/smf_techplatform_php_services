@@ -17,7 +17,7 @@ class StructureTracking extends Model
         'work_start_date',
         'work_end_date',
         'status',
-        'created_by',
+        'userName',
         'updated_by',
         'structure_images_1',
         'structure_images_2',
