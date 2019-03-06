@@ -79,10 +79,11 @@ class StructureMasterController extends Controller
             $department_code = $department_abbr[$this->request->input('structure_owner_department')];
             $structuretype_code = $struct_abbr[$this->request->input('type')];
           
-            $structures =StructureMaster::where('structure_code','LIKE',$district->abbr.'/'.$taluka->abbr.'/'.$village->name.'/'.$department_code.'/'.$structuretype_code.'%')->max('structure_code');
+            $structures =StructureMaster::where('structure_code','LIKE',$district->abbr.'/'.$taluka->abbr.'/'.$village->name.'/'.$department_code.'/'.$structuretype_code.'%')->orderby('createdDateTime','DESC')->get()->first();
+            //var_dump($structures->structure_code);exit;
             if($structures){
                 $numberoffset = strlen($district->abbr.'/'.$taluka->abbr.'/'.$village->name.'/'.$department_code.'/'.$structuretype_code);
-                $queueValue = substr($structures ,$numberoffset)+1;
+                $queueValue = (int)substr($structures->structure_code ,$numberoffset)+1;
             }else{
                 $queueValue = 1;  
             }
