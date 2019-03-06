@@ -231,32 +231,137 @@ class MachineTrackingController extends Controller
         if ($database === null) {
             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
         }
-        $data = $this->request->all();
-        // $machine = MachineTracking::where('village_id',$this->request->moved_from_village)
-        //                         ->where('structure_code',$this->request->old_structure_code)
-        //                         ->where('machine_code',$this->request->machine_code)
-        //                         ->first();
-        $machine = MachineTracking::firstOrCreate([
-            'village_id' => $this->request->moved_from_village,
-            'structure_code' => $this->request->old_structure_code,
-            'machine_code' => $this->request->machine_code
-        ]);
 
-        $shiftingRecord = ShiftingRecord::create($data);
-        $shiftingRecord->movedFromVillage()->associate(\App\Village::find($data['moved_from_village']));
-        $shiftingRecord->movedToVillage()->associate(\App\Village::find($data['moved_to_village']));
-        $shiftingRecord->machineTracking()->associate($machine);
-        $shiftingRecord->save();
+        try {
+            $primaryKeys = \App\Survey::find($form_id)->form_keys;
+            $data = $this->request->all();
+            $primaryValues = array();
+            
+            if(count($primaryKeys)> 0){
+                // Looping through the response object from the body
+                foreach($this->request->all() as $key=>$value)
+                {
+                    // Checking if the key is marked as a primary key and storing the value 
+                    // in primaryValues if it is
+                    if(in_array($key,$primaryKeys))
+                    {
+                        if($key == 'moved_from_village'  || $key == 'moved_to_village' ){
+                            $primaryValues[$key.'_id'] = $value;
+                        }else{
+                        $primaryValues[$key] = $value;
+                        }
+                    }
 
-        $shifting_id = $shiftingRecord->getIdAttribute();
+                }       
 
-        $record_id = [ 'shiftingId' => $shifting_id];
+                $machine_shifted = DB::collection('shifting_records')
+                ->where('form_id','=',$form_id)
+                ->where('userName','=',$this->request->user()->id)
+                ->where(function($q) use ($primaryValues)
+                {
+                    foreach($primaryValues as $key => $value)
+                {
+                        $q->where($key, '=', $value);
+                }
+                })->get()->first();
+                if($machine_shifted != null){
+                    return response()->json(
+                        [
+                        'status' => 'error',
+                        'data' => null,
+                        'message' => 'Machine already shifted please change parameters'
+                    ],
+                    400
+                    );
+                }
+            }
 
-        $machine->status = 'shifted';
+            $data = $this->request->all();
 
-        $machine->save();
+            $machine = MachineTracking::firstOrCreate([
+                'village_id' => $this->request->moved_from_village,
+                'structure_code' => $this->request->old_structure_code,
+                'machine_code' => $this->request->machine_code
+            ]);
+            
+            $data['userName']= $this->request->user()->id;
+            $data['form_id']= $form_id;
+            $shiftingRecord = ShiftingRecord::create($data);
+            $shiftingRecord->movedFromVillage()->associate(\App\Village::find($data['moved_from_village']));
+            $shiftingRecord->movedToVillage()->associate(\App\Village::find($data['moved_to_village']));
+            $shiftingRecord->machineTracking()->associate($machine);
+            $shiftingRecord->save();
 
-        return response()->json(['status'=>'success','data'=>$record_id,'message'=>'']);
+            $shifting_id = $shiftingRecord->getIdAttribute();
+
+            $machine->status = 'shifted';
+
+            $machine->save();
+
+            $result = [
+                '_id' => [
+                    '$oid' => $shifting_id
+                ],
+                'form_title' => $this->generateFormTitle($form_id,$shifting_id,'shifting_records')
+            ]; 
+
+            return response()->json(['status'=>'success','data'=>$result,'message'=>'']);
+        }catch(\Exception $exception) {
+			return response()->json([
+                        'status' => 'error',
+                        'data' => null,
+                        'message' => $exception->getMessage()
+                    ], 400);
+		}
+    }
+
+    public function updateMachineShift($machine_shift_id){
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
+        try {
+            $machine_shifted = ShiftingRecord::find($machine_shift_id);
+            if($machine_shifted !== null){
+                $data = $this->request->all();
+                $machine_shifted->update($data);
+
+                if($this->request->moved_from_village != $machine_shifted->moved_from_village_id){
+                    $machine_shifted->movedFromVillage()->dissociate();
+                    $machine_shifted->movedFromVillage()->associate(\App\Village::find($data['moved_from_village']));
+                }
+                if($this->request->moved_to_village != $machine_shifted->moved_to_village_id){
+                    $machine_shifted->movedToVillage()->dissociate();
+                    $machine_shifted->movedToVillage()->associate(\App\Village::find($data['moved_to_village']));
+                }    
+                $machine_shifted->save();   
+
+                $result = [
+                    '_id' => [
+                        '$oid' => $machine_shifted->id
+                    ],
+                    'form_title' => $this->generateFormTitle($machine_shifted->form_id,$machine_shifted->id,'shifting_records')
+                ]; 
+
+                return response()->json(['status'=>'success','data'=>$result,'message'=>'']);
+            }else{
+                return response()->json(
+                    [
+                        'status' => 'error',
+                        'data' => null,
+                        'message' => 'Record not found'
+                    ],
+                    404
+                );
+            }
+
+        }catch(\Exception $exception) {
+			return response()->json([
+                        'status' => 'error',
+                        'data' => null,
+                        'message' => $exception->getMessage()
+                    ], 400);
+		}
     }
 
     public function getShiftingInfo()

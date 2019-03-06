@@ -13,7 +13,7 @@ class StructureMaster extends BaseModel
     protected $table = 'structure_masters';
     protected $fillable = [  
         'structure_code','taluka_id','village_id','structure_owner_department','type',
-        'district_id','created_by','createdDateTime','updatedDateTime'
+        'district_id','userName','createdDateTime','updatedDateTime','form_id'
         // 'pin','name','type','machine_code','district','taluka',
     ];
     public function state()

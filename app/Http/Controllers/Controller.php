@@ -151,6 +151,8 @@ class Controller extends BaseController
         if(!empty($title_fields)){
             if($separator != ''){
                 $separator = ' '.$separator.' ';      
+            }else{
+                $separator = ' ';
             }
             $field_values = [];
             foreach($title_fields as $title_field){

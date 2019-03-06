@@ -87,7 +87,7 @@ class StructureMasterController extends Controller
                 $queueValue = 1;  
             }
             $structure_code = $district->abbr.'/'.$taluka->abbr.'/'.$village->name.'/'.$department_code.'/'.$structuretype_code.$queueValue;
-            $data['created_by'] = $this->request->user()->id;
+            $data['userName'] = $this->request->user()->id;
             $data['structure_code'] = $structure_code;
             // Gives current date and time in the format :  2019-01-24 10:30:46
             $date = Carbon::now();

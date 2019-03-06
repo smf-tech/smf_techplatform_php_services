@@ -27,7 +27,9 @@ class ShiftingRecord extends \Jenssegers\Mongodb\Eloquent\Model
         'delay_in_days',
         'delay_reason',
         'issue_faced',
-        'diesel_availability_photo'
+        'diesel_availability_photo',
+        'userName',
+        'form_id'
         
     ];
     public function machineTracking()

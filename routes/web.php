@@ -93,7 +93,8 @@ $api->version('v1',function($api){
         $api->post('machine/deploy/{form_id}','MachineTrackingController@machineDeploy');
         $api->put('machine/deploy/{machine_id}','MachineTrackingController@updateDeployedMachine');
         $api->get('machine/deploy','MachineTrackingController@getDeploymentInfo');
-        $api->post('machine/shift','MachineTrackingController@machineShift');
+        $api->post('machine/shift/{form_id}','MachineTrackingController@machineShift');
+        $api->put('machine/shift/{machine_shift_id}','MachineTrackingController@updateMachineShift');
         $api->get('machine/shift', 'MachineTrackingController@getShiftingInfo');
         $api->get('machine/mou','MachineTrackingController@machineMoU');
         $api->post('machine/mou/{form_id}','MachineTrackingController@createMachineMoU');
