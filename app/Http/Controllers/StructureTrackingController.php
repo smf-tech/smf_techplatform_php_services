@@ -221,26 +221,42 @@ class StructureTrackingController extends Controller
 		}
     }
 
-    public function complete()
+    public function complete($formId)
     {
         try {
             $userId = $this->request->user()->id;
             $data = $this->request->all();
             $data['status'] = $data['status'] == true ? self::COMPLETED : self::PREPARED;
-            $data['created_by'] = $userId;
+            $data['userName'] = $userId;
             $database = $this->connectTenantDatabase($this->request);
             if ($database === null) {
                 return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
             }
-            $structureTracking = StructureTracking::updateOrCreate(['village_id' => $data['village'], 'structure_code' => $data['structure_code']], $data);
-            if (isset($data['village']) && $structureTracking->village !== null && $structureTracking->village->id != $data['village']) {
+			$primaryKeys = \App\Survey::find($formId)->form_keys;
+			$condition = ['userName' => $userId];
+			foreach ($data as $field => $value) {
+				if (in_array($field, $primaryKeys) && !empty($value)) {
+					if ($field == 'village') {
+						$field .= '_id';
+					}
+					$condition[$field] = $value;
+				}
+			}
+            $structureTracking = StructureTracking::updateOrCreate($condition, $data);
+            if (isset($data['village']) && $structureTracking->village_id !== null && $structureTracking->village_id != $data['village']) {
                 $village = Village::find($data['village']);
+				$structureTracking->village()-dissociate();
                 $structureTracking->village()->associate($village);
                 $structureTracking->save();
             }
             return response()->json([
                 'status' => 'success',
-                'data' => ['completionId' => $structureTracking->getIdAttribute()],
+                'data' => [
+					'_id' => [
+						'$oid' => $structureTracking->getIdAttribute()
+					],
+					'form_title' => $this->generateFormTitle($formId, $structureTracking->getIdAttribute(), $structureTracking->getTable())
+					],
                 'message' => 'Structure ' . $data['status'] . ' successfully.'
             ]);
         } catch(\Exception $exception) {
