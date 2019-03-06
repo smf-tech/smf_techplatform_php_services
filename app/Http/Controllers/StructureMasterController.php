@@ -93,6 +93,7 @@ class StructureMasterController extends Controller
             $date = Carbon::now();
             $data['createdDateTime']=$date->getTimestamp();
             $data['updatedDateTime']=$date->getTimestamp();
+            $data['form_id']=$form_id;
             $structure_master = StructureMaster::create($data);
             $structure_master->district()->associate($district);
             $structure_master->taluka()->associate($taluka);
