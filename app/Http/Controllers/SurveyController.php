@@ -83,48 +83,52 @@ class SurveyController extends Controller
 
         // Selecting the collection to use depending on whether the survey has an entity_id or not
         $collection_name = isset($survey->entity_id)?'entity_'.$survey->entity_id:'survey_results';
-        $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name); 
-        return $user_submitted;
-        // $user_submitted = DB::collection($collection_name)->where('_id',$responseId)
-        //                                                 ->get()->first();
+
+        $formExists = DB::collection($collection_name)->where('form_id','=',$survey_id)
+                            ->where('userName','=',$user->id)
+                            ->where(function($q) use ($primaryValues)
+                            {
+                                foreach($primaryValues as $key => $value)
+            {
+                $q->where($key, '=', $value);
+            }
+        })
+        ->where('_id','!=',$responseId)
+        ->get()->first();
+
+        if (!empty($formExists)) {
+            return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Update Failure!!! Entry already exists with the same values.'],400);
+        }
+       
+
+        $user_submitted = DB::collection($collection_name)
+                            ->where('_id',$responseId)
+                            ->where('form_id','=',$survey_id)
+                            ->where('userName','=',$user->id);
+
 
         // Function defined below, it queries the collection $collection_name using the parameters
         if($survey->entity_id == null)
         {
             $fields['form_id']=$survey_id;
             // If the set of values are present in the collection then an update occurs and 'submit_count' gets incremented
-            if(isset($user_submitted)){
-                $fields['submit_count']= $user_submitted['submit_count']+1;   
+            if(isset($user_submitted->first()['submit_count'])){
+                $fields['submit_count']= $user_submitted->first()['submit_count']+1;   
             } 
-            $form = DB::collection('survey_results')->where('_id', '=',$responseId)
-                                            ->where('form_id','=',$survey_id)
-                                            ->where('userName','=',$user->id)
-                                            ->update($fields);
+            $user_submitted->update($fields);
+
+            $data['form_title'] = $this->generateFormTitle($survey_id,$responseId,'survey_results');
         }
         else
         {
             $fields['survey_id']=$survey_id;
-            $form = DB::collection('entity_'.$survey->entity_id)->where('_id', '=' ,$responseId)
-                                                ->where('survey_id','=',$survey_id)
-                                                ->where('userName','=',$user->id)
-                                                ->update($fields);
-        }
-        // if (isset($fields['survey_id'])) {
-        //     $fields['form_id'] = $fields['survey_id'];
-        //     unset($fields['survey_id']);
-        // }
-        // if (isset($fields['village'])) {
-        //     $village = \App\Village::find($fields['village']);
-        //     $fields['village'] = $village;
-        // }
-        // if (isset($fields['taluka'])) {
-        //     $taluka = \App\Taluka::find($fields['taluka']);
-        //     $fields['taluka'] = $taluka;
-        // }
-        
+
+            $user_submitted->update($fields);
+                            
+            $data['form_title'] = $this->generateFormTitle($survey_id,$responseId,'entity_'.$survey->entity_id);
+        }        
         
         $data['_id']['$oid'] = $responseId;
-        $data['form_title'] = $survey->name;
 
         return response()->json(['status'=>'success', 'data' => $data, 'message'=>'']);
 
@@ -240,39 +244,23 @@ class SurveyController extends Controller
             $collection_name = 'survey_results';
             $fields['form_id'] = $survey_id;
 
-            if(!empty($primaryValues)){
+            // if(!empty($primaryValues)){
                 // 'getUserResponse' function defined below, it queries the collection $collection_name using the parameters
                 // $user->id,$survey_id,$primaryValues and returns the results
                 $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
 
                  // If the set of values are present in the collection then an update occurs and 'submit_count' gets incremented
                 // else an insert occurs and 'submit_count' gets value 1
-                if(isset($user_submitted)){
-
-
-
-                    $fields['submit_count']= $user_submitted['submit_count']+1;
-                    $form = DB::collection('survey_results')
-                        ->where('form_id','=',$survey_id)
-                        ->where('userName','=',$user->id)
-                        ->where(function($q) use ($primaryValues)
-                        {
-                            foreach($primaryValues as $key => $value)
-                        {
-                                $q->where($key, '=', $value);
-                        }
-                        });
-                        
-                        $form->update($fields);
-                        $data['_id'] = $form->first()['_id'];
+                if(!empty($user_submitted)){
+                    return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Entry already exists with the same values.'],400);
                 } else {
                     $form = DB::collection('survey_results')->insertGetId($fields);
 					$data['_id'] = $form;
                 }
-            } else {
-                $form = DB::collection('survey_results')->insertGetId($fields);
-			    $data['_id'] = $form;
-            }
+            // } else {
+            //     $form = DB::collection('survey_results')->insertGetId($fields);
+			//     $data['_id'] = $form;
+            // }
         } else {
             $collection_name = 'entity_'.$survey->entity_id;
             $fields['survey_id'] = $survey_id;
@@ -286,49 +274,25 @@ class SurveyController extends Controller
                 }
             }
 
-            if(!empty($primaryValues)) {
+            // if(!empty($primaryValues)) {
                 unset($fields['submit_count']);
                 $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
                 
-                if(isset($user_submitted)) {
-                    $form = DB::collection('entity_'.$survey->entity_id)->where('survey_id','=',$survey_id)
-                    ->where('userName','=',$user->id)
-                    ->where(function($q) use ($primaryValues)
-                    {
-                        foreach($primaryValues as $key => $value)
-                       {
-                            $q->where($key, '=', $value);
-                       }
-                    });
-                        
-                    $form->update($fields);
-                    $data['_id'] = $form->first()['_id'];
-
+                if(!empty($user_submitted)){
+                    return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Entry already exists with the same values.'],400);
                 } else {                    
                     $form = DB::collection('entity_'.$survey->entity_id)->insertGetId($fields);
 					$data['_id'] = $form;
                 }
 
-            } else {         
-                $form = DB::collection('entity_'.$survey->entity_id)->insertGetId($fields);
-			    $data['_id'] = $form;
-            }
-        }    
-        
-        // if (isset($fields['survey_id'])) {
-        //     $fields['form_id'] = $fields['survey_id'];
-        //     unset($fields['survey_id']);
-        // }
-        // if (isset($fields['village'])) {
-        //     $village = \App\Village::find($fields['village']);
-        //     $fields['village'] = $village;
-        // }
-        // if (isset($fields['talula'])) {
-        //     $taluka = \App\Taluka::find($fields['taluka']);
-        //     $fields['taluka'] = $taluka;
-        // }
+            // } else {         
+            //     $form = DB::collection('entity_'.$survey->entity_id)->insertGetId($fields);
+			//     $data['_id'] = $form;
+            // }
 
-        $data['form_title'] = $survey->name;
+        }    
+
+        $data['form_title'] = $this->generateFormTitle($survey_id,$data['_id'],$collection_name);
         return response()->json(['status'=>'success', 'data' => $data, 'message'=>'']);
 
     }
