@@ -8,15 +8,21 @@ use App\District;
 
 class MachineMou extends \Jenssegers\Mongodb\Eloquent\Model
 {
+    
+    const CREATED_AT = 'createdDateTime';
+    const UPDATED_AT = 'updatedDateTime';
+
     protected $table = 'machine_mou';
 
     protected $fillable = [
         'mou_id',
         'state',
         'district',
+        'taluka',
         'machine_type',
         'machine_code',
         'provider_name',
+        'provider_contact_number',
         'ownership_type',
         'provider_trade_name',
         'turnover_less_than_20',
@@ -38,7 +44,10 @@ class MachineMou extends \Jenssegers\Mongodb\Eloquent\Model
         'rate2_value',
         'rate3_from',
         'rate3_to',
-        'rate3_value'
+        'rate3_value',
+
+        'form_id',
+        'userName'
     ];
 
     public function state()

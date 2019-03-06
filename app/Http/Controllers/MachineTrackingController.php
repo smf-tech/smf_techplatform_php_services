@@ -14,7 +14,7 @@ use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use App\MachineMou;
-
+use App\Survey;
 
 
 use App\Images;
@@ -286,17 +286,100 @@ class MachineTrackingController extends Controller
         return response()->json(['status'=>'success','data'=>$machine,'message'=>'']);    
     }
 
-    public function createMachineMoU($form_id)
+    public function createMachineMoU($formId)
+    {
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
+
+        $user = $this->request->user();
+        $mouDetails = array();
+        $primaryValues = array();
+
+        $form = Survey::find($formId);
+        $primaryKeys = $form->form_keys;
+
+        // Looping through the response object from the body
+        foreach($this->request->all() as $key=>$value)
+        {
+            // Checking if the key is marked as a primary key and storing the value 
+            // in primaryValues if it is
+            if(in_array($key,$primaryKeys))
+            {
+                $primaryValues[$key] = $value;
+            }
+            $mouDetails[$key] = $value;
+        }        
+
+        $formExists = MachineMou::where('form_id','=',$formId)
+                            ->where('userName','=',$user->id)
+                            ->where(function($q) use ($primaryValues)
+                            {
+                                foreach($primaryValues as $key => $value) {
+                                    $q->where($key, '=', $value);
+                                }
+                            })
+                            ->first();
+
+        if (!empty($formExists)) {
+            return response()->json(['status'=>'error','data'=>'','message'=>'Insertion Failure!!! Entry already exists with the same values.'],400);
+        }
+
+        $mouDetails['form_id'] = $formId;
+        $mouDetails['userName'] = $user->id;
+
+        $machine = MachineMou::create($mouDetails);
+        $data['_id']['$oid'] = $machine->id;
+        $data['form_title'] = $this->generateFormTitle($formId,$machine->id,'machine_mou');
+
+        return response()->json(['status'=>'success','data'=>$data,'message'=>'']); 
+    }
+
+    public function updateMachineMoU($formId,$responseId)
     {
         $database = $this->connectTenantDatabase($this->request);
         if ($database === null) {
             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
         }
         
-        $mouDetails = $this->request->all();
-        $machine = MachineMou::create($mouDetails);
-        $data['_id']['$oid'] = $machine->id;
-        $data['form_title'] = $this->generateFormTitle($form_id,$machine->id,'machine_mou');
+        $user = $this->request->user();
+        $mouDetails = array();
+        $primaryValues = array();
+
+        $form = Survey::find($formId);
+        $primaryKeys = $form->form_keys;
+
+        // Looping through the response object from the body
+        foreach($this->request->all() as $key=>$value)
+        {
+            // Checking if the key is marked as a primary key and storing the value 
+            // in primaryValues if it is
+            if(in_array($key,$primaryKeys))
+            {
+                $primaryValues[$key] = $value;
+            }
+            $mouDetails[$key] = $value;
+        }        
+
+        $formExists = MachineMou::where('form_id','=',$formId)
+                            ->where('userName','=',$user->id)
+                            ->where(function($q) use ($primaryValues)
+                            {
+                                foreach($primaryValues as $key => $value) {
+                                    $q->where($key, '=', $value);
+                                }
+                            })
+                            ->where('_id','!=',$responseId)
+                            ->get()->first();
+
+        if (!empty($formExists)) {
+            return response()->json(['status'=>'error','data'=>'','message'=>'Update Failure!!! Entry already exists with the same values.'],400);
+        }
+
+        $machine = MachineMou::where('_id',$responseId)->update($mouDetails);
+        $data['_id']['$oid'] = $responseId;
+        $data['form_title'] = $this->generateFormTitle($formId,$responseId,'machine_mou');
 
         return response()->json(['status'=>'success','data'=>$data,'message'=>'']); 
     }
