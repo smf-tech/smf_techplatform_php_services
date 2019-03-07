@@ -275,7 +275,7 @@ class StructureTrackingController extends Controller
         }
     }
 
-    public function updateComplete($formId,$responseId)
+    public function updateComplete($structureId)
     {
         try {
             $userId = $this->request->user()->id;
@@ -300,7 +300,7 @@ class StructureTrackingController extends Controller
             // }
             
 
-            $structureTracking = StructureTracking::find($responseId);
+            $structureTracking = StructureTracking::find($structureId);
 
             if(empty($structureTracking))
                 return response()->json([
@@ -313,7 +313,7 @@ class StructureTrackingController extends Controller
 
             if (isset($data['village']) && $structureTracking->village_id !== null && $structureTracking->village_id != $data['village']) {
                 $village = Village::find($data['village']);
-				$structureTracking->village()-dissociate();
+				$structureTracking->village()->dissociate();
                 $structureTracking->village()->associate($village);
                 $structureTracking->save();
             }
@@ -323,7 +323,7 @@ class StructureTrackingController extends Controller
 					'_id' => [
 						'$oid' => $structureTracking->getIdAttribute()
 					],
-					'form_title' => $this->generateFormTitle($structureTracking->form_id, $structureTracking->getIdAttribute(), $structureTracking->getTable())
+					'form_title' => $this->generateFormTitle($structureTracking->form_id, $structureId, $structureTracking->getTable())
 					],
                 'message' => 'Structure ' . $data['status'] . ' successfully.'
             ]);

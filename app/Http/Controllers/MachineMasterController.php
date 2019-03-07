@@ -29,7 +29,7 @@ class MachineMasterController extends Controller
                 'status' => 'success',
                 'data' => MachineMaster::all('machine_code'),
                 'message' => 'List of Machine codes.'
-            ]);
+            ],200);
         } catch(\Exception $exception) {
             return response()->json(
                     [
@@ -63,24 +63,10 @@ class MachineMasterController extends Controller
         $data = $this->request->all();
         $district = District::find($this->request->input('district_id'));
         // $machines = MachineMaster::where('machine_code','LIKE',$district->abbr.'%')->get(['machine_code']);
-        
-        
-        
-        
         // $machines = MachineMaster::where('machine_code','LIKE',$district->abbr.'%')->max('machine_code');
-        $machines = MachineMaster::where('machine_code','LIKE',$district->abbr.'%')->orderBy('created_at','desc')->first();
-        
-        
-        
-        
-        
-        
-        return number_format($machines->machine_code);
-        // 
-        
+        $machines = MachineMaster::where('machine_code','LIKE',$district->abbr.'%')->orderBy('createdDateTime','desc')->first();
         // $queueValue = substr($machines,2,3) + 1;
-        $queueValue = (int) (substr($machines,2,-6)) + 1;
-        return $queueValue;
+        $queueValue = (int) (substr($machines->machine_code,2,-6)) + 1;
         $modelNumber = $values[$this->request->input('machine_make')][$this->request->input('machine_model')];
         if(empty($modelNumber)) {
             return response()->json(
@@ -105,7 +91,7 @@ class MachineMasterController extends Controller
         return response()->json([
             'status' => 'success',
             'data' => $record,
-            'message' => 'Creation of a new record in Machine Master'
-        ],201);
+            'message' => 'Create Record in Machine Master'
+        ],200);
     }
 }

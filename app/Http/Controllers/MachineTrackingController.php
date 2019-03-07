@@ -441,7 +441,7 @@ class MachineTrackingController extends Controller
         return response()->json(['status'=>'success','data'=>$data,'message'=>'']); 
     }
 
-    public function updateMachineMoU($formId,$responseId)
+    public function updateMachineMoU($recordId)
     {
         $database = $this->connectTenantDatabase($this->request);
         if ($database === null) {
@@ -452,7 +452,8 @@ class MachineTrackingController extends Controller
         $mouDetails = array();
         $primaryValues = array();
 
-        $form = Survey::find($formId);
+        $mouRecord = MachineMou::find($recordId);
+        $form = Survey::find($mouRecord->form_id);
         $primaryKeys = $form->form_keys;
 
         // Looping through the response object from the body
@@ -467,7 +468,7 @@ class MachineTrackingController extends Controller
             $mouDetails[$key] = $value;
         }        
 
-        $formExists = MachineMou::where('form_id','=',$formId)
+        $formExists = MachineMou::where('form_id','=',$mouRecord->form_id)
                             ->where('userName','=',$user->id)
                             ->where(function($q) use ($primaryValues)
                             {
@@ -475,16 +476,16 @@ class MachineTrackingController extends Controller
                                     $q->where($key, '=', $value);
                                 }
                             })
-                            ->where('_id','!=',$responseId)
+                            ->where('_id','!=',$recordId)
                             ->get()->first();
 
         if (!empty($formExists)) {
             return response()->json(['status'=>'error','data'=>'','message'=>'Update Failure!!! Entry already exists with the same values.'],400);
         }
 
-        $machine = MachineMou::where('_id',$responseId)->update($mouDetails);
-        $data['_id']['$oid'] = $responseId;
-        $data['form_title'] = $this->generateFormTitle($formId,$responseId,'machine_mou');
+        $machine = $mouRecord->update($mouDetails);
+        $data['_id']['$oid'] = $recordId;
+        $data['form_title'] = $this->generateFormTitle($mouRecord->form_id,$recordId,'machine_mou');
 
         return response()->json(['status'=>'success','data'=>$data,'message'=>'']); 
     }

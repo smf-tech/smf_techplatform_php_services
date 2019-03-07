@@ -65,21 +65,16 @@ class SurveyController extends Controller
             $fields[$key] = $value;
         }        
 
-
         // Gives current date and time in the format :  2019-01-24 10:30:46
         $date = Carbon::now();
         
-        // $date contains the key => value pairs:
-        // date => 2019-01-24 10:33:00.851100
-        // timezone_type => 3
-        // timezone => UTC
-        foreach($date as $key=>$value)
-        {
-            if($key == 'date')
-                $dateTime = $value;
-        }
+        // foreach($date as $key=>$value)
+        // {
+        //     if($key == 'date')
+        //         $dateTime = $value;
+        // }
                 
-        $fields['updatedDateTime'] = $dateTime; 
+        $fields['updatedDateTime'] = $date->format('Y-m-d H:i:s.u'); 
 
         // Selecting the collection to use depending on whether the survey has an entity_id or not
         $collection_name = isset($survey->entity_id)?'entity_'.$survey->entity_id:'survey_results';
@@ -225,18 +220,14 @@ class SurveyController extends Controller
         // Gives current date and time in the format :  2019-01-24 10:30:46
         $date = Carbon::now();
         
-        // $date contains the key => value pairs:
-        // date => 2019-01-24 10:33:00.851100
-        // timezone_type => 3
-        // timezone => UTC
-        foreach($date as $key=>$value)
-        {
-            if($key == 'date')
-                $dateTime = $value;
-        }
+        // foreach($date as $key=>$value)
+        // {
+        //     if($key == 'date')
+        //         $dateTime = $value;
+        // }
         $fields['submit_count'] = 1;
-        $fields['updatedDateTime'] = $dateTime;
-        $fields['createdDateTime'] = $dateTime;          
+        $fields['updatedDateTime'] = $date->format('Y-m-d H:i:s.u'); 
+        $fields['createdDateTime'] = $date->format('Y-m-d H:i:s.u'); 
 
 
         if($survey->entity_id == null)
