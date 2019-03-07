@@ -18,7 +18,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Arr;
 use Validator;
 use Illuminate\Support\Facades\Input;
-// use Illuminate\Pagination\LengthAwarePaginator;
+use \DateTime;
 
 class SurveyController extends Controller
 {
@@ -123,7 +123,12 @@ class SurveyController extends Controller
             $data['form_title'] = $this->generateFormTitle($survey_id,$responseId,'entity_'.$survey->entity_id);
         }        
         
+        $dtime = DateTime::createFromFormat('Y-m-d H:i:s.u',$user_submitted->first()['createdDateTime']);
+        // $timestamp = $dtime->getTimestamp();
+
         $data['_id']['$oid'] = $responseId;
+        $data['createdDateTime'] = $dtime->getTimestamp();
+        $data['updatedDateTime'] = $date->getTimestamp();        
 
         return response()->json(['status'=>'success', 'data' => $data, 'message'=>'']);
 
@@ -284,6 +289,9 @@ class SurveyController extends Controller
         }    
 
         $data['form_title'] = $this->generateFormTitle($survey_id,$data['_id'],$collection_name);
+        $data['createdDateTime'] = $date->getTimestamp(); 
+        $data['updatedDateTime'] = $date->getTimestamp();  
+
         return response()->json(['status'=>'success', 'data' => $data, 'message'=>'']);
 
     }

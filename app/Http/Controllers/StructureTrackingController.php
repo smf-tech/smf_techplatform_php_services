@@ -86,7 +86,9 @@ class StructureTrackingController extends Controller
 					'_id' => [
 						'$oid' => $structureTracking->getIdAttribute()
 					],
-					'form_title' => $this->generateFormTitle($formId, $structureTracking->getIdAttribute(), $structureTracking->getTable())
+                    'form_title' => $this->generateFormTitle($formId, $structureTracking->getIdAttribute(), $structureTracking->getTable()),
+                    'createdDateTime' => isset($structureTracking->createdDateTime)? $structureTracking->createdDateTime->getTimeStamp() : $structureTracking->created_at->getTimeStamp(),
+                    'updatedDateTime' => isset($structureTracking->updatedDateTime)? $structureTracking->updatedDateTime->getTimeStamp() : $structureTracking->updated_at->getTimeStamp()
 				],
                 'message' => 'Structure prepared successfully.'
             ]);
@@ -133,7 +135,9 @@ class StructureTrackingController extends Controller
 					'_id' => [
 						'$oid' => $structureId
 					],
-					'form_title' => $this->generateFormTitle($formId, $structureId, $structure->getTable())
+					'form_title' => $this->generateFormTitle($formId, $structureId, $structure->getTable()),
+                    'createdDateTime' => isset($structure->createdDateTime)? $structure->createdDateTime->getTimeStamp() : $structure->created_at->getTimeStamp(),
+                    'updatedDateTime' => isset($structure->updatedDateTime)? $structure->updatedDateTime->getTimeStamp() : $structure->updated_at->getTimeStamp()
 				];
 				return response()->json([
                 'status' => 'success',
@@ -259,7 +263,9 @@ class StructureTrackingController extends Controller
 					'_id' => [
 						'$oid' => $structureTracking->getIdAttribute()
 					],
-					'form_title' => $this->generateFormTitle($formId, $structureTracking->getIdAttribute(), $structureTracking->getTable())
+					'form_title' => $this->generateFormTitle($formId, $structureTracking->getIdAttribute(), $structureTracking->getTable()),
+                    'createdDateTime' => isset($structureTracking->createdDateTime)? $structureTracking->createdDateTime->getTimeStamp() : $structureTracking->created_at->getTimeStamp(),
+                    'updatedDateTime' => isset($structureTracking->updatedDateTime)? $structureTracking->updatedDateTime->getTimeStamp() : $structureTracking->updated_at->getTimeStamp()
 					],
                 'message' => 'Structure ' . $data['status'] . ' successfully.'
             ]);
@@ -323,7 +329,9 @@ class StructureTrackingController extends Controller
 					'_id' => [
 						'$oid' => $structureTracking->getIdAttribute()
 					],
-					'form_title' => $this->generateFormTitle($structureTracking->form_id, $structureId, $structureTracking->getTable())
+					'form_title' => $this->generateFormTitle($structureTracking->form_id, $structureId, $structureTracking->getTable()),
+                    'createdDateTime' => isset($structureTracking->createdDateTime)? $structureTracking->createdDateTime->getTimeStamp() : $structureTracking->created_at->getTimeStamp(),
+                    'updatedDateTime' => isset($structureTracking->updatedDateTime)? $structureTracking->updatedDateTime->getTimeStamp() : $structureTracking->updated_at->getTimeStamp()
 					],
                 'message' => 'Structure ' . $data['status'] . ' successfully.'
             ]);
