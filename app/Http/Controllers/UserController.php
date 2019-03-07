@@ -248,7 +248,7 @@ class UserController extends Controller
 						$role = \App\Role::find($user->role_id);
 						$this->connectTenantDatabase($this->request);
 						$project = \App\Project::find($user->project_id);
-						$approver['entity'] = [
+						$approvalLog['entity'] = [
 							'user' => [
 								'name' => $user->name,
 								'role' => $role,
