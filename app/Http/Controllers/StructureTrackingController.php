@@ -228,6 +228,7 @@ class StructureTrackingController extends Controller
             $data = $this->request->all();
             $data['status'] = $data['status'] == true ? self::COMPLETED : self::PREPARED;
             $data['userName'] = $userId;
+			$data['form_id'] = $formId;
             $database = $this->connectTenantDatabase($this->request);
             if ($database === null) {
                 return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);

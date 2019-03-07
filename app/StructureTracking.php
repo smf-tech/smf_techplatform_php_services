@@ -2,12 +2,11 @@
 
 namespace App;
 
-use Jenssegers\Mongodb\Eloquent\Model as Model;
 use App\Volunteer;
 use App\FFAppointed;
 use App\Village;
 
-class StructureTracking extends Model
+class StructureTracking extends BaseModel
 {
     protected $fillable = [
         'structure_code',
