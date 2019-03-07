@@ -2,12 +2,11 @@
 
 namespace App;
 
-use Jenssegers\Mongodb\Eloquent\Model as Model;
 use App\Volunteer;
 use App\FFAppointed;
 use App\Village;
 
-class StructureTracking extends Model
+class StructureTracking extends BaseModel
 {
     const CREATED_AT = 'createdDateTime';
     const UPDATED_AT = 'updatedDateTime';
