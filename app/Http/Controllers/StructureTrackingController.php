@@ -248,7 +248,7 @@ class StructureTrackingController extends Controller
             if (isset($data['village']) && ($structureTracking->village_id === null || ($structureTracking->village_id !== null && $structureTracking->village_id != $data['village']))) {
                 $village = Village::find($data['village']);
 				if ($structureTracking->village_id !== null) {
-					$structureTracking->village()-dissociate();
+					$structureTracking->village()->dissociate();
 				}
                 $structureTracking->village()->associate($village);
                 $structureTracking->save();

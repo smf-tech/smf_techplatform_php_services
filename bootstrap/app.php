@@ -122,7 +122,7 @@ $app->register(DesignMyNight\Mongodb\MongodbPassportServiceProvider::class);
 $app->register(Maklad\Permission\PermissionServiceProvider::class);
 // $app->register(Flipbox\LumenGenerator\LumenGeneratorServiceProvider::class);
 $app->register(App\Providers\RefreshTokenServiceProvider::class);
-// $app->register(LaravelFCM\FCMServiceProvider::class);
+$app->register(LaravelFCM\FCMServiceProvider::class);
 
 Dusterio\LumenPassport\LumenPassport::routes($app);
 
