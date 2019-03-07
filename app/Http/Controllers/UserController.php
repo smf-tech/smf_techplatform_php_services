@@ -260,7 +260,7 @@ class UserController extends Controller
 						break;
 				}
 			};
-			return response()->json(['status' => 'success', 'data' => $approvalLogs, 'Fetched approval logs']);
+			return response()->json(['status' => 'success', 'data' => $approvalLogs, 'message' => 'Fetched approval logs']);
 		} catch(\Exception $exception) {
 			return response()->json(
                     [
