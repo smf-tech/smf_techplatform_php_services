@@ -396,8 +396,9 @@ class SurveyController extends Controller
             return response()->json(['status'=>'success','metadata'=>[],'values'=>[],'message'=>'']);
         }
         
+        $dtime = DateTime::createFromFormat('Y-m-d H:i:s.u',$surveyResults[0]['createdDateTime']);
         $responseCount = $surveyResults->count();
-        $result = ['form'=>['form_id'=>$survey_id,'userName'=>$surveyResults[0]['userName'],'createdDateTime'=>$surveyResults[0]['createdDateTime'],'submit_count'=>$responseCount]];
+        $result = ['form'=>['form_id'=>$survey_id,'userName'=>$surveyResults[0]['userName'],'createdDateTime'=>$dtime->getTimestamp(),'submit_count'=>$responseCount]];
 
         $values = [];
 
