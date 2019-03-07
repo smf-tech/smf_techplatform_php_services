@@ -112,7 +112,7 @@ class StructureMasterController extends Controller
                 'status' => 'success',
                 'data' => $result,
                 'message' => 'Created Record in Structure Master'
-            ],201);
+            ],200);
         } catch(\Exception $exception) {
             return response()->json(
                     [
