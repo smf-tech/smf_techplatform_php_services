@@ -42,7 +42,7 @@ class MachineMasterController extends Controller
             }
     }
 
-    public function createMachineCode()
+    public function createMachineCode($formId)
     {
         $database = $this->connectTenantDatabase($this->request);
         if ($database === null) {
@@ -63,9 +63,24 @@ class MachineMasterController extends Controller
         $data = $this->request->all();
         $district = District::find($this->request->input('district_id'));
         // $machines = MachineMaster::where('machine_code','LIKE',$district->abbr.'%')->get(['machine_code']);
-        $machines = MachineMaster::where('machine_code','LIKE',$district->abbr.'%')->max('machine_code');
+        
+        
+        
+        
+        // $machines = MachineMaster::where('machine_code','LIKE',$district->abbr.'%')->max('machine_code');
+        $machines = MachineMaster::where('machine_code','LIKE',$district->abbr.'%')->orderBy('created_at','desc')->first();
+        
+        
+        
+        
+        
+        
+        return number_format($machines->machine_code);
+        // 
+        
         // $queueValue = substr($machines,2,3) + 1;
-        $queueValue = substr($machines,2,-6) + 1;
+        $queueValue = (int) (substr($machines,2,-6)) + 1;
+        return $queueValue;
         $modelNumber = $values[$this->request->input('machine_make')][$this->request->input('machine_model')];
         if(empty($modelNumber)) {
             return response()->json(
@@ -79,12 +94,17 @@ class MachineMasterController extends Controller
         }
         $finalCode = $district->abbr.$queueValue.$this->request->input('machine_make').$modelNumber[0].$modelNumber[1];
         
-        $data['created_by'] = $this->request->user()->id;
+        $data['userName'] = $this->request->user()->id;
         $data['machine_code'] = $finalCode;
+
+        $machineRecord = MachineMaster::create($data);
+        
+        $record['_id']['$oid'] = $machineRecord->id;
+        $record['form_title'] = $this->generateFormTitle($formId,$record['_id']['$oid'],'machine_masters');
 
         return response()->json([
             'status' => 'success',
-            'data' => MachineMaster::create($data),
+            'data' => $record,
             'message' => 'Creation of a new record in Machine Master'
         ],201);
     }

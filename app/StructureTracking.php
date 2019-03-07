@@ -9,6 +9,9 @@ use App\Village;
 
 class StructureTracking extends Model
 {
+    const CREATED_AT = 'createdDateTime';
+    const UPDATED_AT = 'updatedDateTime';
+
     protected $fillable = [
         'structure_code',
         'work_type',

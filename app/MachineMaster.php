@@ -9,6 +9,9 @@ use App\Taluka;
 
 class MachineMaster extends \Jenssegers\Mongodb\Eloquent\Model
 {
+    // const CREATED_AT = 'createdDateTime';
+    // const UPDATED_AT = 'updatedDateTime';
+
     protected $table = 'machine_masters';
 
     protected $fillable = [

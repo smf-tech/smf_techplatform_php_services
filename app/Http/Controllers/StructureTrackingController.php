@@ -8,6 +8,7 @@ use App\StructureTracking;
 use App\Volunteer;
 use App\FFAppointed;
 use App\Village;
+use Carbon\Carbon;
 
 class StructureTrackingController extends Controller
 {
@@ -258,6 +259,70 @@ class StructureTrackingController extends Controller
 						'$oid' => $structureTracking->getIdAttribute()
 					],
 					'form_title' => $this->generateFormTitle($formId, $structureTracking->getIdAttribute(), $structureTracking->getTable())
+					],
+                'message' => 'Structure ' . $data['status'] . ' successfully.'
+            ]);
+        } catch(\Exception $exception) {
+            return response()->json(
+                    [
+                        'status' => 'error',
+                        'data' => null,
+                        'message' => $exception->getMessage()
+                    ],
+                    404
+                );
+        }
+    }
+
+    public function updateComplete($formId,$responseId)
+    {
+        try {
+            $userId = $this->request->user()->id;
+            $data = $this->request->all();
+            $data['status'] = $data['status'] == true ? self::COMPLETED : self::PREPARED;
+            $data['userName'] = $userId;
+            $database = $this->connectTenantDatabase($this->request);
+            if ($database === null) {
+                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+            }
+
+
+			// $primaryKeys = \App\Survey::find($formId)->form_keys;
+			// $condition = ['userName' => $userId];
+			// foreach ($data as $field => $value) {
+			// 	if (in_array($field, $primaryKeys) && !empty($value)) {
+			// 		if ($field == 'village') {
+			// 			$field .= '_id';
+			// 		}
+			// 		$condition[$field] = $value;
+			// 	}
+            // }
+            
+
+            $structureTracking = StructureTracking::find($responseId);
+
+            if(empty($structureTracking))
+                return response()->json([
+                    'status' => 'error',
+                    'data' => '',
+                    'message' => 'Update Failed as record does not exist!'
+                ]);
+            
+            $structureTracking->update($data);
+
+            if (isset($data['village']) && $structureTracking->village_id !== null && $structureTracking->village_id != $data['village']) {
+                $village = Village::find($data['village']);
+				$structureTracking->village()-dissociate();
+                $structureTracking->village()->associate($village);
+                $structureTracking->save();
+            }
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+					'_id' => [
+						'$oid' => $structureTracking->getIdAttribute()
+					],
+					'form_title' => $this->generateFormTitle($structureTracking->form_id, $structureTracking->getIdAttribute(), $structureTracking->getTable())
 					],
                 'message' => 'Structure ' . $data['status'] . ' successfully.'
             ]);

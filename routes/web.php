@@ -87,6 +87,7 @@ $api->version('v1',function($api){
 		$api->put('structure/prepare/{structureId}', 'StructureTrackingController@updatePreparedStructure');
         $api->get('structure/prepare', 'StructureTrackingController@get');
         $api->post('structure/complete/{formId}', 'StructureTrackingController@complete');
+        $api->put('structure/complete/{structureId}', 'StructureTrackingController@updateComplete');
         $api->get('structure/code', 'StructureMasterController@get');
         $api->post('structure/{form_id}', 'StructureMasterController@structureCreate');
 
@@ -101,9 +102,8 @@ $api->version('v1',function($api){
         $api->put('machine/mou/{form_id}/{response_id}','MachineTrackingController@updateMachineMoU');
         $api->get('machine/code', 'MachineMasterController@getMachineCode');
 
-        $api->post('machine', 'MachineMasterController@createMachineCode');
-
 		$api->get('user/approvals', 'UserController@getApprovalLog');
+        $api->post('machine/{form_id}', 'MachineMasterController@createMachineCode');
     });
 
 });
