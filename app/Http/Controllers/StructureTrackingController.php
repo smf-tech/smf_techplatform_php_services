@@ -243,9 +243,11 @@ class StructureTrackingController extends Controller
 				}
 			}
             $structureTracking = StructureTracking::updateOrCreate($condition, $data);
-            if (isset($data['village']) && $structureTracking->village_id !== null && $structureTracking->village_id != $data['village']) {
+            if (isset($data['village']) && ($structureTracking->village_id === null || ($structureTracking->village_id !== null && $structureTracking->village_id != $data['village']))) {
                 $village = Village::find($data['village']);
-				$structureTracking->village()-dissociate();
+				if ($structureTracking->village_id !== null) {
+					$structureTracking->village()-dissociate();
+				}
                 $structureTracking->village()->associate($village);
                 $structureTracking->save();
             }
