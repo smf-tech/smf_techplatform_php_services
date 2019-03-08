@@ -16,6 +16,7 @@ use App\NotificationSchema;
 use App\NotificationLog;
 use App\Survey;
 use App\ApprovalLog;
+use App\Jurisdiction;
 
 class Controller extends BaseController
 {
@@ -139,6 +140,8 @@ class Controller extends BaseController
      * @return string 
      */   
     public function generateFormTitle($form_obj_id,$formresponse_obj_id,$collection_name='survey_results'){
+        
+        $levels = $this->getLevels();
         if ($form_obj_id instanceof Survey) {
             $form_obj = $form_obj_id;
         }else{
@@ -165,7 +168,25 @@ class Controller extends BaseController
             }
             $field_values = [];
             foreach($title_fields as $title_field){
-                $field_values[] = isset($formresponse_obj[trim($title_field)]) ? $formresponse_obj[trim($title_field)] : '';
+                $model_name = '';
+                foreach($levels as $level){
+                    if(stripos($title_field, $level) !== false){
+                        $model_name = $level;
+                        break;
+                    }
+                }
+                $field_name = trim($title_field);
+                if($model_name != ''){
+                    $field_value = DB::collection($model_name)->where('_id', $formresponse_obj[trim($title_field).'_id'])->first();
+                    $value = '';
+                    if($field_value !== null){
+                        $value = $field_value['name'];
+                    }
+
+                    $field_values[] = $value;
+                }else{
+                    $field_values[] = isset($formresponse_obj[$field_name]) ? $formresponse_obj[$field_name] : '';
+                }
             }
             $title_fields_str = implode($separator,$field_values);
         }
@@ -270,6 +291,10 @@ class Controller extends BaseController
 			return self::STATUS_REJECTED;
 		}
 		return false;
-	}
+    }
+    
+    public function getLevels(){
+        return Jurisdiction::all()->pluck('levelName');
+    }
 
 }
