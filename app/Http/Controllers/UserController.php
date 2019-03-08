@@ -83,6 +83,11 @@ class UserController extends Controller
                 unset($update_data['phone']);
             }
 
+            if(isset($update_data['role_id']) && $update_data['role_id'] != $user->role_id){
+                 $user->location = [];  
+                 $user->save(); 
+            }
+
             $user->update($update_data);
 			$approverList = [];
 			$approverIds = [];
