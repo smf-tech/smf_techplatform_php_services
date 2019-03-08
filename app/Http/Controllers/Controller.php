@@ -177,7 +177,11 @@ class Controller extends BaseController
                 }
                 $field_name = trim($title_field);
                 if($model_name != ''){
-                    $field_value = DB::collection($model_name)->where('_id', $formresponse_obj[trim($title_field).'_id'])->first();
+                    if($collection_name != 'survey_results' || !stripos('entity_', $collection_name)){
+                        $field_value = DB::collection($model_name)->where('_id', $formresponse_obj[trim($title_field).'_id'])->first();
+                    }else{
+                        $field_value = DB::collection($model_name)->where('_id', $formresponse_obj[trim($title_field)])->first();
+                    }
                     $value = '';
                     if($field_value !== null){
                         $value = $field_value['name'];
