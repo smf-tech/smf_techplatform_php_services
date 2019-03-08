@@ -8,8 +8,7 @@ use App\Village;
 
 class StructureTracking extends BaseModel
 {
-    const CREATED_AT = 'createdDateTime';
-    const UPDATED_AT = 'updatedDateTime';
+	use AuditFields;
 
     protected $fillable = [
         'structure_code',

@@ -85,10 +85,10 @@ class StructureTrackingController extends Controller
                 'data' => [
 					'_id' => [
 						'$oid' => $structureTracking->getIdAttribute()
-					],
+				],
                     'form_title' => $this->generateFormTitle($formId, $structureTracking->getIdAttribute(), $structureTracking->getTable()),
-                    'createdDateTime' => isset($structureTracking->createdDateTime)? $structureTracking->createdDateTime->getTimeStamp() : $structureTracking->created_at->getTimeStamp(),
-                    'updatedDateTime' => isset($structureTracking->updatedDateTime)? $structureTracking->updatedDateTime->getTimeStamp() : $structureTracking->updated_at->getTimeStamp()
+                    'createdDateTime' => $structureTracking->createdDateTime,
+                    'updatedDateTime' => $structureTracking->updatedDateTime
 				],
                 'message' => 'Structure prepared successfully.'
             ]);
@@ -136,8 +136,8 @@ class StructureTrackingController extends Controller
 						'$oid' => $structureId
 					],
 					'form_title' => $this->generateFormTitle($formId, $structureId, $structure->getTable()),
-                    'createdDateTime' => isset($structure->createdDateTime)? $structure->createdDateTime->getTimeStamp() : $structure->created_at->getTimeStamp(),
-                    'updatedDateTime' => isset($structure->updatedDateTime)? $structure->updatedDateTime->getTimeStamp() : $structure->updated_at->getTimeStamp()
+                    'createdDateTime' => $structure->createdDateTime,
+                    'updatedDateTime' => $structure->updatedDateTime
 				];
 				return response()->json([
                 'status' => 'success',
@@ -264,8 +264,8 @@ class StructureTrackingController extends Controller
 						'$oid' => $structureTracking->getIdAttribute()
 					],
 					'form_title' => $this->generateFormTitle($formId, $structureTracking->getIdAttribute(), $structureTracking->getTable()),
-                    'createdDateTime' => isset($structureTracking->createdDateTime)? $structureTracking->createdDateTime->getTimeStamp() : $structureTracking->created_at->getTimeStamp(),
-                    'updatedDateTime' => isset($structureTracking->updatedDateTime)? $structureTracking->updatedDateTime->getTimeStamp() : $structureTracking->updated_at->getTimeStamp()
+                    'createdDateTime' => $structureTracking->createdDateTime,
+                    'updatedDateTime' => $structureTracking->updatedDateTime
 					],
                 'message' => 'Structure ' . $data['status'] . ' successfully.'
             ]);
@@ -293,19 +293,6 @@ class StructureTrackingController extends Controller
                 return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
             }
 
-
-			// $primaryKeys = \App\Survey::find($formId)->form_keys;
-			// $condition = ['userName' => $userId];
-			// foreach ($data as $field => $value) {
-			// 	if (in_array($field, $primaryKeys) && !empty($value)) {
-			// 		if ($field == 'village') {
-			// 			$field .= '_id';
-			// 		}
-			// 		$condition[$field] = $value;
-			// 	}
-            // }
-            
-
             $structureTracking = StructureTracking::find($structureId);
 
             if(empty($structureTracking))
@@ -330,8 +317,8 @@ class StructureTrackingController extends Controller
 						'$oid' => $structureTracking->getIdAttribute()
 					],
 					'form_title' => $this->generateFormTitle($structureTracking->form_id, $structureId, $structureTracking->getTable()),
-                    'createdDateTime' => isset($structureTracking->createdDateTime)? $structureTracking->createdDateTime->getTimeStamp() : $structureTracking->created_at->getTimeStamp(),
-                    'updatedDateTime' => isset($structureTracking->updatedDateTime)? $structureTracking->updatedDateTime->getTimeStamp() : $structureTracking->updated_at->getTimeStamp()
+                    'createdDateTime' => $structureTracking->createdDateTime,
+                    'updatedDateTime' => $structureTracking->updatedDateTime
 					],
                 'message' => 'Structure ' . $data['status'] . ' successfully.'
             ]);

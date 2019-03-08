@@ -94,20 +94,18 @@ class MachineTrackingController extends Controller
             if($this->request->filled('last_deployed')) {
                 $deployedMachine->last_deployed = $this->request->last_deployed;
             }
-            
+
             $deployedMachine->userName = $this->request->user()->id;
             $deployedMachine->form_id = $form_id;
             $deployedMachine->save();
 
-            return $deployedMachine;
-            
             $result = [
                 '_id' => [
                     '$oid' => $deployedMachine->id
                 ],
                 'form_title' => $this->generateFormTitle($form_id,$deployedMachine->id,'machine_tracking'),
-                'createdDateTime' => isset($deployedMachine->createdDateTime)? $deployedMachine->createdDateTime->getTimeStamp(): $deployedMachine->created_at->getTimeStamp(),
-                'udpatedDateTime' => isset($deployedMachine->udpatedDateTime)? $deployedMachine->udpatedDateTime->getTimeStamp(): $deployedMachine->updated_at->getTimeStamp() 
+                'createdDateTime' => $deployedMachine->createdDateTime,
+                'updatedDateTime' => $deployedMachine->updatedDateTime
             ]; 
             
             return response()->json(['status'=>'success','data'=>$result,'message'=>'']);
@@ -144,6 +142,7 @@ class MachineTrackingController extends Controller
                 $deployedMachine->status = $this->request->status;
                 $deployedMachine->last_deployed = $this->request->last_deployed;
                 $deployedMachine->userName = $this->request->user()->id;
+				$deployedMachine->updatedDateTime = Carbon::now()->getTimestamp();
                 $deployedMachine->save();
     
                 $result = [
@@ -151,8 +150,8 @@ class MachineTrackingController extends Controller
                         '$oid' => $deployedMachine->id
                     ],
                     'form_title' => $this->generateFormTitle($deployedMachine->form_id,$deployedMachine->id,'machine_tracking'),
-                    'createdDateTime' => isset($deployedMachine->createdDateTime)? $deployedMachine->createdDateTime->getTimeStamp(): $deployedMachine->created_at->getTimeStamp(),
-                    'udpatedDateTime' => isset($deployedMachine->udpatedDateTime)? $deployedMachine->udpatedDateTime->getTimeStamp(): $deployedMachine->updated_at->getTimeStamp() 
+                    'createdDateTime' => $deployedMachine->createdDateTime,
+                    'updatedDateTime' => $deployedMachine->updatedDateTime
                 ]; 
                 
                 return response()->json(['status'=>'success','data'=>$result,'message'=>'']);
@@ -309,8 +308,8 @@ class MachineTrackingController extends Controller
                     '$oid' => $shifting_id
                 ],
                 'form_title' => $this->generateFormTitle($form_id,$shifting_id,'shifting_records'),
-                'createdDateTime' => isset($machine->createdDateTime)? $machine->createdDateTime->getTimeStamp(): $machine->created_at->getTimeStamp(),
-                'udpatedDateTime' => isset($machine->udpatedDateTime)? $machine->udpatedDateTime->getTimeStamp(): $machine->updated_at->getTimeStamp() 
+                'createdDateTime' => $shiftingRecord->createdDateTime,
+                'udpatedDateTime' => $shiftingRecord->udpatedDateTime
             ]; 
 
             return response()->json(['status'=>'success','data'=>$result,'message'=>'']);
@@ -349,8 +348,8 @@ class MachineTrackingController extends Controller
                         '$oid' => $machine_shifted->id
                     ],
                     'form_title' => $this->generateFormTitle($machine_shifted->form_id,$machine_shifted->id,'shifting_records'),
-                    'createdDateTime' => isset($machine_shifted->createdDateTime)? $machine_shifted->createdDateTime->getTimeStamp(): $machine_shifted->created_at->getTimeStamp(),
-                    'udpatedDateTime' => isset($machine_shifted->udpatedDateTime)? $machine_shifted->udpatedDateTime->getTimeStamp(): $machine_shifted->updated_at->getTimeStamp() 
+                    'createdDateTime' => $machine_shifted->createdDateTime,
+                    'udpatedDateTime' => $machine_shifted->udpatedDateTime
                 ]; 
 
                 return response()->json(['status'=>'success','data'=>$result,'message'=>'']);
@@ -447,8 +446,8 @@ class MachineTrackingController extends Controller
         $machine = MachineMou::create($mouDetails);
         $data['_id']['$oid'] = $machine->id;
         $data['form_title'] = $this->generateFormTitle($formId,$machine->id,'machine_mou');
-        $data['createdDateTime'] = isset($machine->createdDateTime)? $machine->createdDateTime->getTimeStamp() : $machine->created_at->getTimeStamp();
-        $data['updatedDateTime'] = isset($machine->updatedDateTime)? $machine->updatedDateTime->getTimeStamp() : $machine->updated_at->getTimeStamp();
+        $data['createdDateTime'] = $machine->createdDateTime;
+        $data['updatedDateTime'] = $machine->updatedDateTime;
 
         return response()->json(['status'=>'success','data'=>$data,'message'=>'']); 
     }
@@ -498,8 +497,8 @@ class MachineTrackingController extends Controller
         $machine = $mouRecord->update($mouDetails);
         $data['_id']['$oid'] = $recordId;
         $data['form_title'] = $this->generateFormTitle($mouRecord->form_id,$recordId,'machine_mou');
-        $data['createdDateTime'] = isset($mouRecord->createdDateTime)? $mouRecord->createdDateTime->getTimeStamp() : $machine->created_at->getTimeStamp();
-        $data['updatedDateTime'] = isset($mouRecord->updatedDateTime)? $mouRecord->updatedDateTime->getTimeStamp() : $machine->updated_at->getTimeStamp();
+        $data['createdDateTime'] = $mouRecord->createdDateTime;
+        $data['updatedDateTime'] = $mouRecord->updatedDateTime;
 
         return response()->json(['status'=>'success','data'=>$data,'message'=>'']); 
     }
