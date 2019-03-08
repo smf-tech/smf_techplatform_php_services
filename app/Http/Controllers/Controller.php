@@ -177,7 +177,7 @@ class Controller extends BaseController
                 }
                 $field_name = trim($title_field);
                 if($model_name != ''){
-                    if($collection_name != 'survey_results' || !stripos($collection_name,'entity_')){
+                    if($collection_name != 'survey_results' && !stripos($collection_name,'entity_')){
                         $field_value = DB::collection($model_name)->where('_id', $formresponse_obj[trim($title_field).'_id'])->first();
                     }else{
                         $field_value = DB::collection($model_name)->where('_id', $formresponse_obj[trim($title_field)])->first();
