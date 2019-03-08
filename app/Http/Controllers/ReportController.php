@@ -33,7 +33,7 @@ class ReportController extends Controller
                 return response()->json(
                     [
                         'status' => 'success',
-                        'data' => Report::findOrFail($id),
+                        'data' => Report::where('_id', $id)->with('category')->first(),
                         'message' => 'Report found with id ' . $id
                     ],
                     200
@@ -52,7 +52,7 @@ class ReportController extends Controller
         return response()->json(
             [
                 'status' => 'success',
-                'data' => Report::all(),
+                'data' => Report::with('category')->get(),
                 'message' => 'Jurisdiction Type list'
             ],
             200
