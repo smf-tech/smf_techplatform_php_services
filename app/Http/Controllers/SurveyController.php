@@ -127,7 +127,7 @@ class SurveyController extends Controller
         // $timestamp = $dtime->getTimestamp();
 
         $data['_id']['$oid'] = $responseId;
-        $data['createdDateTime'] = $dtime->getTimestamp();
+        $data['createdDateTime'] = (new Carbon($user_submitted->first()['createdDateTime']))->getTimestamp();
         $data['updatedDateTime'] = $date->getTimestamp();        
 
         return response()->json(['status'=>'success', 'data' => $data, 'message'=>'']);
