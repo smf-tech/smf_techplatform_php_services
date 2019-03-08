@@ -7,7 +7,7 @@ class ApprovalLog extends BaseModel
 	protected $fillable = [
 		'entity_id',
 		'entity_type',
-		'approver_id',
+		'approver_ids',
 		'status',
 		'reason',
 		'userName',

@@ -238,7 +238,7 @@ class UserController extends Controller
 			if ($status === false) {
 				return response()->json(['status' => 'error', 'data' => '', 'message' => 'Invalid value passed.'], 403);
 			}
-			$approvalLogs = ApprovalLog::where(['status' => $status])->get()->all();
+			$approvalLogs = ApprovalLog::where(['status' => $status, 'approver_ids' => $this->request->user()->id])->get()->all();
 			foreach ($approvalLogs as &$approvalLog) {
 				switch($approvalLog->entity_type) {
 					case self::ENTITY_USER:
