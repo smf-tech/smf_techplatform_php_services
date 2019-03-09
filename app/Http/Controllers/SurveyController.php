@@ -79,7 +79,29 @@ class SurveyController extends Controller
         // Selecting the collection to use depending on whether the survey has an entity_id or not
         $collection_name = isset($survey->entity_id)?'entity_'.$survey->entity_id:'survey_results';
 
-        $formExists = DB::collection($collection_name)->where('form_id','=',$survey_id)
+
+        // return $survey_id;  => 5c382eaa48b6710aa00065d3
+        // $formExists = DB::collection($collection_name)->where(function($q) {
+        //         $q->where('form_id','=','5c382eaa48b6710aa00065d3')
+        //           ->orWhere('survey_id','=','5c382eaa48b6710aa00065d3');
+        //     })
+        //     ->where('userName','=',$user->id)
+        //     ->where(function($q) use ($primaryValues)
+        //     {
+        //         foreach($primaryValues as $key => $value)
+        //         {
+        //             $q->where($key, '=', $value);
+        //         }
+        //     })
+        //     ->where('_id','!=',$responseId)
+        //     ->get()->first();
+        // $uri = explode("/",$_SERVER['REQUEST_URI']);
+        // $survey_id = $uri[4];
+        // return $survey_id;
+        $formExists = DB::collection($collection_name)->where(function($q) use ($survey_id){
+            $q->where('form_id','=',$survey_id)
+              ->orWhere('survey_id','=',$survey_id);
+        })
                             ->where('userName','=',$user->id)
                             ->where(function($q) use ($primaryValues)
                             {
@@ -91,6 +113,7 @@ class SurveyController extends Controller
         ->where('_id','!=',$responseId)
         ->get()->first();
 
+// return $formExists;
         if (!empty($formExists)) {
             return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Update Failure!!! Entry already exists with the same values.'],400);
         }
@@ -98,7 +121,10 @@ class SurveyController extends Controller
 
         $user_submitted = DB::collection($collection_name)
                             ->where('_id',$responseId)
-                            ->where('form_id','=',$survey_id)
+                            ->where(function($q) use ($survey_id){
+                                $q->where('form_id','=',$survey_id)
+                                  ->orWhere('survey_id','=',$survey_id);
+                            })
                             ->where('userName','=',$user->id);
 
 
@@ -324,50 +350,11 @@ class SurveyController extends Controller
         $order = $this->request->input('order') ?:'desc';
         $field = $this->request->input('field') ?:'createdDateTime';
         $page = $this->request->input('page') ?:1;
-
-        // $eDate = $this->request->input('start_date') ?:Carbon::now('Asia/Calcutta');
-        // // return $endDate->modify('-1 months');
-        // $sDate = $this->request->input('end_date') ?:Carbon::now('Asia/Calcutta')->subMonth();
-
-        if($this->request->filled('start_date')) {
-            $startDate = $this->request->input('start_date');
-        }
-        else {
-            $eDate = Carbon::now('Asia/Calcutta');
-            foreach($eDate as $key=>$value)
-            {
-                if($key == 'date')
-                    $endDate = $value;
-            }
-        }
-        
-        if($this->request->filled('end_date')) {
-            $endDate = $this->request->input('end_date');
-        }
-        else {
-            $sDate = Carbon::now('Asia/Calcutta')->subMonth();
-            foreach($sDate as $key=>$value)
-            {
-                if($key == 'date')
-                    $startDate = $value;
-            }
-        }
+        $endDate = $this->request->input('start_date') ?:Carbon::now('Asia/Calcutta')->getTimestamp();
+        $startDate = $this->request->input('end_date') ?:Carbon::now('Asia/Calcutta')->subMonth()->getTimestamp();
 
         if($survey->entity_id == null)
         {
-            // $surveyResults = DB::collection('survey_results')
-            //                     ->where('form_id','=',$survey_id)
-            //                     ->where('user_id','=',$user->id)
-            //                     ->orderBy($field,$order)
-            //                     ->skip(1)->get();
-
-            
-            // $surveyResults = $surveyResults->toArray();
-
-            // $currentItems = array_slice($surveyResults, $limit * ($page - 1), $limit);
-            // $abc = new LengthAwarePaginator($currentItems, count($surveyResults), $limit, $page);
-            // $abc = new LengthAwarePaginator($surveyResults, count($surveyResults), $limit, $page);
-            // return $abc;
             $collection_name = 'survey_results';
             $surveyResults = DB::collection('survey_results')
                                 ->where('form_id','=',$survey_id)
@@ -387,16 +374,14 @@ class SurveyController extends Controller
                                 ->paginate($limit);
         }           
 
-        //  $surveyResults->total();
-        // return $surveyResults->lastPage();
         if ($surveyResults->count() === 0) {
             return response()->json(['status'=>'success','metadata'=>[],'values'=>[],'message'=>'']);
         }
         
         $createdDateTime = $surveyResults[0]['createdDateTime'];
-        $updatedDateTime = $surveyResults[0]['updatedDateTime'];
+        // $updatedDateTime = $surveyResults[0]['updatedDateTime'];
         $responseCount = $surveyResults->count();
-        $result = ['form'=>['form_id'=>$survey_id,'userName'=>$surveyResults[0]['userName'],'createdDateTime'=>$createdDateTime, 'updatedDateTime'=>$updatedDateTime,'submit_count'=>$responseCount]];
+        $result = ['form'=>['form_id'=>$survey_id,'userName'=>$surveyResults[0]['userName'],'createdDateTime'=>$createdDateTime, 'submit_count'=>$responseCount]];
 
         $values = [];
 
