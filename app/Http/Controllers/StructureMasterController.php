@@ -107,8 +107,8 @@ class StructureMasterController extends Controller
                     '$oid' => $structure_master['_id']
                 ],
                 'form_title' => $this->generateFormTitle($form_id,$structure_master['_id'],'structure_masters'),
-				'createdDateTime' => $structure_master->createdDateTime,
-				'updatedDateTime' => $structure_master->updatedDateTime
+				'createdDateTime' => $structure_master['createdDateTime'],
+				'updatedDateTime' => $structure_master['updatedDateTime']
             ]; 
             return response()->json([
                 'status' => 'success',
