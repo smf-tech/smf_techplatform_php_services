@@ -91,9 +91,9 @@ class StructureMasterController extends Controller
             $data['userName'] = $this->request->user()->id;
             $data['structure_code'] = $structure_code;
             // Gives current date and time in the format :  2019-01-24 10:30:46
-            $date = Carbon::now();
-            $data['createdDateTime']=$date->getTimestamp();
-            $data['updatedDateTime']=$date->getTimestamp();
+//            $date = Carbon::now();
+//            $data['createdDateTime']=$date->getTimestamp();
+//            $data['updatedDateTime']=$date->getTimestamp();
             $data['form_id']=$form_id;
             $structure_master = StructureMaster::create($data);
             $structure_master->district()->associate($district);
@@ -106,7 +106,9 @@ class StructureMasterController extends Controller
                 '_id' => [
                     '$oid' => $structure_master['_id']
                 ],
-                'form_title' => $this->generateFormTitle($form_id,$structure_master['_id'],'structure_masters') 
+                'form_title' => $this->generateFormTitle($form_id,$structure_master['_id'],'structure_masters'),
+				'createdDateTime' => $structure_master->createdDateTime,
+				'updatedDateTime' => $structure_master->updatedDateTime
             ]; 
             return response()->json([
                 'status' => 'success',

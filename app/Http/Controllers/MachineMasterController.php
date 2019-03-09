@@ -87,6 +87,8 @@ class MachineMasterController extends Controller
         
         $record['_id']['$oid'] = $machineRecord->id;
         $record['form_title'] = $this->generateFormTitle($formId,$record['_id']['$oid'],'machine_masters');
+		$record['createdDateTime'] = $machineRecord->createdDateTime;
+		$record['updatedDateTime'] = $machineRecord->updatedDateTime;
 
         return response()->json([
             'status' => 'success',

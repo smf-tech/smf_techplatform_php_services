@@ -7,8 +7,10 @@ use App\ShiftingRecord;
 use App\MachineMou;
 use App\Village;
 
-class MachineTracking extends \Jenssegers\Mongodb\Eloquent\Model
+class MachineTracking extends BaseModel
 {
+	use AuditFields;
+
     protected $table = 'machine_tracking';
 
     protected $fillable = [

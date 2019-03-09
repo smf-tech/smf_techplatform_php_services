@@ -8,9 +8,7 @@ use App\District;
 
 class MachineMou extends \Jenssegers\Mongodb\Eloquent\Model
 {
-    
-    const CREATED_AT = 'createdDateTime';
-    const UPDATED_AT = 'updatedDateTime';
+	use AuditFields;
 
     protected $table = 'machine_mou';
 

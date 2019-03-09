@@ -74,7 +74,7 @@ class SurveyController extends Controller
         //         $dateTime = $value;
         // }
                 
-        $fields['updatedDateTime'] = $date->format('Y-m-d H:i:s.u'); 
+        $fields['updatedDateTime'] = $date->getTimestamp();
 
         // Selecting the collection to use depending on whether the survey has an entity_id or not
         $collection_name = isset($survey->entity_id)?'entity_'.$survey->entity_id:'survey_results';
@@ -121,14 +121,11 @@ class SurveyController extends Controller
             $user_submitted->update($fields);
                             
             $data['form_title'] = $this->generateFormTitle($survey_id,$responseId,'entity_'.$survey->entity_id);
-        }        
-        
-        $dtime = DateTime::createFromFormat('Y-m-d H:i:s.u',$user_submitted->first()['createdDateTime']);
-        // $timestamp = $dtime->getTimestamp();
+        }
 
         $data['_id']['$oid'] = $responseId;
-        $data['createdDateTime'] = (new Carbon($user_submitted->first()['createdDateTime']))->getTimestamp();
-        $data['updatedDateTime'] = $date->getTimestamp();        
+        $data['createdDateTime'] = $user_submitted->first()['createdDateTime'];
+        $data['updatedDateTime'] = $fields['updatedDateTime'];
 
         return response()->json(['status'=>'success', 'data' => $data, 'message'=>'']);
 
@@ -231,8 +228,8 @@ class SurveyController extends Controller
         //         $dateTime = $value;
         // }
         $fields['submit_count'] = 1;
-        $fields['updatedDateTime'] = $date->format('Y-m-d H:i:s.u'); 
-        $fields['createdDateTime'] = $date->format('Y-m-d H:i:s.u'); 
+        $fields['updatedDateTime'] = $date->getTimestamp();
+        $fields['createdDateTime'] = $date->getTimestamp();
 
 
         if($survey->entity_id == null)
@@ -289,8 +286,8 @@ class SurveyController extends Controller
         }    
 
         $data['form_title'] = $this->generateFormTitle($survey_id,$data['_id'],$collection_name);
-        $data['createdDateTime'] = $date->getTimestamp(); 
-        $data['updatedDateTime'] = $date->getTimestamp();  
+        $data['createdDateTime'] = $fields['createdDateTime'];
+        $data['updatedDateTime'] = $fields['updatedDateTime'];
 
         return response()->json(['status'=>'success', 'data' => $data, 'message'=>'']);
 
@@ -396,10 +393,10 @@ class SurveyController extends Controller
             return response()->json(['status'=>'success','metadata'=>[],'values'=>[],'message'=>'']);
         }
         
-        $createdDateTime = DateTime::createFromFormat('Y-m-d H:i:s.u',$surveyResults[0]['createdDateTime']);
-        $updatedDateTime = DateTime::createFromFormat('Y-m-d H:i:s.u',$surveyResults[0]['updatedDateTime']);
+        $createdDateTime = $surveyResults[0]['createdDateTime'];
+        $updatedDateTime = $surveyResults[0]['updatedDateTime'];
         $responseCount = $surveyResults->count();
-        $result = ['form'=>['form_id'=>$survey_id,'userName'=>$surveyResults[0]['userName'],'createdDateTime'=>$createdDateTime->getTimestamp(), 'updatedDateTime'=>$updatedDateTime->getTimestamp(),'submit_count'=>$responseCount]];
+        $result = ['form'=>['form_id'=>$survey_id,'userName'=>$surveyResults[0]['userName'],'createdDateTime'=>$createdDateTime, 'updatedDateTime'=>$updatedDateTime,'submit_count'=>$responseCount]];
 
         $values = [];
 

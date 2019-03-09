@@ -7,6 +7,8 @@ use App\NotificationSchema;
 
 class NotificationLog extends Model
 {
+	use AuditFields;
+
     protected $fillable = [
 		'firebase_id',
 		'firebase_response'

@@ -7,6 +7,8 @@ use App\StructureTracking;
 
 class FFAppointed extends Model
 {
+	use AuditFields;
+
     protected $fillable = [
         'name',
         'mobile_number',

@@ -2,12 +2,13 @@
 
 namespace App;
 
-use Illuminate\Database\Eloquent\Model;
 use App\MachineTracking;
 use App\Village;
 
-class ShiftingRecord extends \Jenssegers\Mongodb\Eloquent\Model
+class ShiftingRecord extends BaseModel
 {
+	use AuditFields;
+
     protected $table = 'shifting_records';
 
     protected $fillable = [
@@ -30,8 +31,8 @@ class ShiftingRecord extends \Jenssegers\Mongodb\Eloquent\Model
         'diesel_availability_photo',
         'userName',
         'form_id'
-        
     ];
+
     public function machineTracking()
     {
         return $this->belongsTo(MachineTracking::class);
