@@ -178,6 +178,71 @@ class MachineTrackingController extends Controller
 		}
     }
 
+    public function getMachinesDeployed($form_id){
+        try {
+			$database = $this->connectTenantDatabase($this->request);
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			}
+			$userName = $this->request->user()->id;
+			$limit = (int)$this->request->input('limit') ?:50;
+			$offset = $this->request->input('offset') ?:0;
+			$order = $this->request->input('order') ?:'desc';
+			$field = $this->request->input('field') ?:'createdDateTime';
+			$page = $this->request->input('page') ?:1;
+			$startDate = $this->request->filled('start_date') ? $this->request->start_date : Carbon::now()->subMonth()->getTimestamp();
+			$endDate = $this->request->filled('end_date') ? $this->request->end_date : Carbon::now()->getTimestamp();
+
+			$deployed_machines = MachineTracking::where('userName', $userName)
+					->where('form_id', $formId)
+					->whereBetween('createdDateTime', [$startDate, $endDate])
+					->orderBy($field, $order)
+					->paginate($limit);
+
+			if ($deployed_machines->count() === 0) {
+				return response()->json(['status' => 'success', 'metadata' => [],'values' => [], 'message' => '']);
+			}
+			$createdDateTime = $deployed_machines->first()['createdDateTime'];
+			$updatedDateTime = $deployed_machines->last()['updatedDateTime'];
+			$resonseCount = $deployed_machines->count();
+
+			$result = [
+				'form' => [
+					'form_id' => $formId,
+					'userName' => $deployed_machines->first()['userName'],
+					'createdDateTime' => $createdDateTime,
+					'updatedDateTime' => $updatedDateTime,
+					'submit_count' => $resonseCount
+				]
+			];
+
+			$values = [];
+			foreach ($deployed_machines as &$structure) {
+				$structure['form_title'] = $this->generateFormTitle($formId, $structure['_id'], 'machine_tracking');
+				$values[] = \Illuminate\Support\Arr::except($structure, ['form_id', 'userName', 'createdDateTime']);
+			}
+
+			$result['Current page'] = 'Page ' . $deployed_machines->currentPage() . ' of ' . $deployed_machines->lastPage();
+			$result['Total number of records'] = $deployed_machines->total();
+
+			return response()->json([
+				'status' => 'success',
+				'metadata' => [$result],
+				'values' => $values,
+				'message '=> ''
+			]);
+		} catch(\Exception $exception) {
+			return response()->json(
+				[
+					'status' => 'error',
+					'data' => null,
+					'message' => $exception->getMessage()
+				],
+				404
+			);
+		}
+    }
+
     public function getDeploymentInfo()
     {
 		try {
@@ -373,6 +438,71 @@ class MachineTrackingController extends Controller
 		}
     }
 
+    public function getMachinesShifted($form_id){
+        try {
+			$database = $this->connectTenantDatabase($this->request);
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			}
+			$userName = $this->request->user()->id;
+			$limit = (int)$this->request->input('limit') ?:50;
+			$offset = $this->request->input('offset') ?:0;
+			$order = $this->request->input('order') ?:'desc';
+			$field = $this->request->input('field') ?:'createdDateTime';
+			$page = $this->request->input('page') ?:1;
+			$startDate = $this->request->filled('start_date') ? $this->request->start_date : Carbon::now()->subMonth()->getTimestamp();
+			$endDate = $this->request->filled('end_date') ? $this->request->end_date : Carbon::now()->getTimestamp();
+
+			$shifted_machines = ShiftingRecord::where('userName', $userName)
+					->where('form_id', $formId)
+					->whereBetween('createdDateTime', [$startDate, $endDate])
+					->orderBy($field, $order)
+					->paginate($limit);
+
+			if ($shifted_machines->count() === 0) {
+				return response()->json(['status' => 'success', 'metadata' => [],'values' => [], 'message' => '']);
+			}
+			$createdDateTime = $shifted_machines->first()['createdDateTime'];
+			$updatedDateTime = $shifted_machines->last()['updatedDateTime'];
+			$resonseCount = $shifted_machines->count();
+
+			$result = [
+				'form' => [
+					'form_id' => $formId,
+					'userName' => $shifted_machines->first()['userName'],
+					'createdDateTime' => $createdDateTime,
+					'updatedDateTime' => $updatedDateTime,
+					'submit_count' => $resonseCount
+				]
+			];
+
+			$values = [];
+			foreach ($shifted_machines as &$structure) {
+				$structure['form_title'] = $this->generateFormTitle($formId, $structure['_id'], 'shifting_records');
+				$values[] = \Illuminate\Support\Arr::except($structure, ['form_id', 'userName', 'createdDateTime']);
+			}
+
+			$result['Current page'] = 'Page ' . $shifted_machines->currentPage() . ' of ' . $shifted_machines->lastPage();
+			$result['Total number of records'] = $shifted_machines->total();
+
+			return response()->json([
+				'status' => 'success',
+				'metadata' => [$result],
+				'values' => $values,
+				'message '=> ''
+			]);
+		} catch(\Exception $exception) {
+			return response()->json(
+				[
+					'status' => 'error',
+					'data' => null,
+					'message' => $exception->getMessage()
+				],
+				404
+			);
+		}       
+    }
+
     public function getShiftingInfo()
     {
         $database = $this->connectTenantDatabase($this->request);
@@ -501,5 +631,70 @@ class MachineTrackingController extends Controller
         $data['updatedDateTime'] = $mouRecord->updatedDateTime;
 
         return response()->json(['status'=>'success','data'=>$data,'message'=>'']); 
+    }
+
+    public function getMachineMoU($form_id){
+        try {
+			$database = $this->connectTenantDatabase($this->request);
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			}
+			$userName = $this->request->user()->id;
+			$limit = (int)$this->request->input('limit') ?:50;
+			$offset = $this->request->input('offset') ?:0;
+			$order = $this->request->input('order') ?:'desc';
+			$field = $this->request->input('field') ?:'createdDateTime';
+			$page = $this->request->input('page') ?:1;
+			$startDate = $this->request->filled('start_date') ? $this->request->start_date : Carbon::now()->subMonth()->getTimestamp();
+			$endDate = $this->request->filled('end_date') ? $this->request->end_date : Carbon::now()->getTimestamp();
+
+			$machine_mou = MachineMou::where('userName', $userName)
+					->where('form_id', $formId)
+					->whereBetween('createdDateTime', [$startDate, $endDate])
+					->orderBy($field, $order)
+					->paginate($limit);
+
+			if ($machine_mou->count() === 0) {
+				return response()->json(['status' => 'success', 'metadata' => [],'values' => [], 'message' => '']);
+			}
+			$createdDateTime = $machine_mou->first()['createdDateTime'];
+			$updatedDateTime = $machine_mou->last()['updatedDateTime'];
+			$resonseCount = $machine_mou->count();
+
+			$result = [
+				'form' => [
+					'form_id' => $formId,
+					'userName' => $machine_mou->first()['userName'],
+					'createdDateTime' => $createdDateTime,
+					'updatedDateTime' => $updatedDateTime,
+					'submit_count' => $resonseCount
+				]
+			];
+
+			$values = [];
+			foreach ($machine_mou as &$structure) {
+				$structure['form_title'] = $this->generateFormTitle($formId, $structure['_id'], 'machine_mou');
+				$values[] = \Illuminate\Support\Arr::except($structure, ['form_id', 'userName', 'createdDateTime']);
+			}
+
+			$result['Current page'] = 'Page ' . $machine_mou->currentPage() . ' of ' . $machine_mou->lastPage();
+			$result['Total number of records'] = $machine_mou->total();
+
+			return response()->json([
+				'status' => 'success',
+				'metadata' => [$result],
+				'values' => $values,
+				'message '=> ''
+			]);
+		} catch(\Exception $exception) {
+			return response()->json(
+				[
+					'status' => 'error',
+					'data' => null,
+					'message' => $exception->getMessage()
+				],
+				404
+			);
+		}       
     }
 }

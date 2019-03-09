@@ -96,4 +96,69 @@ class MachineMasterController extends Controller
             'message' => 'Create Record in Machine Master'
         ],200);
     }
+
+    public function getMachineCodes($form_id){
+        try {
+			$database = $this->connectTenantDatabase($this->request);
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			}
+			$userName = $this->request->user()->id;
+			$limit = (int)$this->request->input('limit') ?:50;
+			$offset = $this->request->input('offset') ?:0;
+			$order = $this->request->input('order') ?:'desc';
+			$field = $this->request->input('field') ?:'createdDateTime';
+			$page = $this->request->input('page') ?:1;
+			$startDate = $this->request->filled('start_date') ? $this->request->start_date : Carbon::now()->subMonth()->getTimestamp();
+			$endDate = $this->request->filled('end_date') ? $this->request->end_date : Carbon::now()->getTimestamp();
+
+			$machine_masters= MachineMaster::where('userName', $userName)
+					->where('form_id', $formId)
+					->whereBetween('createdDateTime', [$startDate, $endDate])
+					->orderBy($field, $order)
+					->paginate($limit);
+
+			if ($machine_masters->count() === 0) {
+				return response()->json(['status' => 'success', 'metadata' => [],'values' => [], 'message' => '']);
+			}
+			$createdDateTime = $machine_masters->first()['createdDateTime'];
+			$updatedDateTime = $machine_masters->last()['updatedDateTime'];
+			$resonseCount = $machine_masters->count();
+
+			$result = [
+				'form' => [
+					'form_id' => $formId,
+					'userName' => $machine_masters->first()['userName'],
+					'createdDateTime' => $createdDateTime,
+					'updatedDateTime' => $updatedDateTime,
+					'submit_count' => $resonseCount
+				]
+			];
+
+			$values = [];
+			foreach ($machine_masters as &$structure) {
+				$structure['form_title'] = $this->generateFormTitle($formId, $structure['_id'], 'machine_masters');
+				$values[] = \Illuminate\Support\Arr::except($structure, ['form_id', 'userName', 'createdDateTime']);
+			}
+
+			$result['Current page'] = 'Page ' . $machine_masters->currentPage() . ' of ' . $machine_masters->lastPage();
+			$result['Total number of records'] = $machine_masters->total();
+
+			return response()->json([
+				'status' => 'success',
+				'metadata' => [$result],
+				'values' => $values,
+				'message '=> ''
+			]);
+		} catch(\Exception $exception) {
+			return response()->json(
+				[
+					'status' => 'error',
+					'data' => null,
+					'message' => $exception->getMessage()
+				],
+				404
+			);
+		}      
+    }
 }
