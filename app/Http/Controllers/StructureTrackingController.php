@@ -253,8 +253,8 @@ class StructureTrackingController extends Controller
 			if ($structures->count() === 0) {
 				return response()->json(['status' => 'success', 'metadata' => [],'values' => [], 'message' => '']);
 			}
-			$createdDateTime = $structures->first()['createdDateTime'];
-			$updatedDateTime = $structures->last()['updatedDateTime'];
+			$createdDateTime = $structures->last()['createdDateTime'];
+			$updatedDateTime = $structures->first()['updatedDateTime'];
 			$resonseCount = $structures->count();
 
 			$result = [
