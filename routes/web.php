@@ -86,10 +86,13 @@ $api->version('v1',function($api){
         $api->post('structure/prepare/{formId}', 'StructureTrackingController@prepare');
 		$api->put('structure/prepare/{structureId}', 'StructureTrackingController@updatePreparedStructure');
         $api->get('structure/prepare', 'StructureTrackingController@get');
+		$api->get('structure/prepare/{formId}', 'StructureTrackingController@getStructures');
         $api->post('structure/complete/{formId}', 'StructureTrackingController@complete');
         $api->put('structure/complete/{structureId}', 'StructureTrackingController@updateComplete');
+		$api->get('structure/complete/{formId}', 'StructureTrackingController@getStructures');
         $api->get('structure/code', 'StructureMasterController@get');
         $api->post('structure/{form_id}', 'StructureMasterController@structureCreate');
+		$api->get('structure/{form_id}', 'StructureMasterController@getStructures');
 
         $api->post('machine/deploy/{form_id}','MachineTrackingController@machineDeploy');
         $api->put('machine/deploy/{machine_id}','MachineTrackingController@updateDeployedMachine');

@@ -226,7 +226,75 @@ class StructureTrackingController extends Controller
 		}
     }
 
-    public function complete($formId)
+	public function getStructures($formId)
+	{
+		try {
+			$database = $this->connectTenantDatabase($this->request);
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			}
+			$status = $this->request->is('*/structure/prepare/*') ? self::PREPARED : self::COMPLETED;
+			$userName = $this->request->user()->id;
+			$limit = (int)$this->request->input('limit') ?:50;
+			$offset = $this->request->input('offset') ?:0;
+			$order = $this->request->input('order') ?:'desc';
+			$field = $this->request->input('field') ?:'createdDateTime';
+			$page = $this->request->input('page') ?:1;
+			$startDate = $this->request->filled('start_date') ? $this->request->start_date : Carbon::now()->subMonth()->getTimestamp();
+			$endDate = $this->request->filled('end_date') ? $this->request->end_date : Carbon::now()->getTimestamp();
+
+			$structures = StructureTracking::where('userName', $userName)
+					->where('form_id', $formId)
+					->where('status', $status)
+					->whereBetween('createdDateTime', [$startDate, $endDate])
+					->orderBy($field, $order)
+					->paginate($limit);
+
+			if ($structures->count() === 0) {
+				return response()->json(['status' => 'success', 'metadata' => [],'values' => [], 'message' => '']);
+			}
+			$createdDateTime = $structures->first()['createdDateTime'];
+			$updatedDateTime = $structures->last()['updatedDateTime'];
+			$resonseCount = $structures->count();
+
+			$result = [
+				'form' => [
+					'form_id' => $formId,
+					'userName' => $structures->first()['userName'],
+					'createdDateTime' => $createdDateTime,
+					'updatedDateTime' => $updatedDateTime,
+					'submit_count' => $resonseCount
+				]
+			];
+
+			$values = [];
+			foreach ($structures as &$structure) {
+				$structure['form_title'] = $this->generateFormTitle($formId, $structure['_id'], 'structure_trackings');
+				$values[] = \Illuminate\Support\Arr::except($structure, ['form_id', 'userName', 'createdDateTime']);
+			}
+
+			$result['Current page'] = 'Page ' . $structures->currentPage() . ' of ' . $structures->lastPage();
+			$result['Total number of records'] = $structures->total();
+
+			return response()->json([
+				'status' => 'success',
+				'metadata' => [$result],
+				'values' => $values,
+				'message '=> ''
+			]);
+		} catch(\Exception $exception) {
+			return response()->json(
+				[
+					'status' => 'error',
+					'data' => null,
+					'message' => $exception->getMessage()
+				],
+				404
+			);
+		}
+	}
+
+	public function complete($formId)
     {
         try {
             $userId = $this->request->user()->id;
