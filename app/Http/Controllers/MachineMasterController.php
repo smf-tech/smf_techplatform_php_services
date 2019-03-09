@@ -7,6 +7,7 @@ use Dingo\Api\Routing\Helpers;
 use App\MachineMaster;
 use App\District;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class MachineMasterController extends Controller
 {
