@@ -90,7 +90,7 @@ $api->version('v1',function($api){
         $api->post('structure/complete/{formId}', 'StructureTrackingController@complete');
         $api->put('structure/complete/{structureId}', 'StructureTrackingController@updateComplete');
 		$api->get('structure/complete/{formId}', 'StructureTrackingController@getStructures');
-        $api->get('structure/code', 'StructureMasterController@get');
+        $api->get('structuremaster/code', 'StructureMasterController@get');
         $api->post('structure/{form_id}', 'StructureMasterController@structureCreate');
 		$api->get('structure/{form_id}', 'StructureMasterController@getStructures');
 
