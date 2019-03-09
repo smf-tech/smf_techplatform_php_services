@@ -178,9 +178,9 @@ class Controller extends BaseController
                 $field_name = trim($title_field);
                 if($model_name != ''){
                     if($collection_name != 'survey_results' && stripos($collection_name,'entity_') === false){
-                        $field_value = DB::collection($model_name)->where('_id', $formresponse_obj[trim($title_field).'_id'])->first();
+                        $field_value = array_key_exists(trim($title_field).'_id',$formresponse_obj) ? DB::collection($model_name)->where('_id', $formresponse_obj[trim($title_field).'_id'])->first():null;
                     }else{
-                        $field_value = DB::collection($model_name)->where('_id', $formresponse_obj[trim($title_field)])->first();
+                        $field_value = array_key_exists(trim($title_field),$formresponse_obj)? DB::collection($model_name)->where('_id', $formresponse_obj[trim($title_field)])->first() :null;
                     }
                     $value = '';
                     if($field_value !== null){
