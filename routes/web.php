@@ -106,11 +106,11 @@ $api->version('v1',function($api){
         $api->post('machine/mou/{form_id}','MachineTrackingController@createMachineMoU');
         $api->put('machine/mou/{recordId}','MachineTrackingController@updateMachineMoU');
         $api->get('machine/mou/{form_id}','MachineTrackingController@getMachineMoU');
-        $api->get('machine/code', 'MachineMasterController@getMachineCode');
+        $api->get('machinemaster/code', 'MachineMasterController@getMachineCode');
 
 		$api->get('user/approvals', 'UserController@getApprovalLog');
         $api->post('machine/{form_id}', 'MachineMasterController@createMachineCode');
-        $api->get('machinemaster/{form_id}', 'MachineMasterController@getMachineCodes');
+        $api->get('machine/{form_id}', 'MachineMasterController@getMachineCodes');
     });
 
 });
