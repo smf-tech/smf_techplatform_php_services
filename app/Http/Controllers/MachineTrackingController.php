@@ -178,7 +178,7 @@ class MachineTrackingController extends Controller
 		}
     }
 
-    public function getMachinesDeployed($form_id){
+    public function getMachinesDeployed($formId){
         try {
 			$database = $this->connectTenantDatabase($this->request);
 			if ($database === null) {
@@ -438,7 +438,7 @@ class MachineTrackingController extends Controller
 		}
     }
 
-    public function getMachinesShifted($form_id){
+    public function getMachinesShifted($formId){
         try {
 			$database = $this->connectTenantDatabase($this->request);
 			if ($database === null) {
@@ -633,7 +633,7 @@ class MachineTrackingController extends Controller
         return response()->json(['status'=>'success','data'=>$data,'message'=>'']); 
     }
 
-    public function getMachineMoU($form_id){
+    public function getMachineMoU($formId){
         try {
 			$database = $this->connectTenantDatabase($this->request);
 			if ($database === null) {

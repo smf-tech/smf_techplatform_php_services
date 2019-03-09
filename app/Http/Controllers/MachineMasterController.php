@@ -97,7 +97,7 @@ class MachineMasterController extends Controller
         ],200);
     }
 
-    public function getMachineCodes($form_id){
+    public function getMachineCodes($formId){
         try {
 			$database = $this->connectTenantDatabase($this->request);
 			if ($database === null) {
