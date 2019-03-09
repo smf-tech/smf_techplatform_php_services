@@ -19,7 +19,7 @@ class MachineMaster extends \Jenssegers\Mongodb\Eloquent\Model
         'providers_contact', 'ownership_type','provider_trade_name','turnover_less_than_20',
         'gst_number','pan_number', 'bank_details','excavation_capacity_per_hour',
         'diesel_tank_capacity_in_litres','mou_id', 'date_of_signing_contract','mou_cancellation',
-        'district_id','created_by','state_id','userName'
+        'district_id','created_by','state_id','userName','form_id'
         // 'pin','name','type','machine_code','district','taluka',
     ];
 
