@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\DB;
 
 class User extends Model implements AuthenticatableContract,AuthorizableContract
 {
-    use HasApiTokens,Authenticatable, Authorizable, HasRoles;
+    use HasApiTokens,Authenticatable, Authorizable, HasRoles, AuditFields;
 
     /**
      * The attributes that are mass assignable.
