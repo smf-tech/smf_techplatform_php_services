@@ -105,17 +105,19 @@ class UserController extends Controller
 				}
             }
 			if (isset($update_data['approve_status']) && $update_data['approve_status'] === self::STATUS_PENDING) {
-				$approvalLogId = $this->addApprovalLog($this->request, $userId, self::ENTITY_USER, $approverIds, self::STATUS_PENDING, $userId);
+				$approvalLogId = $this->addApprovalLog($this->request, $userId, self::ENTITY_USER, $approverIds, self::STATUS_PENDING, $userId,null,$update_data['org_id']);
 			}
 			foreach ($firebaseIds as $firebaseId) {
 				$this->sendPushNotification(
+                    $this->request,
 					self::NOTIFICATION_TYPE_APPROVAL,
 					$firebaseId,
 					[
 						'phone' => $phone,
 						'update_status' => self::STATUS_APPROVED,
 						'approval_log_id' => $approvalLogId
-					]
+                    ],
+                    $update_data['org_id']
 				);
 			}
             $user['approvers'] = $approverList;

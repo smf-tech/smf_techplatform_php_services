@@ -72,8 +72,9 @@ class Controller extends BaseController
      *
      * @return boolean
      */
-    public function sendPushNotification($type, $firebaseId, $params = [])
+    public function sendPushNotification($type, $firebaseId, $params = [],$orgId)
     {
+        $this->connectTenantDatabase($request, $orgId);
         $notificationSchema = null;
 		$service = '';
 		$parameters = [];
@@ -234,9 +235,9 @@ class Controller extends BaseController
 	 * @param string $reason
 	 * @return string
 	 */
-	public function addApprovalLog($request, $entityId, $entityType, $approverIds, $status, $userName, $reason = null)
+	public function addApprovalLog($request, $entityId, $entityType, $approverIds, $status, $userName, $reason = null, $orgId)
 	{
-		$this->connectTenantDatabase($request);
+		$this->connectTenantDatabase($request, $orgId);
 		$approverLog = ApprovalLog::create([
 			'entity_id' => $entityId,
 			'entity_type' => $entityType,
