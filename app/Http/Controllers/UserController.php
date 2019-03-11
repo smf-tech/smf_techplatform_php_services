@@ -94,7 +94,7 @@ class UserController extends Controller
 			$firebaseIds = [];
 			$approvalLogId = '';
 			if (isset($update_data['role_id'])) {
-                $approverList = $this->getApprovers($this->request, $update_data['role_id'], $userLocation);
+                $approverList = $this->getApprovers($this->request, $update_data['role_id'], $userLocation, $update_data['org_id']);
 
                 $this->connectTenantDatabase($this->request);
 				foreach($approverList as $approver) {

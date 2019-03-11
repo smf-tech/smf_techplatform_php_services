@@ -256,11 +256,12 @@ class Controller extends BaseController
 	 * @param Request $request
 	 * @param string $roleId
 	 * @param array $userLocation
+	 * @param string $orgId
 	 * @return array
 	 */
-	public function getApprovers(Request $request, $roleId, $userLocation)
+	public function getApprovers(Request $request, $roleId, $userLocation, $orgId)
 	{
-		$this->connectTenantDatabase($request);
+		$this->connectTenantDatabase($request, $orgId);
 		$roleConfig = \App\RoleConfig::where('role_id', $roleId)->first();
 		$approverRoleConfig = \App\RoleConfig::where('role_id', $roleConfig->approver_role)->first();
 		$levelDetail = \App\Jurisdiction::find($approverRoleConfig->level);
