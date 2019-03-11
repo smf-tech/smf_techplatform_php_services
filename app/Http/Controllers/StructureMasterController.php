@@ -27,9 +27,16 @@ class StructureMasterController extends Controller
             if ($database === null) {
                 return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
             }
+			$userLocation = $this->request->user()->location;
+			$structure = StructureMaster::where('structure_code', '!=', null);
+
+			foreach ($userLocation as $level => $location) {
+				$structure->whereIn(strtolower($level) . '_id', $location);
+			}
+			$structure->with('state', 'district', 'taluka', 'village');
             return response()->json([
                 'status' => 'success',
-                'data' => StructureMaster::all('structure_code'),
+                'data' => $structure->get(['structure_code', 'state_id', 'district_id', 'taluka_id', 'village_id']),
                 'message' => 'List of Structure codes.'
             ]);
         } catch(\Exception $exception) {
