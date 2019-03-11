@@ -184,6 +184,17 @@ class StructureTrackingController extends Controller
             }
 			$userLocation = $this->request->user()->location;
 			$structures = [];
+			$roleId = $this->request->user()->role_id;
+			$roleConfig = \App\RoleConfig::where('role_id', $roleId)->first();
+			$level = \App\Jurisdiction::find($roleConfig->level);
+			if (!isset($userLocation['village']) && strtolower($level->levelName) != 'village') {
+				$jurisdictionTypeId = $roleConfig->jurisdiction_type_id;
+				$locations = \App\Location::where('jurisdiction_type_id', $jurisdictionTypeId);
+				foreach ($userLocation as $levelName => $values) {
+					$locations->whereIn($levelName . '_id', $values);
+				}
+				$userLocation['village'] = $locations->pluck('village_id')->all();
+			}
 			if (isset($userLocation['village']) && !empty($userLocation['village'])) {
 				if ($this->request->filled('prepared') && $this->request->prepared === 'true') {
 					$structures = StructureTracking::where('status', self::PREPARED)
