@@ -84,27 +84,27 @@ $api->version('v1',function($api){
         $api->get('users/approvals','UserController@approvalList');
 
         $api->post('structure/prepare/{formId}', 'StructureTrackingController@prepare');
-		$api->put('structure/prepare/{structureId}', 'StructureTrackingController@updatePreparedStructure');
+		$api->put('structure/prepare/{formId}/{structureId}', 'StructureTrackingController@updatePreparedStructure');
         $api->get('structure/prepare', 'StructureTrackingController@get');
 		$api->get('structure/prepare/{formId}', 'StructureTrackingController@getStructures');
         $api->post('structure/complete/{formId}', 'StructureTrackingController@complete');
-        $api->put('structure/complete/{structureId}', 'StructureTrackingController@updateComplete');
+        $api->put('structure/complete/{formId}/{structureId}', 'StructureTrackingController@updateComplete');
 		$api->get('structure/complete/{formId}', 'StructureTrackingController@getStructures');
         $api->get('structuremaster/code', 'StructureMasterController@get');
         $api->post('structure/{form_id}', 'StructureMasterController@structureCreate');
 		$api->get('structure/{form_id}', 'StructureMasterController@getStructures');
 
         $api->post('machine/deploy/{form_id}','MachineTrackingController@machineDeploy');
-        $api->put('machine/deploy/{machine_id}','MachineTrackingController@updateDeployedMachine');
+        $api->put('machine/deploy/{formId}/{machine_id}','MachineTrackingController@updateDeployedMachine');
         $api->get('machine/deploy/{form_id}','MachineTrackingController@getMachinesDeployed');
         $api->get('machine/deploy','MachineTrackingController@getDeploymentInfo');
         $api->post('machine/shift/{form_id}','MachineTrackingController@machineShift');
-        $api->put('machine/shift/{machine_shift_id}','MachineTrackingController@updateMachineShift');
+        $api->put('machine/shift/{formId}/{machine_shift_id}','MachineTrackingController@updateMachineShift');
         $api->get('machine/shift/{form_id}','MachineTrackingController@getMachinesShifted');
         $api->get('machine/shift', 'MachineTrackingController@getShiftingInfo');
         $api->get('machine/mou','MachineTrackingController@machineMoU');
         $api->post('machine/mou/{form_id}','MachineTrackingController@createMachineMoU');
-        $api->put('machine/mou/{recordId}','MachineTrackingController@updateMachineMoU');
+        $api->put('machine/mou/{formId}/{recordId}','MachineTrackingController@updateMachineMoU');
         $api->get('machine/mou/{form_id}','MachineTrackingController@getMachineMoU');
         $api->get('machinemaster/code', 'MachineMasterController@getMachineCode');
 

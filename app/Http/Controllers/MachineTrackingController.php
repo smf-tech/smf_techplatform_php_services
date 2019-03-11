@@ -121,7 +121,7 @@ class MachineTrackingController extends Controller
 		}
     }
 
-    public function updateDeployedMachine($machine_id)
+    public function updateDeployedMachine($formId, $machine_id)
     {
         $database = $this->connectTenantDatabase($this->request);
         if ($database === null) {
@@ -387,7 +387,7 @@ class MachineTrackingController extends Controller
 		}
     }
 
-    public function updateMachineShift($machine_shift_id){
+    public function updateMachineShift($formId, $machine_shift_id){
         $database = $this->connectTenantDatabase($this->request);
         if ($database === null) {
             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
@@ -582,7 +582,7 @@ class MachineTrackingController extends Controller
         return response()->json(['status'=>'success','data'=>$data,'message'=>'']); 
     }
 
-    public function updateMachineMoU($recordId)
+    public function updateMachineMoU($formId, $recordId)
     {
         $database = $this->connectTenantDatabase($this->request);
         if ($database === null) {

@@ -104,7 +104,7 @@ class StructureTrackingController extends Controller
         }
     }
 
-	public function updatePreparedStructure(Request $request, $structureId)
+	public function updatePreparedStructure(Request $request, $formId, $structureId)
 	{
 		try {
 			$database = $this->connectTenantDatabase($request);
@@ -349,7 +349,7 @@ class StructureTrackingController extends Controller
         }
     }
 
-    public function updateComplete($structureId)
+    public function updateComplete($formId,$structureId)
     {
         try {
             $userId = $this->request->user()->id;
