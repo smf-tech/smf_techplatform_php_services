@@ -172,7 +172,7 @@ class SurveyController extends Controller
         ->with('microservice','project','category','entity')
         ->where('assigned_roles','=',$user->role_id)->orderBy('created_at')->get();
 
-        foreach($data as &$row)
+        foreach($data as $row)
         {
             // unset() removes the element from the 'row' object
             unset($row->category_id);
@@ -181,8 +181,8 @@ class SurveyController extends Controller
             unset($row->entity_id);
             unset($row->assigned_roles);
 
-			if (isset($row['microservice'])) {
-				$row['microservice']->route = $row['microservice']->route . '/' . $row['_id'];
+			if (is_object($row->microservice)) {
+				$row->microservice->route = $row->microservice->route . '/' . $row->id;
 			}
         }
 
