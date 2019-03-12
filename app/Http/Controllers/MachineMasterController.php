@@ -81,50 +81,50 @@ class MachineMasterController extends Controller
         }*/
         $modelcode = '';
         if($this->request->input('machine_make') == 'TH'){
-            if($this->request->input('machine_code') == '220'){
+            if($this->request->input('machine_model') == '220'){
                 $modelcode = 'B';
             }
-            if(in_array($this->request->input('machine_code'),array('200','210'))){
+            if(in_array($this->request->input('machine_model'),array('200','210'))){
                 $modelcode = 'A';
             }
         }
         if($this->request->input('machine_make') == 'JB'){
-            if($this->request->input('machine_code') == '220'){
+            if($this->request->input('machine_model') == '220'){
                 $modelcode = 'B';
             } 
-            if(in_array($this->request->input('machine_code'),array('205','215'))){
+            if(in_array($this->request->input('machine_model'),array('205','215'))){
                 $modelcode = 'A';
             }       
         }
         if($this->request->input('machine_make') == 'HY'){
     
-            if(in_array($this->request->input('machine_code'),array('210','215'))){
+            if(in_array($this->request->input('machine_model'),array('210','215'))){
                 $modelcode = 'A';
             }
         }
         if($this->request->input('machine_make') == 'SN'){
 
-            if(in_array($this->request->input('machine_code'),array('210','220'))){
+            if(in_array($this->request->input('machine_model'),array('210','220'))){
                 $modelcode = 'A';
             }
         }
         if($this->request->input('machine_make') == 'KB'){
-            if(in_array($this->request->input('machine_code'),array('210','220'))){
+            if(in_array($this->request->input('machine_model'),array('210','220'))){
                 $modelcode = 'B';
             }
         }
         if($this->request->input('machine_make') == 'KM'){
-            if($this->request->input('machine_code') == '210'){
+            if($this->request->input('machine_model') == '210'){
                 $modelcode = 'B';
             }
         }
         if($this->request->input('machine_make') == 'VL'){
-            if($this->request->input('machine_code') == '210'){
+            if($this->request->input('machine_model') == '210'){
                 $modelcode = 'B';
             }
         }
         if($this->request->input('machine_make') == 'CT'){
-            if($this->request->input('machine_code') == '320'){
+            if($this->request->input('machine_model') == '320'){
                 $modelcode = 'B';
             }
         }
