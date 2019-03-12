@@ -50,7 +50,7 @@ class MachineMasterController extends Controller
             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
         }
 
-        $values = [
+        /*$values = [
             'TH' => ['Model -1' => [200, 'A'], 'Model -2' => [210, 'A'], 'Model -3' =>[220, 'B'] ],
             'JB' => ['Model -1' => [205, 'A'], 'Model -2' => [215,'A'], 'Model -3' =>[220, 'B']],
             'HY' => ['Model -1' => [210, 'A'], 'Model -2' => [215,'A'], 'Model -3' =>[]],
@@ -59,7 +59,7 @@ class MachineMasterController extends Controller
             'KM' => ['Model -1' => [210,'B'], 'Model -2' =>[], 'Model -3' =>[]],
             'VL' => ['Model -1' => [210,'B'], 'Model -2' =>[], 'Model -3' =>[]],
             'CT' => ['Model -1' => [320,'B'], 'Model -2' =>[], 'Model -3' =>[]]
-        ];
+        ];*/
 
         $data = $this->request->all();
         $district = District::find($this->request->input('district_id'));
@@ -68,7 +68,7 @@ class MachineMasterController extends Controller
         $machines = MachineMaster::where('machine_code','LIKE',$district->abbr.'%')->orderBy('createdDateTime','desc')->first();
         // $queueValue = substr($machines,2,3) + 1;
         $queueValue = (int) (substr($machines->machine_code,2,-6)) + 1;
-        $modelNumber = $values[$this->request->input('machine_make')][$this->request->input('machine_model')];
+        /*$modelNumber = $values[$this->request->input('machine_make')][$this->request->input('machine_model')];
         if(empty($modelNumber)) {
             return response()->json(
                 [
@@ -78,8 +78,57 @@ class MachineMasterController extends Controller
                 ],
                 400
             );
+        }*/
+        $modelcode = '';
+        if($this->request->input('machine_make') == 'TH'){
+            if($this->request->input('machine_code') == '220'){
+                $modelcode = 'B';
+            }
+            if(in_array($this->request->input('machine_code'),array('200','210'))){
+                $modelcode = 'A';
+            }
         }
-        $finalCode = $district->abbr.$queueValue.$this->request->input('machine_make').$modelNumber[0].$modelNumber[1];
+        if($this->request->input('machine_make') == 'JB'){
+            if($this->request->input('machine_code') == '220'){
+                $modelcode = 'B';
+            } 
+            if(in_array($this->request->input('machine_code'),array('205','215'))){
+                $modelcode = 'A';
+            }       
+        }
+        if($this->request->input('machine_make') == 'HY'){
+    
+            if(in_array($this->request->input('machine_code'),array('210','215'))){
+                $modelcode = 'A';
+            }
+        }
+        if($this->request->input('machine_make') == 'SN'){
+
+            if(in_array($this->request->input('machine_code'),array('210','220'))){
+                $modelcode = 'A';
+            }
+        }
+        if($this->request->input('machine_make') == 'KB'){
+            if(in_array($this->request->input('machine_code'),array('210','220'))){
+                $modelcode = 'B';
+            }
+        }
+        if($this->request->input('machine_make') == 'KM'){
+            if($this->request->input('machine_code') == '210'){
+                $modelcode = 'B';
+            }
+        }
+        if($this->request->input('machine_make') == 'VL'){
+            if($this->request->input('machine_code') == '210'){
+                $modelcode = 'B';
+            }
+        }
+        if($this->request->input('machine_make') == 'CT'){
+            if($this->request->input('machine_code') == '320'){
+                $modelcode = 'B';
+            }
+        }
+        $finalCode = $district->abbr.$queueValue.$this->request->input('machine_make').$this->request->input('machine_model').$modelcode;
         
         $data['userName'] = $this->request->user()->id;
         $data['machine_code'] = $finalCode;
