@@ -187,7 +187,7 @@ class StructureTrackingController extends Controller
 			$roleId = $this->request->user()->role_id;
 			$roleConfig = \App\RoleConfig::where('role_id', $roleId)->first();
 			$level = \App\Jurisdiction::find($roleConfig->level);
-			if (!isset($userLocation['village']) && strtolower($level->levelName) != 'village') {
+			if (strtolower($level->levelName) != 'village') {
 				$jurisdictionTypeId = $roleConfig->jurisdiction_type_id;
 				$locations = \App\Location::where('jurisdiction_type_id', $jurisdictionTypeId);
 				foreach ($userLocation as $levelName => $values) {
