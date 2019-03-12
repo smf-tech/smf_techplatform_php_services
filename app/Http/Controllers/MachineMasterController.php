@@ -8,6 +8,7 @@ use App\MachineMaster;
 use App\District;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\MachineTracking;
 
 class MachineMasterController extends Controller
 {
@@ -165,7 +166,8 @@ class MachineMasterController extends Controller
 
 			$machine_masters= MachineMaster::where('userName', $userName)
 					->where('form_id', $formId)
-					->whereBetween('createdDateTime', [$startDate, $endDate])
+                    ->whereBetween('createdDateTime', [$startDate, $endDate])                    
+                    ->where('isDeleted',false)
 					->orderBy($field, $order)
 					->paginate($limit);
 
@@ -211,5 +213,67 @@ class MachineMasterController extends Controller
 				404
 			);
 		}      
+    }
+
+    public function deleteMachine($recordId)
+	{
+        try {
+
+        $database = $this->connectTenantDatabase($this->request);
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			}
+
+        $machine = MachineMaster::find($recordId);
+
+        if(empty($machine)) {
+            return response()->json(
+				[
+					'status' => 'error',
+					'data' => '',
+					'message' => "Record does not exist"
+				],
+				404
+            );
+        }
+
+        if($this->request->user()->id !== $machine->userName) {
+            return response()->json(
+				[
+					'status' => 'error',
+					'data' => '',
+					'message' => "Record cannot be deleted as you are not the creator of the record"
+				],
+				403
+            );
+        }
+
+        $machines = MachineTracking::where('machine_code',$machine->machine_code)
+                                        ->where('isDeleted',false)
+                                        ->update(['isDeleted' => true]);
+
+        $machine->isDeleted = true;
+        $machine->save();
+
+        return response()->json(
+            [
+                'status' => 'success',
+                'data' => '',
+                'message' => "Record deleted successfully"
+            ],
+            200
+        );
+
+        } catch(\Exception $exception) {
+            return response()->json(
+				[
+					'status' => 'error',
+					'data' => null,
+					'message' => $exception->getMessage()
+				],
+				404
+            );
+        }
+        
     }
 }

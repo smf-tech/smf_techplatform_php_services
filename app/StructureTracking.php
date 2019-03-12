@@ -24,7 +24,8 @@ class StructureTracking extends BaseModel
         'structure_images_2',
         'structure_images_3',
         'structure_images_4',
-		'form_id'
+        'form_id',
+        'isDeleted'
     ];
 
     public function volunteers()

@@ -97,6 +97,7 @@ class MachineTrackingController extends Controller
 
             $deployedMachine->userName = $this->request->user()->id;
             $deployedMachine->form_id = $form_id;
+            $deployedMachine->isDeleted = false;
             $deployedMachine->save();
 
             $result = [
@@ -351,7 +352,8 @@ class MachineTrackingController extends Controller
             $machine = MachineTracking::firstOrCreate([
                 'village_id' => $this->request->moved_from_village,
                 'structure_code' => $this->request->old_structure_code,
-                'machine_code' => $this->request->machine_code
+                'machine_code' => $this->request->machine_code,
+                'isDeleted' => false
             ]);
             
             $data['userName']= $this->request->user()->id;
@@ -696,5 +698,62 @@ class MachineTrackingController extends Controller
 				404
 			);
 		}       
+    }
+
+    public function deleteMachineTracking($recordId)
+    {
+        try {
+
+            $database = $this->connectTenantDatabase($this->request);
+                if ($database === null) {
+                    return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+                }
+    
+            $machine = MachineTracking::find($recordId);
+    
+            if(empty($machine)) {
+                return response()->json(
+                    [
+                        'status' => 'error',
+                        'data' => '',
+                        'message' => "Record does not exist"
+                    ],
+                    404
+                );
+            }
+    
+            if($this->request->user()->id !== $machine->userName) {
+                return response()->json(
+                    [
+                        'status' => 'error',
+                        'data' => '',
+                        'message' => "Record cannot be deleted as you are not the creator of the record"
+                    ],
+                    403
+                );
+            }
+    
+            $machine->isDeleted = true;
+            $machine->save();
+    
+            return response()->json(
+                [
+                    'status' => 'success',
+                    'data' => '',
+                    'message' => "Record deleted successfully"
+                ],
+                200
+            );
+    
+            } catch(\Exception $exception) {
+                return response()->json(
+                    [
+                        'status' => 'error',
+                        'data' => null,
+                        'message' => $exception->getMessage()
+                    ],
+                    404
+                );
+            }
     }
 }

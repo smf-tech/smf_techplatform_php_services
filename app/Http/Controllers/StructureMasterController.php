@@ -10,6 +10,7 @@ use App\District;
 use App\Taluka;
 use App\Village;
 use Carbon\Carbon;
+use App\StructureTracking;
 
 class StructureMasterController extends Controller
 {
@@ -153,7 +154,8 @@ class StructureMasterController extends Controller
 
 			$structures = StructureMaster::where('userName', $userName)
 					->where('form_id', $formId)
-					->whereBetween('createdDateTime', [$startDate, $endDate])
+                    ->whereBetween('createdDateTime', [$startDate, $endDate])
+                    ->where('isDeleted',false)
 					->orderBy($field, $order)
 					->paginate($limit);
 
@@ -199,5 +201,67 @@ class StructureMasterController extends Controller
 				404
 			);
 		}
-	}
+    }
+    
+    public function deleteStructure($recordId)
+	{
+        try {
+
+        $database = $this->connectTenantDatabase($this->request);
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			}
+
+        $structure = StructureMaster::find($recordId);
+
+        if(empty($structure)) {
+            return response()->json(
+				[
+					'status' => 'error',
+					'data' => '',
+					'message' => "Record does not exist"
+				],
+				404
+			);
+        }
+
+        if($this->request->user()->id !== $structure->userName) {
+            return response()->json(
+                [
+                    'status' => 'error',
+                    'data' => '',
+                    'message' => "Record cannot be deleted as you are not the creator of the record"
+                ],
+                403
+                );
+        }
+        $structures = StructureTracking::where('structure_code',$structure->structure_code)
+                                        ->where('isDeleted',false)
+                                        ->update(['isDeleted' => true]);
+
+        $structure->isDeleted = true;
+        $structure->save();
+
+        return response()->json(
+            [
+                'status' => 'success',
+                'data' => '',
+                'message' => "Record deleted successfully"
+            ],
+            200
+        );
+
+        } catch(\Exception $exception) {
+            return response()->json(
+				[
+					'status' => 'error',
+					'data' => null,
+					'message' => $exception->getMessage()
+				],
+				404
+            );
+        }
+        
+    }
+    
 }
