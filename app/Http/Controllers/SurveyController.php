@@ -181,8 +181,11 @@ class SurveyController extends Controller
             unset($row->entity_id);
             unset($row->assigned_roles);
 
-			if (is_object($row->microservice)) {
-				$row->microservice->route = $row->microservice->route . '/' . $row->id;
+			if (is_object($row['microservice'])) {
+				$microService = clone $row['microservice'];
+				$microService->route = $microService->route . '/' . $row->id;
+				unset($row['microservice']);
+				$row['microservice'] = $microService;
 			}
         }
 
