@@ -82,7 +82,9 @@ class UserController extends Controller
             if (isset($update_data['phone'])) {
                 unset($update_data['phone']);
             }
-
+            if (isset($update_data['password'])) {
+                unset($update_data['password']);
+            }
             if(isset($update_data['role_id']) && $update_data['role_id'] != $user->role_id){
                  $user->location = [];  
                  $user->save(); 
