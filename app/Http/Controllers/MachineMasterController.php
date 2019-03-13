@@ -21,15 +21,20 @@ class MachineMasterController extends Controller
 
     public function getMachineCode()
     {
-        $database = $this->connectTenantDatabase($this->request);
-        if ($database === null) {
-            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
-        }
-
         try {
+			$database = $this->connectTenantDatabase($this->request);
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			}
+			$userLocation = $this->request->user()->location;
+			$machine = MachineMaster::where('machine_code', '!=', null);
+			foreach ($userLocation as $level => $location) {
+				$machine->whereIn(strtolower($level) . '_id', $location);
+			}
+			$machine->with('state', 'district', 'taluka');
             return response()->json([
                 'status' => 'success',
-                'data' => MachineMaster::all('machine_code'),
+                'data' => $machine->get(['machine_code', 'state_id', 'district_id', 'taluka_id']),
                 'message' => 'List of Machine codes.'
             ],200);
         } catch(\Exception $exception) {
