@@ -112,9 +112,7 @@ class StructureMasterController extends Controller
             $structure_master = $structure_master->toArray();
             //var_dump($structure_master);exit;
             $result = [
-                '_id' => [
-                    '$oid' => $structure_master['_id']
-                ],
+                '_id' => $structure_master['_id'],
                 'form_title' => $this->generateFormTitle($form_id,$structure_master['_id'],'structure_masters'),
 				'createdDateTime' => $structure_master['createdDateTime'],
 				'updatedDateTime' => $structure_master['updatedDateTime']

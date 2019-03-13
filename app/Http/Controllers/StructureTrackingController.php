@@ -85,9 +85,7 @@ class StructureTrackingController extends Controller
             return response()->json([
                 'status' => 'success',
                 'data' => [
-					'_id' => [
-						'$oid' => $structureTracking->getIdAttribute()
-				],
+					'_id' => $structureTracking->getIdAttribute(),
                     'form_title' => $this->generateFormTitle($formId, $structureTracking->getIdAttribute(), $structureTracking->getTable()),
                     'createdDateTime' => $structureTracking->createdDateTime,
                     'updatedDateTime' => $structureTracking->updatedDateTime
@@ -142,9 +140,7 @@ class StructureTrackingController extends Controller
 					}
 				}
 				$result = [
-					'_id' => [
-						'$oid' => $structureId
-					],
+					'_id' => $structureId,
 					'form_title' => $this->generateFormTitle($formId, $structureId, $structure->getTable()),
                     'createdDateTime' => $structure->createdDateTime,
                     'updatedDateTime' => $structure->updatedDateTime
@@ -356,9 +352,7 @@ class StructureTrackingController extends Controller
             return response()->json([
                 'status' => 'success',
                 'data' => [
-					'_id' => [
-						'$oid' => $structureTracking->getIdAttribute()
-					],
+					'_id' => $structureTracking->getIdAttribute(),
 					'form_title' => $this->generateFormTitle($formId, $structureTracking->getIdAttribute(), $structureTracking->getTable()),
                     'createdDateTime' => $structureTracking->createdDateTime,
                     'updatedDateTime' => $structureTracking->updatedDateTime
@@ -417,9 +411,7 @@ class StructureTrackingController extends Controller
             return response()->json([
                 'status' => 'success',
                 'data' => [
-					'_id' => [
-						'$oid' => $structureTracking->getIdAttribute()
-					],
+					'_id' => $structureTracking->getIdAttribute(),
 					'form_title' => $this->generateFormTitle($structureTracking->form_id, $structureId, $structureTracking->getTable()),
                     'createdDateTime' => $structureTracking->createdDateTime,
                     'updatedDateTime' => $structureTracking->updatedDateTime

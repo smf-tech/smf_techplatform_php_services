@@ -101,9 +101,7 @@ class MachineTrackingController extends Controller
             $deployedMachine->save();
 
             $result = [
-                '_id' => [
-                    '$oid' => $deployedMachine->id
-                ],
+                '_id' => $deployedMachine->id,
                 'form_title' => $this->generateFormTitle($form_id,$deployedMachine->id,'machine_tracking'),
                 'createdDateTime' => $deployedMachine->createdDateTime,
                 'updatedDateTime' => $deployedMachine->updatedDateTime
@@ -155,9 +153,7 @@ class MachineTrackingController extends Controller
                 $deployedMachine->save();
     
                 $result = [
-                    '_id' => [
-                        '$oid' => $deployedMachine->id
-                    ],
+                    '_id' => $deployedMachine->id,
                     'form_title' => $this->generateFormTitle($deployedMachine->form_id,$deployedMachine->id,'machine_tracking'),
                     'createdDateTime' => $deployedMachine->createdDateTime,
                     'updatedDateTime' => $deployedMachine->updatedDateTime
@@ -388,9 +384,7 @@ class MachineTrackingController extends Controller
             $machine->save();
 
             $result = [
-                '_id' => [
-                    '$oid' => $shifting_id
-                ],
+                '_id' => $shifting_id,
                 'form_title' => $this->generateFormTitle($form_id,$shifting_id,'shifting_records'),
                 'createdDateTime' => $shiftingRecord->createdDateTime,
                 'udpatedDateTime' => $shiftingRecord->udpatedDateTime
@@ -437,9 +431,7 @@ class MachineTrackingController extends Controller
                 $machine_shifted->save();   
 
                 $result = [
-                    '_id' => [
-                        '$oid' => $machine_shifted->id
-                    ],
+                    '_id' =>  $machine_shifted->id,
                     'form_title' => $this->generateFormTitle($machine_shifted->form_id,$machine_shifted->id,'shifting_records'),
                     'createdDateTime' => $machine_shifted->createdDateTime,
                     'udpatedDateTime' => $machine_shifted->udpatedDateTime
@@ -606,7 +598,7 @@ class MachineTrackingController extends Controller
         $mouDetails['isDeleted'] = false;
 
         $machine = MachineMou::create($mouDetails);
-        $data['_id']['$oid'] = $machine->id;
+        $data['_id'] = $machine->id;
         $data['form_title'] = $this->generateFormTitle($formId,$machine->id,'machine_mou');
         $data['createdDateTime'] = $machine->createdDateTime;
         $data['updatedDateTime'] = $machine->updatedDateTime;
@@ -666,7 +658,7 @@ class MachineTrackingController extends Controller
         }
 
         $machine = $mouRecord->update($mouDetails);
-        $data['_id']['$oid'] = $recordId;
+        $data['_id'] = $recordId;
         $data['form_title'] = $this->generateFormTitle($mouRecord->form_id,$recordId,'machine_mou');
         $data['createdDateTime'] = $mouRecord->createdDateTime;
         $data['updatedDateTime'] = $mouRecord->updatedDateTime;

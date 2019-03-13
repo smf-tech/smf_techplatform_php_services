@@ -156,7 +156,7 @@ class SurveyController extends Controller
             $data['form_title'] = $this->generateFormTitle($survey_id,$responseId,'entity_'.$survey->entity_id);
         }
 
-        $data['_id']['$oid'] = $responseId;
+        $data['_id'] = $responseId;
         $data['createdDateTime'] = $user_submitted->first()['createdDateTime'];
         $data['updatedDateTime'] = $fields['updatedDateTime'];
 
@@ -289,7 +289,7 @@ class SurveyController extends Controller
                     return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Entry already exists with the same values.'],400);
                 } else {
                     $form = DB::collection('survey_results')->insertGetId($fields);
-					$data['_id'] = $form;
+					$data['_id'] = $form->__toString();
                 }
             // } else {
             //     $form = DB::collection('survey_results')->insertGetId($fields);
@@ -316,7 +316,7 @@ class SurveyController extends Controller
                     return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Entry already exists with the same values.'],400);
                 } else {                    
                     $form = DB::collection('entity_'.$survey->entity_id)->insertGetId($fields);
-					$data['_id'] = $form;
+					$data['_id'] = $form->__toString();;
                 }
 
             // } else {         
@@ -410,6 +410,7 @@ class SurveyController extends Controller
 
             $form_title =$this->generateFormTitle($survey,$surveyResult['_id'],$collection_name);
             $surveyResult['form_title'] = $form_title;
+            $surveyResult['_id'] = $surveyResult['_id']->__toString();
             // Excludes values 'form_id','user_id','created_at','updated_at' from the $surveyResult array
             //  and stores it in values
             $values[] = Arr::except($surveyResult,['survey_id','userName','createdDateTime']);
