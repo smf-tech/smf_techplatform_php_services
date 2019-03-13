@@ -134,6 +134,7 @@ class MachineMasterController extends Controller
         $data['userName'] = $this->request->user()->id;
         $data['machine_code'] = $finalCode;
         $data['form_id'] = $formId;
+        $data['isDeleted'] = false;
 
         $machineRecord = MachineMaster::create($data);
         

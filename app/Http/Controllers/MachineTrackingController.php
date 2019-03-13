@@ -196,7 +196,8 @@ class MachineTrackingController extends Controller
 
 			$deployed_machines = MachineTracking::where('userName', $userName)
 					->where('form_id', $formId)
-					->whereBetween('createdDateTime', [$startDate, $endDate])
+                    ->whereBetween('createdDateTime', [$startDate, $endDate])
+                    ->where('isDeleted',false)
 					->orderBy($field, $order)
 					->paginate($limit);
 
@@ -265,15 +266,22 @@ class MachineTrackingController extends Controller
 			$machines = [];
 			if (isset($userLocation['village']) && !empty($userLocation['village'])) {
 				if ($this->request->deployed === 'true') {
-					$machines = MachineTracking::where('deployed',true)->whereIn('village_id', $userLocation['village'])->with('village')->get();
+                    $machines = MachineTracking::where('deployed',true)
+                                                ->where('isDeleted',false)
+                                                ->whereIn('village_id', $userLocation['village'])
+                                                ->with('village')
+                                                ->get();
 				} else {
 					$machineCodes = [];
 					$machineLevels = ['state', 'district', 'taluka'];
-					$machineTrackingRecords = MachineTracking::whereIn('village_id', $userLocation['village'])->get();
+                    $machineTrackingRecords = MachineTracking::whereIn('village_id', $userLocation['village'])
+                                                                ->where('isDeleted',false)
+                                                                ->get();
 					$machineTrackingRecords->each(function($machineTracking, $key) {
 						$machineCodes[] = $machineTracking->machine_code;
 					});
-					$machineRecords = \App\MachineMaster::whereNotIn('machine_code', $machineCodes);
+                    $machineRecords = \App\MachineMaster::whereNotIn('machine_code', $machineCodes)
+                                                        ->where('isDeleted',false);
 					foreach ($userLocation as $level => $location) {
 						if (in_array($level, $machineLevels)) {
 							$machineRecords->whereIn($level . '_id', $location);
@@ -358,6 +366,7 @@ class MachineTrackingController extends Controller
             
             $data['userName']= $this->request->user()->id;
             $data['form_id']= $form_id;
+            $data['isDeleted'] = false;
             $shiftingRecord = ShiftingRecord::create($data);
             $shiftingRecord->movedFromVillage()->associate(\App\Village::find($data['moved_from_village']));
             $shiftingRecord->movedToVillage()->associate(\App\Village::find($data['moved_to_village']));
@@ -457,7 +466,8 @@ class MachineTrackingController extends Controller
 
 			$shifted_machines = ShiftingRecord::where('userName', $userName)
 					->where('form_id', $formId)
-					->whereBetween('createdDateTime', [$startDate, $endDate])
+                    ->whereBetween('createdDateTime', [$startDate, $endDate])
+                    ->where('isDeleted',false)
 					->orderBy($field, $order)
 					->paginate($limit);
 
@@ -515,6 +525,7 @@ class MachineTrackingController extends Controller
         return response()->json([
                                     'status'=>'success',
                                     'data'=> MachineTracking::where('status','shifted')
+                                                            ->where('isDeleted',false)
                                                             ->with('shiftingRecords', 'shiftingRecords.movedFromVillage', 'shiftingRecords.movedToVillage', 'village')
                                                             ->get(),
                                     'message'=>'']); 
@@ -527,7 +538,8 @@ class MachineTrackingController extends Controller
             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
         }
         
-        $machine = MachineTracking::where('mou_details','!=',null)->get();
+        $machine = MachineTracking::where('mou_details','!=',null)
+                                    ->where('isDeleted',false)->get();
         
         return response()->json(['status'=>'success','data'=>$machine,'message'=>'']);    
     }
@@ -574,6 +586,7 @@ class MachineTrackingController extends Controller
 
         $mouDetails['form_id'] = $formId;
         $mouDetails['userName'] = $user->id;
+        $mouDetails['isDeleted'] = false;
 
         $machine = MachineMou::create($mouDetails);
         $data['_id']['$oid'] = $machine->id;
@@ -652,7 +665,8 @@ class MachineTrackingController extends Controller
 
 			$machine_mou = MachineMou::where('userName', $userName)
 					->where('form_id', $formId)
-					->whereBetween('createdDateTime', [$startDate, $endDate])
+                    ->whereBetween('createdDateTime', [$startDate, $endDate])
+                    ->where('isDeleted',false)
 					->orderBy($field, $order)
 					->paginate($limit);
 
@@ -710,6 +724,119 @@ class MachineTrackingController extends Controller
                 }
     
             $machine = MachineTracking::find($recordId);
+    
+            if(empty($machine)) {
+                return response()->json(
+                    [
+                        'status' => 'error',
+                        'data' => '',
+                        'message' => "Record does not exist"
+                    ],
+                    404
+                );
+            }
+    
+            if($this->request->user()->id !== $machine->userName) {
+                return response()->json(
+                    [
+                        'status' => 'error',
+                        'data' => '',
+                        'message' => "Record cannot be deleted as you are not the creator of the record"
+                    ],
+                    403
+                );
+            }
+    
+            $machine->isDeleted = true;
+            $machine->save();
+    
+            return response()->json(
+                [
+                    'status' => 'success',
+                    'data' => '',
+                    'message' => "Record deleted successfully"
+                ],
+                200
+            );
+    
+            } catch(\Exception $exception) {
+                return response()->json(
+                    [
+                        'status' => 'error',
+                        'data' => null,
+                        'message' => $exception->getMessage()
+                    ],
+                    404
+                );
+            }
+    }
+    public function deleteMachineMoU($recordId)
+    {
+        try {
+
+            $database = $this->connectTenantDatabase($this->request);
+                if ($database === null) {
+                    return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+                }
+    
+            $machine = MachineMou::find($recordId);
+    
+            if(empty($machine)) {
+                return response()->json(
+                    [
+                        'status' => 'error',
+                        'data' => '',
+                        'message' => "Record does not exist"
+                    ],
+                    404
+                );
+            }
+    
+            if($this->request->user()->id !== $machine->userName) {
+                return response()->json(
+                    [
+                        'status' => 'error',
+                        'data' => '',
+                        'message' => "Record cannot be deleted as you are not the creator of the record"
+                    ],
+                    403
+                );
+            }
+    
+            $machine->isDeleted = true;
+            $machine->save();
+    
+            return response()->json(
+                [
+                    'status' => 'success',
+                    'data' => '',
+                    'message' => "Record deleted successfully"
+                ],
+                200
+            );
+    
+            } catch(\Exception $exception) {
+                return response()->json(
+                    [
+                        'status' => 'error',
+                        'data' => null,
+                        'message' => $exception->getMessage()
+                    ],
+                    404
+                );
+            }
+    }
+
+    public function deleteMachineShift()
+    {
+        try {
+
+            $database = $this->connectTenantDatabase($this->request);
+                if ($database === null) {
+                    return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+                }
+    
+            $machine = ShiftingRecord::find($recordId);
     
             if(empty($machine)) {
                 return response()->json(

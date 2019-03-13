@@ -237,6 +237,7 @@ class SurveyController extends Controller
         $fields = array();
         
         $fields['userName'] = $user->id;
+        $fields['isDeleted'] = false;
 
         $primaryValues = array();
 
@@ -366,6 +367,7 @@ class SurveyController extends Controller
             $surveyResults = DB::collection('survey_results')
                                 ->where('form_id','=',$survey_id)
                                 ->where('userName','=',$user->id)
+                                ->where('isDeleted',false)
                                 ->whereBetween('createdDateTime',array($startDate,$endDate))
                                 ->orderBy($field,$order)
                                 ->paginate($limit);
@@ -376,6 +378,7 @@ class SurveyController extends Controller
             $surveyResults = DB::collection('entity_'.$survey->entity_id)
                                 ->where('survey_id','=',$survey_id)
                                 ->where('userName','=',$user->id)
+                                ->where('isDeleted',false)
                                 ->whereBetween('createdDateTime',array($startDate,$endDate))
                                 ->orderBy($field,$order)
                                 ->paginate($limit);
@@ -410,5 +413,66 @@ class SurveyController extends Controller
         // $result['Total number of pages'] = $surveyResults->lastPage();
         return response()->json(['status'=>'success','metadata'=>[$result],'values'=>$values,'message'=>'']);
 
+    }
+
+    public function deleteFormResponse($formId,$recordId)
+    {
+        try {
+
+            $database = $this->connectTenantDatabase($this->request);
+                if ($database === null) {
+                    return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+                }
+    
+            $form = Survey::find($formId);
+    
+            if(empty($form)) {
+                return response()->json(
+                    [
+                        'status' => 'error',
+                        'data' => '',
+                        'message' => "Form does not exist"
+                    ],
+                    404
+                );
+            }
+    
+        if(empty($form->entity_id))
+            $record = SurveyResult::find($recordId);
+        else
+            $record = DB::collection('entity_'.$form->entity_id)->where('_id',$recordId);
+
+            if($this->request->user()->id !== $record->userName || $this->request->user()->id !== $record->first()['userName']) {
+                return response()->json(
+                    [
+                        'status' => 'error',
+                        'data' => '',
+                        'message' => "Responses cannot be deleted as you have not created the form"
+                    ],
+                    403
+                );
+            }
+
+        $record->update(['isDeleted' => true]);
+
+            return response()->json(
+                [
+                    'status' => 'success',
+                    'data' => '',
+                    'message' => "Record deleted successfully"
+                ],
+                200
+            );
+    
+            } catch(\Exception $exception) {
+                return response()->json(
+                    [
+                        'status' => 'error',
+                        'data' => null,
+                        'message' => $exception->getMessage()
+                    ],
+                    404
+                );
+            }
     }
 }

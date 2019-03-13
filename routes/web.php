@@ -71,6 +71,7 @@ $api->version('v1',function($api){
         $api->get('forms/result/{form_id}','SurveyController@showResponse');
         $api->post('forms/result/{form_id}','SurveyController@createResponse');
         $api->put('forms/result/{form_id}/{response_id}','SurveyController@updateSurvey');
+        $api->delete('forms/result/{formId}/{recordId}','SurveyController@deleteFormResponse');
 
         $api->get('locations', 'LocationController@getLocations');
         $api->get('districts', 'LocationController@getDistricts');
@@ -105,12 +106,13 @@ $api->version('v1',function($api){
         $api->post('machine/shift/{form_id}','MachineTrackingController@machineShift');
         $api->put('machine/shift/{formId}/{machine_shift_id}','MachineTrackingController@updateMachineShift');
         $api->get('machine/shift/{form_id}','MachineTrackingController@getMachinesShifted');
-        $api->delete('machine/shift/{recordId}','MachineTrackingController@deleteMachineTracking');
+        $api->delete('machine/shift/{recordId}','MachineTrackingController@deleteMachineShift');
         $api->get('machine/shift', 'MachineTrackingController@getShiftingInfo');
         $api->get('machine/mou','MachineTrackingController@machineMoU');
         $api->post('machine/mou/{form_id}','MachineTrackingController@createMachineMoU');
         $api->put('machine/mou/{formId}/{recordId}','MachineTrackingController@updateMachineMoU');
         $api->get('machine/mou/{form_id}','MachineTrackingController@getMachineMoU');
+        $api->delete('machine/mou/{recordId}','MachineTrackingController@deleteMachineMoU');
         $api->get('machinemaster/code', 'MachineMasterController@getMachineCode');
         
 		$api->get('user/approvals', 'UserController@getApprovalLog');

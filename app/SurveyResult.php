@@ -7,7 +7,7 @@ class SurveyResult  extends \Jenssegers\Mongodb\Eloquent\Model
 {
     protected $table = 'survey_results';
     protected $fillable = [
-        'survey_id', 'user_id', 'json', //'ip_address',
+        'survey_id', 'user_id', 'json', 'isDeleted',//'ip_address',
     ];
     // protected $casts = [
     //     'json'  =>  'array',

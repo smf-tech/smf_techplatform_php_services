@@ -98,6 +98,7 @@ class StructureMasterController extends Controller
             $structure_code = $district->abbr.'/'.$taluka->abbr.'/'.$village->name.'/'.$department_code.'/'.$structuretype_code.$queueValue;
             $data['userName'] = $this->request->user()->id;
             $data['structure_code'] = $structure_code;
+            $data['isDeleted'] = false;
             // Gives current date and time in the format :  2019-01-24 10:30:46
 //            $date = Carbon::now();
 //            $data['createdDateTime']=$date->getTimestamp();

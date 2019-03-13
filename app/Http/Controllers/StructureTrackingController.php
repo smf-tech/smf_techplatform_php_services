@@ -32,7 +32,7 @@ class StructureTrackingController extends Controller
             $data['status'] = self::PREPARED;
             $data['userName'] = $userId;
 			$data['form_id'] = $formId;
-			// $data['isDeleted'] = false;
+			$data['isDeleted'] = false;
 
             $database = $this->connectTenantDatabase($this->request);
             if ($database === null) {
@@ -201,16 +201,19 @@ class StructureTrackingController extends Controller
 				if ($this->request->filled('prepared') && $this->request->prepared === 'true') {
 					$structures = StructureTracking::where('status', self::PREPARED)
 							->whereIn('village_id', $userLocation['village'])
+							->where('isDeleted',false)
 							->with('village', 'ffs', 'volunteers')
 							->get();
 				} elseif ($this->request->filled('prepared') && $this->request->prepared === 'false') {
 					$structureCodes = [];
 					$stuctureLevels = ['state', 'district', 'taluka'];
-					$structureTrackingList = StructureTracking::whereIn('village_id', $userLocation['village'])->get();
+					$structureTrackingList = StructureTracking::whereIn('village_id', $userLocation['village'])			
+																->where('isDeleted',false)->get();
 					$structureTrackingList->each(function($structureTracking, $key) {
 						$structureCodes[] = $structureTracking->structure_code;
 					});
-					$structureRecords = \App\StructureMaster::whereNotIn('structure_code', $structureCodes);
+					$structureRecords = \App\StructureMaster::whereNotIn('structure_code', $structureCodes)
+															->where('isDeleted',false);
 					foreach ($userLocation as $level => $location) {
 						$structureRecords = $structureRecords->whereIn($level . '_id', $location);
 					}
@@ -218,6 +221,7 @@ class StructureTrackingController extends Controller
 				} elseif ($this->request->filled('completed') && $this->request->completed === 'true') {
 					$structures = StructureTracking::where('status', self::COMPLETED)
 							->whereIn('village_id', $userLocation['village'])
+							->where('isDeleted',false)
 							->with('village', 'ffs', 'volunteers')
 							->get();
 				}
@@ -259,6 +263,7 @@ class StructureTrackingController extends Controller
 			$structures = StructureTracking::where('userName', $userName)
 					->where('form_id', $formId)
 					->where('status', $status)
+					->where('isDeleted',false)
 					->whereBetween('createdDateTime', [$startDate, $endDate])
 					->orderBy($field, $order)
 					->paginate($limit);
@@ -315,7 +320,7 @@ class StructureTrackingController extends Controller
             $data['status'] = $data['status'] == true ? self::COMPLETED : self::PREPARED;
             $data['userName'] = $userId;
 			$data['form_id'] = $formId;
-			// $data['isDeleted'] = false;
+			$data['isDeleted'] = false;
 
             $database = $this->connectTenantDatabase($this->request);
             if ($database === null) {
