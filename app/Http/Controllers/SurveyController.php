@@ -374,7 +374,7 @@ class SurveyController extends Controller
             $surveyResults = DB::collection('survey_results')
                                 ->where('form_id','=',$survey_id)
                                 ->where('userName','=',$user->id)
-                                ->where('isDeleted',false)
+                                ->where('isDeleted','!=',true)
                                 ->whereBetween('createdDateTime',array($startDate,$endDate))
                                 ->orderBy($field,$order)
                                 ->paginate($limit);
@@ -385,7 +385,7 @@ class SurveyController extends Controller
             $surveyResults = DB::collection('entity_'.$survey->entity_id)
                                 ->where('survey_id','=',$survey_id)
                                 ->where('userName','=',$user->id)
-                                ->where('isDeleted',false)
+                                ->where('isDeleted','!=',true)
                                 ->whereBetween('createdDateTime',array($startDate,$endDate))
                                 ->orderBy($field,$order)
                                 ->paginate($limit);
@@ -449,7 +449,9 @@ class SurveyController extends Controller
         else
             $record = DB::collection('entity_'.$form->entity_id)->where('_id',$recordId);
 
-            if($this->request->user()->id !== $record->userName || $this->request->user()->id !== $record->first()['userName']) {
+            // return $record->first()['userName'];
+            // return isset($record->userName)?"success":"failure";
+            if((!isset($record->userName) && $this->request->user()->id !== $record->first()['userName']) || (isset($record->userName) && $this->request->user()->id !== $record->userName ) ){
                 return response()->json(
                     [
                         'status' => 'error',

@@ -156,7 +156,7 @@ class StructureMasterController extends Controller
 			$structures = StructureMaster::where('userName', $userName)
 					->where('form_id', $formId)
                     ->whereBetween('createdDateTime', [$startDate, $endDate])
-                    ->where('isDeleted',false)
+                    ->where('isDeleted','!=',true)
 					->orderBy($field, $order)
 					->paginate($limit);
 
@@ -226,7 +226,7 @@ class StructureMasterController extends Controller
 			);
         }
 
-        if($this->request->user()->id !== $structure->userName) {
+        if((isset($structure->userName) && $this->request->user()->id !== $structure->userName) || (isset($structure->created_by) && $this->request->user()->id !== $structure->created_by)) {
             return response()->json(
                 [
                     'status' => 'error',
@@ -237,7 +237,7 @@ class StructureMasterController extends Controller
                 );
         }
         $structures = StructureTracking::where('structure_code',$structure->structure_code)
-                                        ->where('isDeleted',false)
+                                        ->where('isDeleted','!=',true)
                                         ->update(['isDeleted' => true]);
 
         $structure->isDeleted = true;

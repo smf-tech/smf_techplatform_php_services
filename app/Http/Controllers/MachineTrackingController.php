@@ -205,7 +205,7 @@ class MachineTrackingController extends Controller
 			$deployed_machines = MachineTracking::where('userName', $userName)
 					->where('form_id', $formId)
                     ->whereBetween('createdDateTime', [$startDate, $endDate])
-                    ->where('isDeleted',false)
+                    ->where('isDeleted','!=',true)
 					->orderBy($field, $order)
 					->paginate($limit);
 
@@ -275,7 +275,7 @@ class MachineTrackingController extends Controller
 			if (isset($userLocation['village']) && !empty($userLocation['village'])) {
 				if ($this->request->deployed === 'true') {
                     $machines = MachineTracking::where('deployed',true)
-                                                ->where('isDeleted',false)
+                                                ->where('isDeleted','!=',true)
                                                 ->whereIn('village_id', $userLocation['village'])
                                                 ->with('village')
                                                 ->get();
@@ -283,13 +283,13 @@ class MachineTrackingController extends Controller
 					$machineCodes = [];
 					$machineLevels = ['state', 'district', 'taluka'];
                     $machineTrackingRecords = MachineTracking::whereIn('village_id', $userLocation['village'])
-                                                                ->where('isDeleted',false)
+                                                                ->where('isDeleted','!=',true)
                                                                 ->get();
 					$machineTrackingRecords->each(function($machineTracking, $key) {
 						$machineCodes[] = $machineTracking->machine_code;
 					});
                     $machineRecords = \App\MachineMaster::whereNotIn('machine_code', $machineCodes)
-                                                        ->where('isDeleted',false);
+                                                        ->where('isDeleted','!=',true);
 					foreach ($userLocation as $level => $location) {
 						if (in_array($level, $machineLevels)) {
 							$machineRecords->whereIn($level . '_id', $location);
@@ -484,7 +484,7 @@ class MachineTrackingController extends Controller
 			$shifted_machines = ShiftingRecord::where('userName', $userName)
 					->where('form_id', $formId)
                     ->whereBetween('createdDateTime', [$startDate, $endDate])
-                    ->where('isDeleted',false)
+                    ->where('isDeleted','!=',true)
 					->orderBy($field, $order)
 					->paginate($limit);
 
@@ -542,7 +542,7 @@ class MachineTrackingController extends Controller
         return response()->json([
                                     'status'=>'success',
                                     'data'=> MachineTracking::where('status','shifted')
-                                                            ->where('isDeleted',false)
+                                                            ->where('isDeleted','!=',true)
                                                             ->with('shiftingRecords', 'shiftingRecords.movedFromVillage', 'shiftingRecords.movedToVillage', 'village')
                                                             ->get(),
                                     'message'=>'']); 
@@ -556,7 +556,7 @@ class MachineTrackingController extends Controller
         }
         
         $machine = MachineTracking::where('mou_details','!=',null)
-                                    ->where('isDeleted',false)->get();
+                                    ->where('isDeleted','!=',true)->get();
         
         return response()->json(['status'=>'success','data'=>$machine,'message'=>'']);    
     }
@@ -692,7 +692,7 @@ class MachineTrackingController extends Controller
 			$machine_mou = MachineMou::where('userName', $userName)
 					->where('form_id', $formId)
                     ->whereBetween('createdDateTime', [$startDate, $endDate])
-                    ->where('isDeleted',false)
+                    ->where('isDeleted','!=',true)
 					->orderBy($field, $order)
 					->paginate($limit);
 
@@ -818,7 +818,7 @@ class MachineTrackingController extends Controller
                 );
             }
     
-            if($this->request->user()->id !== $machine->userName) {
+            if((isset($machine->userName) && $this->request->user()->id !== $machine->userName) || (isset($machine->created_by) && $this->request->user()->id !== $machine->created_by)) {
                 return response()->json(
                     [
                         'status' => 'error',
@@ -853,7 +853,7 @@ class MachineTrackingController extends Controller
             }
     }
 
-    public function deleteMachineShift()
+    public function deleteMachineShift($recordId)
     {
         try {
 
@@ -875,7 +875,7 @@ class MachineTrackingController extends Controller
                 );
             }
     
-            if($this->request->user()->id !== $machine->userName) {
+            if((isset($machine->userName) && $this->request->user()->id !== $machine->userName) || (isset($machine->created_by) && $this->request->user()->id !== $machine->created_by)) {
                 return response()->json(
                     [
                         'status' => 'error',

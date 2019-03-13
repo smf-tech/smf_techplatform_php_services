@@ -168,7 +168,7 @@ class MachineMasterController extends Controller
 			$machine_masters= MachineMaster::where('userName', $userName)
 					->where('form_id', $formId)
                     ->whereBetween('createdDateTime', [$startDate, $endDate])                    
-                    ->where('isDeleted',false)
+                    ->where('isDeleted','!=',true)
 					->orderBy($field, $order)
 					->paginate($limit);
 
@@ -238,7 +238,7 @@ class MachineMasterController extends Controller
             );
         }
 
-        if($this->request->user()->id !== $machine->userName) {
+        if((isset($machine->userName) && $this->request->user()->id !== $machine->userName) || (isset($machine->created_by) && $this->request->user()->id !== $machine->created_by)) {
             return response()->json(
 				[
 					'status' => 'error',
@@ -250,7 +250,7 @@ class MachineMasterController extends Controller
         }
 
         $machines = MachineTracking::where('machine_code',$machine->machine_code)
-                                        ->where('isDeleted',false)
+                                        ->where('isDeleted','!=',true)
                                         ->update(['isDeleted' => true]);
 
         $machine->isDeleted = true;
