@@ -130,6 +130,14 @@ class MachineTrackingController extends Controller
         }
         try {
             $deployedMachine = MachineTracking::find($machine_id);
+            
+            if($deployedMachine->isDeleted === true) {
+				return response()->json([
+					'status' => 'error',
+					'data' => '',
+					'message' => 'Record cannot be updated as it has been deleted!'
+				]);
+			}
 
             if ($deployedMachine !== null) {
                 if($this->request->village != $deployedMachine->village_id){
@@ -405,6 +413,15 @@ class MachineTrackingController extends Controller
         }
         try {
             $machine_shifted = ShiftingRecord::find($machine_shift_id);
+            
+            if($machine_shifted->isDeleted === true) {
+				return response()->json([
+					'status' => 'error',
+					'data' => '',
+					'message' => 'Record cannot be updated as it has been deleted!'
+				]);
+            }
+            
             if($machine_shifted !== null){
                 $data = $this->request->all();
                 $machine_shifted->update($data);
@@ -609,6 +626,15 @@ class MachineTrackingController extends Controller
         $primaryValues = array();
 
         $mouRecord = MachineMou::find($recordId);
+        
+        if($mouRecord->isDeleted === true) {
+            return response()->json([
+                'status' => 'error',
+                'data' => '',
+                'message' => 'Record cannot be updated as it has been deleted!'
+            ]);
+        }
+
         $form = Survey::find($mouRecord->form_id);
         $primaryKeys = $form->form_keys;
 

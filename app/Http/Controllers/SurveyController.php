@@ -127,6 +127,13 @@ class SurveyController extends Controller
                             })
                             ->where('userName','=',$user->id);
 
+        if($user_submitted->first()['isDeleted'] === true) {
+            return response()->json([
+                'status' => 'error',
+                'data' => '',
+                'message' => 'Response cannot be updated as it has been deleted!'
+            ]);
+        }
 
         // Function defined below, it queries the collection $collection_name using the parameters
         if($survey->entity_id == null)

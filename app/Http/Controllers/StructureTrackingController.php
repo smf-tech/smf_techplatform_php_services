@@ -114,6 +114,14 @@ class StructureTrackingController extends Controller
 				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
 			}
 			$structure = StructureTracking::find($structureId);
+
+			if($structure->isDeleted === true) {
+				return response()->json([
+					'status' => 'error',
+					'data' => '',
+					'message' => 'Structure cannot be updated as the record has been deleted!'
+				]);
+			}
 			if ($structure !== null) {
 				$data = $request->all();
 				$formId = $structure->form_id;
@@ -381,7 +389,15 @@ class StructureTrackingController extends Controller
                 return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
             }
 
-            $structureTracking = StructureTracking::find($structureId);
+			$structureTracking = StructureTracking::find($structureId);
+			
+			if($structureTracking->isDeleted === true) {
+				return response()->json([
+					'status' => 'error',
+					'data' => '',
+					'message' => 'Structure cannot be updated as the record has been deleted!'
+				]);
+			}
 
             if(empty($structureTracking))
                 return response()->json([
