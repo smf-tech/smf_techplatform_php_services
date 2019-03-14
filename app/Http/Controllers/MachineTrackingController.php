@@ -271,7 +271,18 @@ class MachineTrackingController extends Controller
 				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
 			}
 			$userLocation = $this->request->user()->location;
-			$machines = [];
+            $machines = [];
+            $roleId = $this->request->user()->role_id;
+			$roleConfig = \App\RoleConfig::where('role_id', $roleId)->first();
+			$level = \App\Jurisdiction::find($roleConfig->level);
+			if (strtolower($level->levelName) != 'village') {
+				$jurisdictionTypeId = $roleConfig->jurisdiction_type_id;
+				$locations = \App\Location::where('jurisdiction_type_id', $jurisdictionTypeId);
+				foreach ($userLocation as $levelName => $values) {
+					$locations->whereIn($levelName . '_id', $values);
+				}
+				$userLocation['village'] = $locations->pluck('village_id')->all();
+			}
 			if (isset($userLocation['village']) && !empty($userLocation['village'])) {
 				if ($this->request->deployed === 'true') {
                     $machines = MachineTracking::where('deployed',true)
