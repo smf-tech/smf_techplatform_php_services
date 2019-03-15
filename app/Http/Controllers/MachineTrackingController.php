@@ -51,9 +51,9 @@ class MachineTrackingController extends Controller
                     // in primaryValues if it is
                     if(in_array($key,$primaryKeys))
                     {
-                        if($key == 'village' ){
+                        if($key == 'village' || $key == 'taluka'){
                             $primaryValues[$key.'_id'] = $value;
-                        }else{
+                        } else {
                         $primaryValues[$key] = $value;
                         }
                     }
@@ -82,22 +82,30 @@ class MachineTrackingController extends Controller
                 }
             }
 
-            $deployedMachine = new MachineTracking;
-            $deployedMachine->village()->associate(\App\Village::find($this->request->village));
-            
-            $deployedMachine->date_deployed = $this->request->date_deployed;
-            $deployedMachine->structure_code = $this->request->structure_code;
-            $deployedMachine->machine_code = $this->request->machine_code;
-            $deployedMachine->deployed = true;
-            $deployedMachine->status = $this->request->status;
-            
-            if($this->request->filled('last_deployed')) {
-                $deployedMachine->last_deployed = $this->request->last_deployed;
-            }
+            $data = $this->request->all();
+            $data['userName'] = $this->request->user()->id;
+            $data['form_id'] = $form_id;
+            $data['isDeleted'] = false;
+            $deployedMachine = MachineTracking::create($data);
 
-            $deployedMachine->userName = $this->request->user()->id;
-            $deployedMachine->form_id = $form_id;
-            $deployedMachine->isDeleted = false;
+            // $deployedMachine = new MachineTracking;
+            
+            // // $deployedMachine->date_deployed = $this->request->date_deployed;
+            // $deployedMachine->structure_code = $this->request->structure_code;
+            // $deployedMachine->machine_code = $this->request->machine_code;
+            // $deployedMachine->deployed = true;
+            // $deployedMachine->status = $this->request->status;
+            
+            $deployedMachine->village()->associate(\App\Village::find($this->request->village));
+            $deployedMachine->taluka()->associate(\App\Taluka::find($this->request->taluka));            
+            
+            // if($this->request->filled('last_deployed')) {
+            //     $deployedMachine->last_deployed = $this->request->last_deployed;
+            // }
+
+            // $deployedMachine->userName = $this->request->user()->id;
+            // $deployedMachine->form_id = $form_id;
+            // $deployedMachine->isDeleted = false;
             $deployedMachine->save();
 
             $result = [
@@ -143,6 +151,11 @@ class MachineTrackingController extends Controller
                 if($this->request->village != $deployedMachine->village_id){
                     $deployedMachine->village()->dissociate();
                     $deployedMachine->village()->associate(\App\Village::find($this->request->village));
+                }
+
+                if($this->request->taluka != $deployedMachine->taluka_id){
+                    $deployedMachine->taluka()->dissociate();
+                    $deployedMachine->taluka()->associate(\App\Taluka::find($this->request->taluka));
                 }
                 $deployedMachine->date_deployed = $this->request->date_deployed;
                 $deployedMachine->structure_code = $this->request->structure_code;
@@ -204,9 +217,10 @@ class MachineTrackingController extends Controller
 
 			$deployed_machines = MachineTracking::where('userName', $userName)
 					->where('form_id', $formId)
-                    ->whereBetween('createdDateTime', [$startDate, $endDate])
+                    // ->whereBetween('createdDateTime', [$startDate, $endDate])
                     ->where('isDeleted','!=',true)
                     ->with('village')
+                    ->with('taluka')
 					->orderBy($field, $order)
 					->paginate($limit);
 
