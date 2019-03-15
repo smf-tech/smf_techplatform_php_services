@@ -235,7 +235,7 @@ class Controller extends BaseController
 	 * @param string $reason
 	 * @return string
 	 */
-	public function addApprovalLog(Request $request, $entityId, $entityType, $approverIds, $status, $userName, $reason = null, $orgId)
+	public function addApprovalLog(Request $request, $entityId, $entityType, $approverIds, $status, $userName, $reason = '', $orgId)
 	{
 		$this->connectTenantDatabase($request, $orgId);
 		$approverLog = ApprovalLog::create([

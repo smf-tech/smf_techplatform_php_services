@@ -156,10 +156,13 @@ class UserController extends Controller
 				]);
 				break;
 		}
-		$this->connectTenantDatabase($this->request);
-		$approvalLog->update([
-			'status' => $status
-		]);
+        $this->connectTenantDatabase($this->request);
+
+        $approvalLog->update([
+            'status' => $status, 
+            'reason' => ($this->request->filled('reason'))?$this->request->input('reason'):''
+            ]);
+        
 		return response()->json(['status'=>'success', 'data'=>'Status changed successfully', 'message'=>'']);
     }
 
