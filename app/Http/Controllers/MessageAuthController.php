@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\User;
 use GuzzleHttp\Client;
+use App\Lib\AES;
 
 class MessageAuthController extends Controller
 {
@@ -19,16 +21,21 @@ class MessageAuthController extends Controller
          
 
         $obj=DB::collection('user_otp_verify')->where('ph_no',$ph_no)->first();
-        //var_dump($obj);exit;
+
+        /*$inputKey = "mutthafoundation";
+        $blockSize = 256;
+        $aes = new AES($six_digit_random_number, $inputKey, $blockSize);
+        $encryptedOtp = $aes->encrypt();*/
+        $encryptedOtp = $six_digit_random_number;
         if(isset($obj)){ 
-            DB::collection('user_otp_verify')->where('ph_no',$ph_no)->update(['otp'=>$six_digit_random_number, 'time'=>date("Y/m/d H:i:s",time())]);
+            DB::collection('user_otp_verify')->where('ph_no',$ph_no)->update(['otp'=>$encryptedOtp, 'time'=>date("Y/m/d H:i:s",time())]);
         }else{
-            DB::collection('user_otp_verify')->insert(['ph_no'=>$ph_no , 'otp'=>$six_digit_random_number , 'time'=>date("Y/m/d H:i:s",time()) ]  );
+            DB::collection('user_otp_verify')->insert(['ph_no'=>$ph_no , 'otp'=>$encryptedOtp , 'time'=>date("Y/m/d H:i:s",time()) ]  );
         }
         
-        $http = new \GuzzleHttp\Client;
-        $autoreadcode = env('AUTOREAD_SMS_CODE','JftAsR+UI44');
-        $sendsmscall = $http->get('http://www.smsjust.com/sms/user/urlsms.php?username=avmabd&pass=avmabd@123&senderid=MVMSMF&dest_mobileno='.$ph_no.'&message=%3C%23%3E%20The%20password%20is:'.$six_digit_random_number.' '.urlencode($autoreadcode).'&response=Y');
+        //$http = new \GuzzleHttp\Client;
+        //$autoreadcode = env('AUTOREAD_SMS_CODE','JftAsR+UI44');
+        //$sendsmscall = $http->get('http://www.smsjust.com/sms/user/urlsms.php?username=avmabd&pass=avmabd@123&senderid=MVMSMF&dest_mobileno='.$ph_no.'&message=%3C%23%3E%20The%20password%20is:'.$six_digit_random_number.' '.urlencode($autoreadcode).'&response=Y');
 
         //$content = array('otp'=>$six_digit_random_number);
         $content = array('otp'=>'');
@@ -38,8 +45,9 @@ class MessageAuthController extends Controller
 
     public function verifyOTP(Request $request){
 
-        $ph_no=$request->phone;
-        $otp =$request->otp;
+        $data = $request->all();
+        $ph_no=$data['phone'];
+        $otp =$data['otp'];
 
         $obj=DB::collection('user_otp_verify')->where('ph_no',$ph_no)->first();
         

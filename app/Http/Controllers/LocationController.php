@@ -230,23 +230,41 @@ class LocationController extends Controller
                 $level = strtolower($jurisdiction[0]);
 
                 $jurisdictions = JurisdictionType::where('_id',$roleConfig->jurisdiction_type_id)->pluck('jurisdictions')[0];
+				$skipFilter = true;
+				$projectionData = [];
 
                 if($userLocation !== null && isset($userLocation[$level]) && !empty($userLocation[$level])) {
                     $locations = Location::where('jurisdiction_type_id',$roleConfig->jurisdiction_type_id);
                     foreach ($jurisdictions as $singleLevel) {
                         if (isset($userLocation[strtolower($singleLevel)])) {
                             $locations->whereIn(strtolower($singleLevel) . '_id', $userLocation[strtolower($singleLevel)]);
-                        }
-                    }
-                    $data = $locations->with('state', 'district', 'taluka', 'village')->get();
+							if ($this->request->filled('level') && $skipFilter) {
+								$locations->with(strtolower($singleLevel));
+								$projectionData[] = strtolower($singleLevel) . '_id';
+								if (strtolower($this->request->level) === strtolower($singleLevel)) {
+									$skipFilter = false;
+								}
+							}
+						}
+					}
+					if ($this->request->filled('level')) {
+						$data = $locations->get($projectionData);
+						$data = $data->filter(function(&$value, $key) {
+							unset($value['_id']);
+							return true;
+						})->all();
+						$data = array_values(array_unique($data));
+					} else {
+						$data = $locations->with('state', 'district', 'taluka', 'village')->get();
+					}
                 } else {
                     $data = Location::where('jurisdiction_type_id',$roleConfig->jurisdiction_type_id)->with('state', 'district', 'taluka', 'village')->get();
                 }
 
-                return response()->json(['status'=>'success','data'=>$data,'message'=>''],200); 
+                return response()->json(['status'=>'success','data'=>$data,'message'=>''],200);
             }
 
-            return response()->json(['status'=>'error','data'=>'','message'=>'You Do Not Have A Role In The Organisation'],403);                 
+            return response()->json(['status'=>'error','data'=>'','message'=>'You Do Not Have A Role In The Organisation'],403);
         }
         
             if($status === "success")
