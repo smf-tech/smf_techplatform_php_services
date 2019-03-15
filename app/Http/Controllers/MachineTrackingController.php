@@ -206,6 +206,7 @@ class MachineTrackingController extends Controller
 					->where('form_id', $formId)
                     ->whereBetween('createdDateTime', [$startDate, $endDate])
                     ->where('isDeleted','!=',true)
+                    ->with('village')
 					->orderBy($field, $order)
 					->paginate($limit);
 
