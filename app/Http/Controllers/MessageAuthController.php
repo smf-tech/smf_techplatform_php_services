@@ -45,9 +45,8 @@ class MessageAuthController extends Controller
 
     public function verifyOTP(Request $request){
 
-        $data = $request->all();
-        $ph_no=$data['phone'];
-        $otp =$data['otp'];
+        $ph_no=$request->phone;
+        $otp =$request->otp;
 
         $obj=DB::collection('user_otp_verify')->where('ph_no',$ph_no)->first();
         
