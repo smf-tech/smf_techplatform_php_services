@@ -26,7 +26,7 @@ class MessageAuthController extends Controller
         $blockSize = 256;
         $aes = new AES($six_digit_random_number, $inputKey, $blockSize);
         $encryptedOtp = $aes->encrypt();*/
-        $encryptedOtp = $six_digit_random_number;
+        $encryptedOtp = base64_encode($six_digit_random_number);
         if(isset($obj)){ 
             DB::collection('user_otp_verify')->where('ph_no',$ph_no)->update(['otp'=>$encryptedOtp, 'time'=>date("Y/m/d H:i:s",time())]);
         }else{
@@ -53,7 +53,7 @@ class MessageAuthController extends Controller
         $otpFromServer=$obj['otp'];
         $sec=(  strtotime(date("Y/m/d H:i:s",time())) -  strtotime(date( $obj['time'] )))  ;
         
-        if((integer)$otpFromServer!=(integer)$otp){
+        if($otpFromServer!=$otp){
             $response_data = array('status' =>'failed','data' => '','message'=>'InCorrect OTP');
             return response()->json($response_data );
         }else if(($sec/60)>=30){
