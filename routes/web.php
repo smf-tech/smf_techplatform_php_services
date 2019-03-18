@@ -39,6 +39,7 @@ $api->version('v1',function($api){
 
         $api->get('message/otp','MessageAuthController@sendOTP');
         $api->get('token','MessageAuthController@verifyOTP');
+        $api->post('token','MessageAuthController@verifyOTPLogin');
         $api->post('refreshtoken','MessageAuthController@refreshToken');
         $api->get('organizations','OrganisationController@listOrgs');
         $api->get('projects/{org_id}','OrganisationController@getorgprojects');
