@@ -39,12 +39,12 @@ class StructureMasterController extends Controller
                 'status' => 'success',
                 'data' => $structure->get(['structure_code', 'state_id', 'district_id', 'taluka_id', 'village_id']),
                 'message' => 'List of Structure codes.'
-            ]);
+            ],200);
         } catch(\Exception $exception) {
             return response()->json(
                     [
                         'status' => 'error',
-                        'data' => null,
+                        'data' => '',
                         'message' => $exception->getMessage()
                     ],
                     404
@@ -59,6 +59,7 @@ class StructureMasterController extends Controller
                 return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
             }
 
+            $userId = $this->request->user()->id;
             $department_abbr = array('water_resources_department'=>'WRD','forest'=>'FST',
                                      'agriculture'=>'AGR','minor_irrigation(ZP)'=>'MIZP',
                                      'soil_and_water_conservation'=>'SWC',
@@ -96,28 +97,56 @@ class StructureMasterController extends Controller
                 $queueValue = 1;  
             }
             $structure_code = $district->abbr.'/'.$taluka->abbr.'/'.$village->name.'/'.$department_code.'/'.$structuretype_code.$queueValue;
-            $data['userName'] = $this->request->user()->id;
-            $data['structure_code'] = $structure_code;
-            $data['isDeleted'] = false;
-            // Gives current date and time in the format :  2019-01-24 10:30:46
-//            $date = Carbon::now();
-//            $data['createdDateTime']=$date->getTimestamp();
-//            $data['updatedDateTime']=$date->getTimestamp();
-            $data['form_id']=$form_id;
-            $structure_master = StructureMaster::create($data);
-            $structure_master->district()->associate($district);
-            $structure_master->taluka()->associate($taluka);
-            $structure_master->village()->associate($village);
+
+
+
+            $structure_master = new StructureMaster;
+
+            $primaryKeys = \App\Survey::find($form_id)->form_keys;
+			$condition = ['userName' => $userId];
+			$associatedFields = array_map('strtolower', $this->getLevels()->toArray());
+			foreach ($data as $field => $value) {
+				
+				if (in_array($field, $associatedFields)) {
+					if (in_array($field, $primaryKeys) && !empty($value)) {
+						$field .= '_id';
+						$condition[$field] = $value;
+					} else {
+						$field .= '_id';
+					}
+				}
+				if (in_array($field, $primaryKeys) && !empty($value)) {
+					$condition[$field] = $value;
+				}
+				$structure_master->$field = $value;
+            }
+
+            $existingStructure = StructureMaster::where($condition)->first();
+			if (isset($existingStructure)) {
+				return response()->json(
+						[
+						'status' => 'error',
+						'data' => '',
+						'message' => 'Structure already exists. Please change the parameters.'
+					],
+					400
+				);
+			}
+
+            $structure_master->userName = $this->request->user()->id;
+            $structure_master->structure_code = $structure_code;
+            $structure_master->isDeleted = false;
+            $structure_master->form_id = $form_id;
+           
             $structure_master->save();
-            $structure_master = $structure_master->toArray();
-            //var_dump($structure_master);exit;
+
             $result = [
                 '_id' => [
-                    '$oid' => $structure_master['_id']
+                    '$oid' => $structure_master->id
                 ],
-                'form_title' => $this->generateFormTitle($form_id,$structure_master['_id'],'structure_masters'),
-				'createdDateTime' => $structure_master['createdDateTime'],
-				'updatedDateTime' => $structure_master['updatedDateTime']
+                'form_title' => $this->generateFormTitle($form_id,$structure_master->id,'structure_masters'),
+				'createdDateTime' => $structure_master->createdDateTime,
+				'updatedDateTime' => $structure_master->updatedDateTime
             ]; 
             return response()->json([
                 'status' => 'success',
@@ -128,7 +157,7 @@ class StructureMasterController extends Controller
             return response()->json(
                     [
                         'status' => 'error',
-                        'data' => null,
+                        'data' => '',
                         'message' => $exception->getMessage()
                     ],
                     404
@@ -161,7 +190,7 @@ class StructureMasterController extends Controller
 					->paginate($limit);
 
 			if ($structures->count() === 0) {
-				return response()->json(['status' => 'success', 'metadata' => [],'values' => [], 'message' => '']);
+				return response()->json(['status' => 'success', 'metadata' => [],'values' => [], 'message' => ''],200);
 			}
 			$createdDateTime = $structures->last()['createdDateTime'];
 			$updatedDateTime = $structures->first()['updatedDateTime'];
@@ -191,12 +220,12 @@ class StructureMasterController extends Controller
 				'metadata' => [$result],
 				'values' => $values,
 				'message '=> ''
-			]);
+            ],200);
 		} catch(\Exception $exception) {
 			return response()->json(
 				[
 					'status' => 'error',
-					'data' => null,
+					'data' => '',
 					'message' => $exception->getMessage()
 				],
 				404
@@ -256,7 +285,7 @@ class StructureMasterController extends Controller
             return response()->json(
 				[
 					'status' => 'error',
-					'data' => null,
+					'data' => '',
 					'message' => $exception->getMessage()
 				],
 				404

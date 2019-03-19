@@ -13,6 +13,7 @@ class StructureMaster extends BaseModel
 	use AuditFields;
 
     protected $table = 'structure_masters';
+    protected $hidden = ['created_at','updated_at'];
     protected $fillable = [  
         'structure_code','taluka_id','village_id','structure_owner_department','type',
         'district_id','userName','form_id','isDeleted'

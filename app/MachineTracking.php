@@ -14,6 +14,8 @@ class MachineTracking extends BaseModel
 
     protected $table = 'machine_tracking';
 
+    protected $hidden = ['created_at','updated_at'];
+    
     protected $fillable = [
         'shifting_record',
         'structure_code',

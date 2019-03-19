@@ -41,88 +41,61 @@ class MachineTrackingController extends Controller
         try {
             $primaryKeys = \App\Survey::find($form_id)->form_keys;
             $data = $this->request->all();
-            $primaryValues = array();
+            $userId = $this->request->user()->id;
+
+            $machineTracking = new MachineTracking;
+            $machineTracking->userName = $userId;
+			$machineTracking->form_id = $form_id;
+			$machineTracking->isDeleted = false;
             
-            if(count($primaryKeys)> 0){
-                // Looping through the response object from the body
-                foreach($this->request->all() as $key=>$value)
-                {
-                    // Checking if the key is marked as a primary key and storing the value 
-                    // in primaryValues if it is
-                    if(in_array($key,$primaryKeys))
-                    {
-                        if($key == 'village' || $key == 'taluka'){
-                            $primaryValues[$key.'_id'] = $value;
-                        } else {
-                        $primaryValues[$key] = $value;
-                        }
-                    }
+            $condition = ['userName' => $userId];   
+            $condition['form_id'] = $form_id;         
 
-                }       
+			$associatedFields = array_map('strtolower', $this->getLevels()->toArray());
+			foreach ($data as $field => $value) {
+				
+				if (in_array($field, $associatedFields)) {
+					if (in_array($field, $primaryKeys) && !empty($value)) {
+						$field .= '_id';
+						$condition[$field] = $value;
+					} else {
+						$field .= '_id';
+					}
+				}
+				if (in_array($field, $primaryKeys) && !empty($value)) {
+					$condition[$field] = $value;
+				}
+				$machineTracking->$field = $value;
+			}
 
-                $machine_deployed = DB::collection('machine_tracking')
-                ->where('form_id','=',$form_id)
-                ->where('userName','=',$this->request->user()->id)
-                ->where(function($q) use ($primaryValues)
-                {
-                    foreach($primaryValues as $key => $value)
-                {
-                        $q->where($key, '=', $value);
-                }
-                })->get()->first();
-                if($machine_deployed != null){
-                    return response()->json(
-                        [
-                        'status' => 'error',
-                        'data' => null,
-                        'message' => 'Machine already deployed please change parameters'
-                    ],
-                    400
-                    );
-                }
+			$existingMachine = MachineTracking::where($condition)->first();
+			if(isset($existingMachine)) { 
+
+				return response()->json([
+                	'status' => 'error',
+                	'data' => '',
+                	'message' => 'Machine already deployed please change parameters'
+                ],200);
             }
-
-            $data = $this->request->all();
-            $data['userName'] = $this->request->user()->id;
-            $data['form_id'] = $form_id;
-            $data['isDeleted'] = false;
-            $deployedMachine = MachineTracking::create($data);
-
-            // $deployedMachine = new MachineTracking;
             
-            // // $deployedMachine->date_deployed = $this->request->date_deployed;
-            // $deployedMachine->structure_code = $this->request->structure_code;
-            // $deployedMachine->machine_code = $this->request->machine_code;
-            // $deployedMachine->deployed = true;
-            // $deployedMachine->status = $this->request->status;
-            
-            $deployedMachine->village()->associate(\App\Village::find($this->request->village));
-            $deployedMachine->taluka()->associate(\App\Taluka::find($this->request->taluka));            
-            
-            // if($this->request->filled('last_deployed')) {
-            //     $deployedMachine->last_deployed = $this->request->last_deployed;
-            // }
 
-            // $deployedMachine->userName = $this->request->user()->id;
-            // $deployedMachine->form_id = $form_id;
-            // $deployedMachine->isDeleted = false;
-            $deployedMachine->save();
+            $machineTracking->save();
 
             $result = [
                 '_id' => [
-                    '$oid' => $deployedMachine->id
+                    '$oid' => $machineTracking->id
                 ],
-                'form_title' => $this->generateFormTitle($form_id,$deployedMachine->id,'machine_tracking'),
-                'createdDateTime' => $deployedMachine->createdDateTime,
-                'updatedDateTime' => $deployedMachine->updatedDateTime
+                'form_title' => $this->generateFormTitle($form_id,$machineTracking->id,'machine_tracking'),
+                'createdDateTime' => $machineTracking->createdDateTime,
+                'updatedDateTime' => $machineTracking->updatedDateTime
             ]; 
             
-            return response()->json(['status'=>'success','data'=>$result,'message'=>'']);
+            return response()->json(['status'=>'success','data'=>$result,'message'=>''],200);
         }catch(\Exception $exception) {
 			return response()->json(
                     [
                         'status' => 'error',
-                        'data' => null,
+                        'data' => '',
                         'message' => $exception->getMessage()
                     ],
                     404
@@ -138,33 +111,34 @@ class MachineTrackingController extends Controller
         }
         try {
             $deployedMachine = MachineTracking::find($machine_id);
+            $data = $this->request->all();
             
             if($deployedMachine->isDeleted === true) {
 				return response()->json([
 					'status' => 'error',
 					'data' => '',
 					'message' => 'Record cannot be updated as it has been deleted!'
-				]);
+                ],404);
 			}
 
+            $userId = $this->request->user()->id;
             if ($deployedMachine !== null) {
-                if($this->request->village != $deployedMachine->village_id){
-                    $deployedMachine->village()->dissociate();
-                    $deployedMachine->village()->associate(\App\Village::find($this->request->village));
-                }
 
-                if($this->request->taluka != $deployedMachine->taluka_id){
-                    $deployedMachine->taluka()->dissociate();
-                    $deployedMachine->taluka()->associate(\App\Taluka::find($this->request->taluka));
+                $deployedMachine->status = $data['status'];
+           	 	$deployedMachine->userName = $userId;
+				$associatedFields = array_map('strtolower', $this->getLevels()->toArray());
+
+				foreach ($data as $field => $value) {
+				
+					if (in_array($field, $associatedFields)) {
+							$field .= '_id';
+					}
+					
+					$deployedMachine->$field = $value;
                 }
-                $deployedMachine->date_deployed = $this->request->date_deployed;
-                $deployedMachine->structure_code = $this->request->structure_code;
-                $deployedMachine->machine_code = $this->request->machine_code;
+                
                 $deployedMachine->deployed = true;
-                $deployedMachine->status = $this->request->status;
-                $deployedMachine->last_deployed = $this->request->last_deployed;
-                $deployedMachine->userName = $this->request->user()->id;
-				$deployedMachine->updatedDateTime = Carbon::now()->getTimestamp();
+				// $deployedMachine->updatedDateTime = Carbon::now()->getTimestamp();
                 $deployedMachine->save();
     
                 $result = [
@@ -176,7 +150,7 @@ class MachineTrackingController extends Controller
                     'updatedDateTime' => $deployedMachine->updatedDateTime
                 ]; 
                 
-                return response()->json(['status'=>'success','data'=>$result,'message'=>'']);
+                return response()->json(['status'=>'success','data'=>$result,'message'=>''],200);
 
             }
             return response()->json(
@@ -225,7 +199,7 @@ class MachineTrackingController extends Controller
 					->paginate($limit);
 
 			if ($deployed_machines->count() === 0) {
-				return response()->json(['status' => 'success', 'metadata' => [],'values' => [], 'message' => '']);
+				return response()->json(['status' => 'success', 'metadata' => [],'values' => [], 'message' => ''],200);
 			}
 			$createdDateTime = $deployed_machines->first()['createdDateTime'];
 			$updatedDateTime = $deployed_machines->last()['updatedDateTime'];
@@ -255,7 +229,7 @@ class MachineTrackingController extends Controller
 				'metadata' => [$result],
 				'values' => $values,
 				'message '=> ''
-			]);
+            ],200);
 		} catch(\Exception $exception) {
 			return response()->json(
 				[
@@ -328,7 +302,7 @@ class MachineTrackingController extends Controller
 				'status' => 'success',
 				'data' => $machines,
 				'message' => 'List of machines.'
-			]);
+            ],200);
 		} catch(\Exception $exception) {
 			return response()->json([
                         'status' => 'error',
@@ -348,76 +322,59 @@ class MachineTrackingController extends Controller
         try {
             $primaryKeys = \App\Survey::find($form_id)->form_keys;
             $data = $this->request->all();
-            $primaryValues = array();
+            $userId = $this->request->user()->id;
             
-            if(count($primaryKeys)> 0){
-                // Looping through the response object from the body
-                foreach($this->request->all() as $key=>$value)
-                {
-                    // Checking if the key is marked as a primary key and storing the value 
-                    // in primaryValues if it is
-                    if(in_array($key,$primaryKeys))
-                    {
-                        if($key == 'moved_from_village'  || $key == 'moved_to_village' ){
-                            $primaryValues[$key.'_id'] = $value;
-                        }else{
-                        $primaryValues[$key] = $value;
-                        }
-                    }
+            $shiftingRecord = new ShiftingRecord;
+            $shiftingRecord->userName = $userId;
+            $shiftingRecord->form_id = $form_id;
+            $shiftingRecord->isDeleted = false;
 
-                }       
+            $condition = ['userName' => $userId];
+            $condition['form_id'] = $form_id;
+			$associatedFields = ['moved_from_village','moved_to_village'];
+			$associatedFields = array_merge($associatedFields,array_map('strtolower', $this->getLevels()->toArray()));
+			foreach ($data as $field => $value) {
+				
+				if (in_array($field, $associatedFields)) {
+					if (in_array($field, $primaryKeys) && !empty($value)) {
+						$field .= '_id';
+						$condition[$field] = $value;
+					} else {
+						$field .= '_id';
+					}
+				}
+				if (in_array($field, $primaryKeys) && !empty($value)) {
+					$condition[$field] = $value;
+				}
+				$shiftingRecord->$field = $value;
+			}
 
-                $machine_shifted = DB::collection('shifting_records')
-                ->where('form_id','=',$form_id)
-                ->where('userName','=',$this->request->user()->id)
-                ->where(function($q) use ($primaryValues)
-                {
-                    foreach($primaryValues as $key => $value)
-                {
-                        $q->where($key, '=', $value);
-                }
-                })->get()->first();
-                if($machine_shifted != null){
-                    return response()->json(
-                        [
-                        'status' => 'error',
-                        'data' => null,
-                        'message' => 'Machine already shifted please change parameters'
-                    ],
-                    400
-                    );
-                }
+			$existingRecord = ShiftingRecord::where($condition)->first();
+			if(isset($existingRecord)) { 
+				$existingStructure->update($data);
+			
+				return response()->json([
+                	'status' => 'error',
+                	'data' => '',
+                	'message' => 'Machine already shifted please change parameters'
+                ],400);
             }
-
-            $data = $this->request->all();
-
+            
             $machine = MachineTracking::firstOrCreate([
                 'village_id' => $this->request->moved_from_village,
                 'structure_code' => $this->request->old_structure_code,
                 'machine_code' => $this->request->machine_code,
                 'isDeleted' => false
             ]);
-            
-            $data['userName']= $this->request->user()->id;
-            $data['form_id']= $form_id;
-            $data['isDeleted'] = false;
-            $shiftingRecord = ShiftingRecord::create($data);
-            $shiftingRecord->movedFromVillage()->associate(\App\Village::find($data['moved_from_village']));
-            $shiftingRecord->movedToVillage()->associate(\App\Village::find($data['moved_to_village']));
-            $shiftingRecord->machineTracking()->associate($machine);
+            $shiftingRecord->machine_tracking_id = $machine->id;
+
             $shiftingRecord->save();
-
-            $shifting_id = $shiftingRecord->getIdAttribute();
-
-            $machine->status = 'shifted';
-
-            $machine->save();
 
             $result = [
                 '_id' => [
-                    '$oid' => $shifting_id
+                    '$oid' => $shiftingRecord->id
                 ],
-                'form_title' => $this->generateFormTitle($form_id,$shifting_id,'shifting_records'),
+                'form_title' => $this->generateFormTitle($form_id,$shiftingRecord->id,'shifting_records'),
                 'createdDateTime' => $shiftingRecord->createdDateTime,
                 'udpatedDateTime' => $shiftingRecord->udpatedDateTime
             ]; 
@@ -426,7 +383,7 @@ class MachineTrackingController extends Controller
         }catch(\Exception $exception) {
 			return response()->json([
                         'status' => 'error',
-                        'data' => null,
+                        'data' => '',
                         'message' => $exception->getMessage()
                     ], 400);
 		}
@@ -445,21 +402,26 @@ class MachineTrackingController extends Controller
 					'status' => 'error',
 					'data' => '',
 					'message' => 'Record cannot be updated as it has been deleted!'
-				]);
+                ],404);
             }
             
             if($machine_shifted !== null){
                 $data = $this->request->all();
-                $machine_shifted->update($data);
+                $userId = $this->request->user()->id;
+                // $machine_shifted->status = $data['status'];
+                    $machine_shifted->userName = $userId;
+                $associatedFields = ['moved_from_village','moved_to_village'];
+				$associatedFields = array_merge($associatedFields,array_map('strtolower', $this->getLevels()->toArray()));
 
-                if($this->request->moved_from_village != $machine_shifted->moved_from_village_id){
-                    $machine_shifted->movedFromVillage()->dissociate();
-                    $machine_shifted->movedFromVillage()->associate(\App\Village::find($data['moved_from_village']));
-                }
-                if($this->request->moved_to_village != $machine_shifted->moved_to_village_id){
-                    $machine_shifted->movedToVillage()->dissociate();
-                    $machine_shifted->movedToVillage()->associate(\App\Village::find($data['moved_to_village']));
-                }    
+				foreach ($data as $field => $value) {
+				
+					if (in_array($field, $associatedFields)) {
+							$field .= '_id';
+					}
+					
+					$machine_shifted->$field = $value;
+				}
+
                 $machine_shifted->save();   
 
                 $result = [
@@ -468,15 +430,15 @@ class MachineTrackingController extends Controller
                     ],
                     'form_title' => $this->generateFormTitle($machine_shifted->form_id,$machine_shifted->id,'shifting_records'),
                     'createdDateTime' => $machine_shifted->createdDateTime,
-                    'udpatedDateTime' => $machine_shifted->udpatedDateTime
+                    'udpatedDateTime' => $machine_shifted->updatedDateTime
                 ]; 
 
-                return response()->json(['status'=>'success','data'=>$result,'message'=>'']);
+                return response()->json(['status'=>'success','data'=>$result,'message'=>''],200);
             }else{
                 return response()->json(
                     [
                         'status' => 'error',
-                        'data' => null,
+                        'data' => '',
                         'message' => 'Record not found'
                     ],
                     404
@@ -511,11 +473,12 @@ class MachineTrackingController extends Controller
 					->where('form_id', $formId)
                     ->whereBetween('createdDateTime', [$startDate, $endDate])
                     ->where('isDeleted','!=',true)
+                    ->with('machineTracking','movedFromVillage','movedToVillage')
 					->orderBy($field, $order)
 					->paginate($limit);
 
 			if ($shifted_machines->count() === 0) {
-				return response()->json(['status' => 'success', 'metadata' => [],'values' => [], 'message' => '']);
+				return response()->json(['status' => 'success', 'metadata' => [],'values' => [], 'message' => ''],200);
 			}
 			$createdDateTime = $shifted_machines->first()['createdDateTime'];
 			$updatedDateTime = $shifted_machines->last()['updatedDateTime'];
@@ -545,7 +508,7 @@ class MachineTrackingController extends Controller
 				'metadata' => [$result],
 				'values' => $values,
 				'message '=> ''
-			]);
+            ],200);
 		} catch(\Exception $exception) {
 			return response()->json(
 				[
@@ -571,7 +534,7 @@ class MachineTrackingController extends Controller
                                                             ->where('isDeleted','!=',true)
                                                             ->with('shiftingRecords', 'shiftingRecords.movedFromVillage', 'shiftingRecords.movedToVillage', 'village')
                                                             ->get(),
-                                    'message'=>'']); 
+                                    'message'=>''],200); 
     }
 
     public function machineMoU()
@@ -584,7 +547,7 @@ class MachineTrackingController extends Controller
         $machine = MachineTracking::where('mou_details','!=',null)
                                     ->where('isDeleted','!=',true)->get();
         
-        return response()->json(['status'=>'success','data'=>$machine,'message'=>'']);    
+        return response()->json(['status'=>'success','data'=>$machine,'message'=>''],200);    
     }
 
     public function createMachineMoU($formId)
@@ -594,50 +557,57 @@ class MachineTrackingController extends Controller
             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
         }
 
-        $user = $this->request->user();
-        $mouDetails = array();
-        $primaryValues = array();
+        $userId = $this->request->user()->id;
+        $data = $this->request->all();
 
-        $form = Survey::find($formId);
-        $primaryKeys = $form->form_keys;
+        $primaryKeys = \App\Survey::find($formId)->form_keys;
+        $condition = ['userName' => $userId];
+        $condition['form_id'] = $formId;
+        // $associatedFields = ['ffs', 'volunteers'];
+        // $associatedFields = array();
 
-        // Looping through the response object from the body
-        foreach($this->request->all() as $key=>$value)
-        {
-            // Checking if the key is marked as a primary key and storing the value 
-            // in primaryValues if it is
-            if(in_array($key,$primaryKeys))
-            {
-                $primaryValues[$key] = $value;
-            }
-            $mouDetails[$key] = $value;
-        }        
+        $associatedFields = array_map('strtolower', $this->getLevels()->toArray());
 
-        $formExists = MachineMou::where('form_id','=',$formId)
-                            ->where('userName','=',$user->id)
-                            ->where(function($q) use ($primaryValues)
-                            {
-                                foreach($primaryValues as $key => $value) {
-                                    $q->where($key, '=', $value);
-                                }
-                            })
-                            ->first();
+        $machine = new MachineMou;
 
-        if (!empty($formExists)) {
-            return response()->json(['status'=>'error','data'=>'','message'=>'Insertion Failure!!! Entry already exists with the same values.'],400);
-        }
+			foreach ($data as $field => $value) {
+				
+				if (in_array($field, $associatedFields)) {
+					if (in_array($field, $primaryKeys) && !empty($value)) {
+						$field .= '_id';
+						$condition[$field] = $value;
+					} else {
+						$field .= '_id';
+					}
+				}
+				if (in_array($field, $primaryKeys) && !empty($value)) {
+					$condition[$field] = $value;
+				}
+				$machine->$field = $value;
+			}
 
-        $mouDetails['form_id'] = $formId;
-        $mouDetails['userName'] = $user->id;
-        $mouDetails['isDeleted'] = false;
+            $existingMachine = MachineMou::where($condition)->first();
+			if(isset($existingMachine)) { 
+			
+				return response()->json([
+                	'status' => 'error',
+                	'data' => '',
+                    'message' => 'Insertion Failure!!! Entry already exists with the same values.'
+                ],400);
+			}
 
-        $machine = MachineMou::create($mouDetails);
-        $data['_id']['$oid'] = $machine->id;
-        $data['form_title'] = $this->generateFormTitle($formId,$machine->id,'machine_mou');
-        $data['createdDateTime'] = $machine->createdDateTime;
-        $data['updatedDateTime'] = $machine->updatedDateTime;
+        $machine->form_id = $formId;
+        $machine->userName = $userId;
+        $machine->isDeleted = false;
+        $machine->save();
 
-        return response()->json(['status'=>'success','data'=>$data,'message'=>'']); 
+       
+        $record['_id']['$oid'] = $machine->id;
+        $record['form_title'] = $this->generateFormTitle($formId,$machine->id,'machine_mou');
+        $record['createdDateTime'] = $machine->createdDateTime;
+        $record['updatedDateTime'] = $machine->updatedDateTime;
+
+        return response()->json(['status'=>'success','data'=>$record,'message'=>''],200); 
     }
 
     public function updateMachineMoU($formId, $recordId)
@@ -647,9 +617,8 @@ class MachineTrackingController extends Controller
             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
         }
         
-        $user = $this->request->user();
-        $mouDetails = array();
-        $primaryValues = array();
+        $userId = $this->request->user()->id;
+        $data = $this->request->all();
 
         $mouRecord = MachineMou::find($recordId);
         
@@ -658,46 +627,47 @@ class MachineTrackingController extends Controller
                 'status' => 'error',
                 'data' => '',
                 'message' => 'Record cannot be updated as it has been deleted!'
-            ]);
+            ],404);
         }
 
-        $form = Survey::find($mouRecord->form_id);
-        $primaryKeys = $form->form_keys;
-
-        // Looping through the response object from the body
-        foreach($this->request->all() as $key=>$value)
-        {
-            // Checking if the key is marked as a primary key and storing the value 
-            // in primaryValues if it is
-            if(in_array($key,$primaryKeys))
-            {
-                $primaryValues[$key] = $value;
+            $primaryKeys = \App\Survey::find($mouRecord->form_id)->form_keys;
+			$condition = ['userName' => $userId];
+			$associatedFields = array_map('strtolower', $this->getLevels()->toArray());
+			foreach ($data as $field => $value) {
+				
+				if (in_array($field, $associatedFields)) {
+					if (in_array($field, $primaryKeys) && !empty($value)) {
+						$field .= '_id';
+						$condition[$field] = $value;
+					} else {
+						$field .= '_id';
+					}
+				}
+				if (in_array($field, $primaryKeys) && !empty($value)) {
+					$condition[$field] = $value;
+				}
+				$mouRecord->$field = $value;
+			}
+			$existingMachine = MachineMou::where($condition)->first();
+			if ($existingMachine !== null) {
+				return response()->json(
+						[
+						'status' => 'error',
+						'data' => '',
+						'message' => 'Machine MoU record already exists. Please change the parameters.'
+					],
+					400
+				);
             }
-            $mouDetails[$key] = $value;
-        }        
+            
+            $mouRecord->save();
 
-        $formExists = MachineMou::where('form_id','=',$mouRecord->form_id)
-                            ->where('userName','=',$user->id)
-                            ->where(function($q) use ($primaryValues)
-                            {
-                                foreach($primaryValues as $key => $value) {
-                                    $q->where($key, '=', $value);
-                                }
-                            })
-                            ->where('_id','!=',$recordId)
-                            ->get()->first();
+        $record['_id']['$oid'] = $recordId;
+        $record['form_title'] = $this->generateFormTitle($mouRecord->form_id,$recordId,'machine_mou');
+        $record['createdDateTime'] = $mouRecord->createdDateTime;
+        $record['updatedDateTime'] = $mouRecord->updatedDateTime;
 
-        if (!empty($formExists)) {
-            return response()->json(['status'=>'error','data'=>'','message'=>'Update Failure!!! Entry already exists with the same values.'],400);
-        }
-
-        $machine = $mouRecord->update($mouDetails);
-        $data['_id']['$oid'] = $recordId;
-        $data['form_title'] = $this->generateFormTitle($mouRecord->form_id,$recordId,'machine_mou');
-        $data['createdDateTime'] = $mouRecord->createdDateTime;
-        $data['updatedDateTime'] = $mouRecord->updatedDateTime;
-
-        return response()->json(['status'=>'success','data'=>$data,'message'=>'']); 
+        return response()->json(['status'=>'success','data'=>$record,'message'=>''],200); 
     }
 
     public function getMachineMoU($formId){
@@ -719,11 +689,12 @@ class MachineTrackingController extends Controller
 					->where('form_id', $formId)
                     ->whereBetween('createdDateTime', [$startDate, $endDate])
                     ->where('isDeleted','!=',true)
+                    ->with('state','district','taluka')
 					->orderBy($field, $order)
 					->paginate($limit);
 
 			if ($machine_mou->count() === 0) {
-				return response()->json(['status' => 'success', 'metadata' => [],'values' => [], 'message' => '']);
+				return response()->json(['status' => 'success', 'metadata' => [],'values' => [], 'message' => ''],200);
 			}
 			$createdDateTime = $machine_mou->first()['createdDateTime'];
 			$updatedDateTime = $machine_mou->last()['updatedDateTime'];
@@ -753,12 +724,12 @@ class MachineTrackingController extends Controller
 				'metadata' => [$result],
 				'values' => $values,
 				'message '=> ''
-			]);
+            ],200);
 		} catch(\Exception $exception) {
 			return response()->json(
 				[
 					'status' => 'error',
-					'data' => null,
+					'data' => '',
 					'message' => $exception->getMessage()
 				],
 				404
@@ -815,7 +786,7 @@ class MachineTrackingController extends Controller
                 return response()->json(
                     [
                         'status' => 'error',
-                        'data' => null,
+                        'data' => '',
                         'message' => $exception->getMessage()
                     ],
                     404
@@ -871,7 +842,7 @@ class MachineTrackingController extends Controller
                 return response()->json(
                     [
                         'status' => 'error',
-                        'data' => null,
+                        'data' => '',
                         'message' => $exception->getMessage()
                     ],
                     404
@@ -928,7 +899,7 @@ class MachineTrackingController extends Controller
                 return response()->json(
                     [
                         'status' => 'error',
-                        'data' => null,
+                        'data' => '',
                         'message' => $exception->getMessage()
                     ],
                     404

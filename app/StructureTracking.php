@@ -5,10 +5,15 @@ namespace App;
 use App\Volunteer;
 use App\FFAppointed;
 use App\Village;
+use App\Taluka;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class StructureTracking extends BaseModel
 {
-	use AuditFields;
+    use AuditFields;
+    
+    protected $hidden = ['created_at','updated_at'];
 
     protected $fillable = [
         'structure_code',
@@ -28,6 +33,12 @@ class StructureTracking extends BaseModel
         'isDeleted'
     ];
 
+    // public function scopeExclude($query) {
+    //     $columnNames = $this->fillable;
+    //     array_push($columnNames,'created_at','updated_at');
+    //     return $query->select(array_diff($columnNames, $this->hidden));
+    // }
+
     public function volunteers()
     {
         return $this->hasMany(Volunteer::class);
@@ -41,5 +52,9 @@ class StructureTracking extends BaseModel
     public function village()
     {
         return $this->belongsTo(Village::class);
+    }
+    public function taluka()
+    {
+        return $this->belongsTo(Taluka::class);
     }
 }

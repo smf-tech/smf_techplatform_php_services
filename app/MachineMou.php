@@ -5,6 +5,7 @@ namespace App;
 use Illuminate\Database\Eloquent\Model;
 use App\State;
 use App\District;
+use App\Taluka;
 
 class MachineMou extends \Jenssegers\Mongodb\Eloquent\Model
 {
@@ -56,5 +57,10 @@ class MachineMou extends \Jenssegers\Mongodb\Eloquent\Model
     public function district()
     {
         return $this->belongsTo(District::class);
+    }
+
+    public function taluka()
+    {
+        return $this->belongsTo(Taluka::class);
     }
 }

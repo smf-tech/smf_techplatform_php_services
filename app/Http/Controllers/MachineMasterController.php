@@ -41,7 +41,7 @@ class MachineMasterController extends Controller
             return response()->json(
                     [
                         'status' => 'error',
-                        'data' => null,
+                        'data' => '',
                         'message' => $exception->getMessage()
                     ],
                     404
@@ -68,6 +68,7 @@ class MachineMasterController extends Controller
         ];*/
 
         $data = $this->request->all();
+        $userId = $this->request->user()->id;
         $district = District::find($this->request->input('district_id'));
         // $machines = MachineMaster::where('machine_code','LIKE',$district->abbr.'%')->get(['machine_code']);
         // $machines = MachineMaster::where('machine_code','LIKE',$district->abbr.'%')->max('machine_code');
@@ -135,13 +136,34 @@ class MachineMasterController extends Controller
             }
         }
         $finalCode = $district->abbr.$queueValue.$this->request->input('machine_make').$this->request->input('machine_model').$modelcode;
-        
-        $data['userName'] = $this->request->user()->id;
-        $data['machine_code'] = $finalCode;
-        $data['form_id'] = $formId;
-        $data['isDeleted'] = false;
 
-        $machineRecord = MachineMaster::create($data);
+        $primaryKeys = \App\Survey::find($formId)->form_keys;
+			$condition = ['userName' => $userId];
+            $associatedFields = array_map('strtolower', $this->getLevels()->toArray());
+            
+            $machineRecord = new MachineMaster;
+
+			foreach ($data as $field => $value) {
+				
+				if (in_array($field, $associatedFields)) {
+					if (in_array($field, $primaryKeys) && !empty($value)) {
+						$field .= '_id';
+						$condition[$field] = $value;
+					} else {
+						$field .= '_id';
+					}
+				}
+				if (in_array($field, $primaryKeys) && !empty($value)) {
+					$condition[$field] = $value;
+				}
+				$machineRecord->$field = $value;
+			}
+
+        $machineRecord->userName = $userId;
+        $machineRecord->machine_code = $finalCode;
+        $machineRecord->form_id = $formId;
+        $machineRecord->isDeleted = false;
+        $machineRecord->save();
         
         $record['_id']['$oid'] = $machineRecord->id;
         $record['form_title'] = $this->generateFormTitle($formId,$record['_id']['$oid'],'machine_masters');
@@ -174,11 +196,12 @@ class MachineMasterController extends Controller
 					->where('form_id', $formId)
                     ->whereBetween('createdDateTime', [$startDate, $endDate])                    
                     ->where('isDeleted','!=',true)
+                    ->with('state','district','taluka')
 					->orderBy($field, $order)
 					->paginate($limit);
 
 			if ($machine_masters->count() === 0) {
-				return response()->json(['status' => 'success', 'metadata' => [],'values' => [], 'message' => '']);
+				return response()->json(['status' => 'success', 'metadata' => [],'values' => [], 'message' => ''],200);
 			}
 			$createdDateTime = $machine_masters->first()['createdDateTime'];
 			$updatedDateTime = $machine_masters->last()['updatedDateTime'];
@@ -208,12 +231,12 @@ class MachineMasterController extends Controller
 				'metadata' => [$result],
 				'values' => $values,
 				'message '=> ''
-			]);
+            ],200);
 		} catch(\Exception $exception) {
 			return response()->json(
 				[
 					'status' => 'error',
-					'data' => null,
+					'data' => '',
 					'message' => $exception->getMessage()
 				],
 				404
@@ -274,7 +297,7 @@ class MachineMasterController extends Controller
             return response()->json(
 				[
 					'status' => 'error',
-					'data' => null,
+					'data' => '',
 					'message' => $exception->getMessage()
 				],
 				404
