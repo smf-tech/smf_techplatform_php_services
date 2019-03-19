@@ -38,7 +38,8 @@ $api->version('v1',function($api){
     $api->group(['namespace'=>'App\Http\Controllers','middleware'=>['cors']],function($api){
 
         $api->get('message/otp','MessageAuthController@sendOTP');
-        $api->post('token','MessageAuthController@verifyOTP');
+        $api->get('token','MessageAuthController@verifyOTP');
+        $api->post('token','MessageAuthController@verifyOTPLogin');
         $api->post('refreshtoken','MessageAuthController@refreshToken');
         $api->get('organizations','OrganisationController@listOrgs');
         $api->get('projects/{org_id}','OrganisationController@getorgprojects');

@@ -233,17 +233,27 @@ class LocationController extends Controller
 				$skipFilter = true;
 				$projectionData = [];
 
-                if($userLocation !== null && isset($userLocation[$level]) && !empty($userLocation[$level])) {
+				if ($userLocation === null) {
+					return response()->json([
+						'status' => 'error',
+						'data' => '',
+						'message' => 'Please set location on User profile page'
+						],
+						403
+					);
+				}
+
+                if($userLocation !== null) {
                     $locations = Location::where('jurisdiction_type_id',$roleConfig->jurisdiction_type_id);
                     foreach ($jurisdictions as $singleLevel) {
                         if (isset($userLocation[strtolower($singleLevel)])) {
                             $locations->whereIn(strtolower($singleLevel) . '_id', $userLocation[strtolower($singleLevel)]);
-							if ($this->request->filled('level') && $skipFilter) {
-								$locations->with(strtolower($singleLevel));
-								$projectionData[] = strtolower($singleLevel) . '_id';
-								if (strtolower($this->request->level) === strtolower($singleLevel)) {
-									$skipFilter = false;
-								}
+						}
+						if ($this->request->filled('level') && $skipFilter) {
+							$locations->with(strtolower($singleLevel));
+							$projectionData[] = strtolower($singleLevel) . '_id';
+							if (strtolower($this->request->level) === strtolower($singleLevel)) {
+								$skipFilter = false;
 							}
 						}
 					}
@@ -257,8 +267,6 @@ class LocationController extends Controller
 					} else {
 						$data = $locations->with('state', 'district', 'taluka', 'village')->get();
 					}
-                } else {
-                    $data = Location::where('jurisdiction_type_id',$roleConfig->jurisdiction_type_id)->with('state', 'district', 'taluka', 'village')->get();
                 }
 
                 return response()->json(['status'=>'success','data'=>$data,'message'=>''],200);
