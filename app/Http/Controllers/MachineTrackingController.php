@@ -218,6 +218,13 @@ class MachineTrackingController extends Controller
 
 			$values = [];
 			foreach ($deployed_machines as &$structure) {
+				foreach (array_map('strtolower', $this->getLevels()->toArray()) as $singleJurisdiction) {
+					if (isset($structure[$singleJurisdiction])) {
+						unset($structure[$singleJurisdiction]);
+						$structure[$singleJurisdiction] = $structure[$singleJurisdiction . '_id'];
+						unset($structure[$singleJurisdiction . '_id']);
+					}
+				}
 				$structure['form_title'] = $this->generateFormTitle($formId, $structure['_id'], 'machine_tracking');
 				$values[] = \Illuminate\Support\Arr::except($structure, ['form_id', 'userName', 'createdDateTime']);
 			}
@@ -536,6 +543,16 @@ class MachineTrackingController extends Controller
 
 			$values = [];
 			foreach ($shifted_machines as &$structure) {
+				if (isset($structure['movedFromVillage'])) {
+					unset($structure['movedFromVillage']);
+					$structure['moved_from_village'] = $structure['moved_from_village_id'];
+					unset($structure['moved_from_village_id']);
+				}
+				if (isset($structure['movedToVillage'])) {
+					unset($structure['movedToVillage']);
+					$structure['moved_to_village'] = $structure['moved_to_village_id'];
+					unset($structure['moved_to_village_id']);
+				}
 				$structure['form_title'] = $this->generateFormTitle($formId, $structure['_id'], 'shifting_records');
 				$values[] = \Illuminate\Support\Arr::except($structure, ['form_id', 'userName', 'createdDateTime']);
 			}
@@ -752,6 +769,13 @@ class MachineTrackingController extends Controller
 
 			$values = [];
 			foreach ($machine_mou as &$structure) {
+				foreach (array_map('strtolower', $this->getLevels()->toArray()) as $singleJurisdiction) {
+					if (isset($structure[$singleJurisdiction])) {
+						unset($structure[$singleJurisdiction]);
+						$structure[$singleJurisdiction] = $structure[$singleJurisdiction . '_id'];
+						unset($structure[$singleJurisdiction . '_id']);
+					}
+				}
 				$structure['form_title'] = $this->generateFormTitle($formId, $structure['_id'], 'machine_mou');
 				$values[] = \Illuminate\Support\Arr::except($structure, ['form_id', 'userName', 'createdDateTime']);
 			}

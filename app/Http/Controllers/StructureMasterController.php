@@ -186,6 +186,7 @@ class StructureMasterController extends Controller
 					->where('form_id', $formId)
                     ->whereBetween('createdDateTime', [$startDate, $endDate])
                     ->where('isDeleted','!=',true)
+					->with('district', 'taluka', 'village')
 					->orderBy($field, $order)
 					->paginate($limit);
 
@@ -208,6 +209,13 @@ class StructureMasterController extends Controller
 
 			$values = [];
 			foreach ($structures as &$structure) {
+				foreach (array_map('strtolower', $this->getLevels()->toArray()) as $singleJurisdiction) {
+					if (isset($structure[$singleJurisdiction])) {
+						unset($structure[$singleJurisdiction]);
+						$structure[$singleJurisdiction] = $structure[$singleJurisdiction . '_id'];
+						unset($structure[$singleJurisdiction . '_id']);
+					}
+				}
 				$structure['form_title'] = $this->generateFormTitle($formId, $structure['_id'], 'structure_trackings');
 				$values[] = \Illuminate\Support\Arr::except($structure, ['form_id', 'userName', 'createdDateTime']);
 			}
