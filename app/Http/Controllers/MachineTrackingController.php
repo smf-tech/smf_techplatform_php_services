@@ -394,7 +394,7 @@ class MachineTrackingController extends Controller
                 ],
                 'form_title' => $this->generateFormTitle($form_id,$shiftingRecord->id,'shifting_records'),
                 'createdDateTime' => $shiftingRecord->createdDateTime,
-                'udpatedDateTime' => $shiftingRecord->updatedDateTime
+                'updatedDateTime' => $shiftingRecord->updatedDateTime
             ]; 
 
             return response()->json(['status'=>'success','data'=>$result,'message'=>'']);
