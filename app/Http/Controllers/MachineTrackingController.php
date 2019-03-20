@@ -195,6 +195,7 @@ class MachineTrackingController extends Controller
                     ->where('isDeleted','!=',true)
                     ->with('village')
                     ->with('taluka')
+                    ->with('shiftingRecords')
 					->orderBy($field, $order)
 					->paginate($limit);
 
@@ -351,8 +352,7 @@ class MachineTrackingController extends Controller
 
 			$existingRecord = ShiftingRecord::where($condition)->first();
 			if(isset($existingRecord)) { 
-				$existingStructure->update($data);
-			
+                			
 				return response()->json([
                 	'status' => 'error',
                 	'data' => '',
@@ -360,15 +360,33 @@ class MachineTrackingController extends Controller
                 ],400);
             }
             
-            $machine = MachineTracking::firstOrCreate([
+            $machineAtSource = MachineTracking::firstOrCreate([
                 'village_id' => $this->request->moved_from_village,
                 'structure_code' => $this->request->old_structure_code,
                 'machine_code' => $this->request->machine_code,
+                'deployed' => true,
                 'isDeleted' => false
             ]);
-            $shiftingRecord->machine_tracking_id = $machine->id;
 
-            $shiftingRecord->save();
+            $machineAtDestination = MachineTracking::firstOrCreate([
+                'village_id' => $this->request->moved_to_village,
+                'structure_code' => $this->request->new_structure_code,
+                'machine_code' => $this->request->machine_code,
+                'deployed' => true,
+                'isDeleted' => false
+            ]);
+
+                $shiftingRecord->machineTrackings()->attach([$machineAtSource->id, $machineAtDestination->id]);
+                $shiftingRecord->save();
+                $machineAtSource->shifting_record_ids = [$shiftingRecord->id];
+                $machineAtSource->save();
+                $machineAtDestination->shifting_record_ids = [$shiftingRecord->id];
+                $machineAtDestination->save();
+
+            // $machineAtSource->shiftingRecords()->sync([$shiftingRecord->id]);
+            // $machineAtSource->save();
+            // $machineAtDestination->shiftingRecords()->sync([$shiftingRecord->id]);
+            // $machineAtDestination->save();
 
             $result = [
                 '_id' => [
@@ -376,7 +394,7 @@ class MachineTrackingController extends Controller
                 ],
                 'form_title' => $this->generateFormTitle($form_id,$shiftingRecord->id,'shifting_records'),
                 'createdDateTime' => $shiftingRecord->createdDateTime,
-                'udpatedDateTime' => $shiftingRecord->udpatedDateTime
+                'udpatedDateTime' => $shiftingRecord->updatedDateTime
             ]; 
 
             return response()->json(['status'=>'success','data'=>$result,'message'=>'']);
@@ -408,8 +426,7 @@ class MachineTrackingController extends Controller
             if($machine_shifted !== null){
                 $data = $this->request->all();
                 $userId = $this->request->user()->id;
-                // $machine_shifted->status = $data['status'];
-                    $machine_shifted->userName = $userId;
+                $machine_shifted->userName = $userId;
                 $associatedFields = ['moved_from_village','moved_to_village'];
 				$associatedFields = array_merge($associatedFields,array_map('strtolower', $this->getLevels()->toArray()));
 
@@ -422,7 +439,30 @@ class MachineTrackingController extends Controller
 					$machine_shifted->$field = $value;
 				}
 
+                        $machineAtSource = MachineTracking::firstOrCreate([
+                            'village_id' => $this->request->moved_from_village,
+                            'structure_code' => $this->request->old_structure_code,
+                            'machine_code' => $this->request->machine_code,
+                            'deployed' => true,
+                            'isDeleted' => false
+                        ]);
+
+                        $machineAtDestination = MachineTracking::firstOrCreate([
+                            'village_id' => $this->request->moved_to_village,
+                            'structure_code' => $this->request->new_structure_code,
+                            'machine_code' => $this->request->machine_code,
+                            'deployed' => true,
+                            'isDeleted' => false
+                        ]);
+    
+                $machine_shifted->machineTrackings()->sync([$machineAtSource->id, $machineAtDestination->id]);
+
                 $machine_shifted->save();   
+
+                $machineAtSource->shiftingRecords()->sync([$machine_shifted->id]);
+                $machineAtSource->save();
+                $machineAtDestination->shiftingRecords()->sync([$machine_shifted->id]);
+                $machineAtDestination->save();
 
                 $result = [
                     '_id' => [
@@ -469,11 +509,11 @@ class MachineTrackingController extends Controller
 			$startDate = $this->request->filled('start_date') ? $this->request->start_date : Carbon::now()->subMonth()->getTimestamp();
 			$endDate = $this->request->filled('end_date') ? $this->request->end_date : Carbon::now()->getTimestamp();
 
-			$shifted_machines = ShiftingRecord::where('userName', $userName)
+            $shifted_machines = ShiftingRecord::where('userName', $userName)
 					->where('form_id', $formId)
-                    ->whereBetween('createdDateTime', [$startDate, $endDate])
                     ->where('isDeleted','!=',true)
-                    ->with('machineTracking','movedFromVillage','movedToVillage')
+                    ->with('movedFromVillage','movedToVillage')
+                    ->with('machineTrackings')
 					->orderBy($field, $order)
 					->paginate($limit);
 
@@ -513,7 +553,7 @@ class MachineTrackingController extends Controller
 			return response()->json(
 				[
 					'status' => 'error',
-					'data' => null,
+					'data' => '',
 					'message' => $exception->getMessage()
 				],
 				404
@@ -885,6 +925,10 @@ class MachineTrackingController extends Controller
     
             $machine->isDeleted = true;
             $machine->save();
+
+            MachineTracking::find($machine->machine_tracking_ids[0])->update(['isDeleted' => true]);
+            MachineTracking::find($machine->machine_tracking_ids[1])->update(['isDeleted' => true]);
+            
     
             return response()->json(
                 [

@@ -11,6 +11,8 @@ class ShiftingRecord extends BaseModel
 
     protected $table = 'shifting_records';
 
+    protected $hidden = ['created_at','updated_at'];
+
     protected $fillable = [
         'old_structure_code',
         'machine_code',
@@ -33,9 +35,9 @@ class ShiftingRecord extends BaseModel
         'form_id'
     ];
 
-    public function machineTracking()
+    public function machineTrackings()
     {
-        return $this->belongsTo(MachineTracking::class);
+        return $this->belongsToMany(MachineTracking::class);
     }
 
     public function movedFromVillage()

@@ -26,13 +26,14 @@ class MachineTracking extends BaseModel
         'userName',
         'form_id',
         'isDeleted',
+        'deployed',
         // 'taluka_id',
-        // 'village_id'
+        'village_id'
     ];
 
     public function shiftingRecords()
     {
-        return $this->hasMany(ShiftingRecord::class);
+        return $this->belongsToMany(ShiftingRecord::class);
     }
 
     public function village()
