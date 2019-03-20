@@ -407,7 +407,10 @@ class SurveyController extends Controller
             if (!isset($surveyResult['form_id'])) {
                 $surveyResult['form_id'] = $survey_id;
             }
-
+			if (isset($surveyResult['village'])) {
+				$surveyResult['village'] = \App\Village::find($surveyResult['village']);
+				$surveyResult['village_id'] = $surveyResult['village']->id;
+			}
             $form_title =$this->generateFormTitle($survey,$surveyResult['_id'],$collection_name);
             $surveyResult['form_title'] = $form_title;
             // Excludes values 'form_id','user_id','created_at','updated_at' from the $surveyResult array
