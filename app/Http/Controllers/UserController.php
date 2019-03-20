@@ -255,7 +255,13 @@ class UserController extends Controller
 				switch($approvalLog->entity_type) {
 					case self::ENTITY_USER:
 						DB::setDefaultConnection('mongodb');
-						$user = User::find($approvalLog->entity_id);
+                        $user = User::find($approvalLog->entity_id);
+                        if($user == null){
+                            $approvalLog['entity'] = [
+                                'user' => []
+                            ];
+                            break;
+                        }
 						$organisation = Organisation::find($user->org_id);
 						$role = \App\Role::find($user->role_id);
 						$this->connectTenantDatabase($this->request);
