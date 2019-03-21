@@ -210,7 +210,7 @@ class StructureMasterController extends Controller
 			$values = [];
 			foreach ($structures as &$structure) {
 				foreach (array_map('strtolower', $this->getLevels()->toArray()) as $singleJurisdiction) {
-					if (isset($structure[$singleJurisdiction])) {
+					if (isset($structure[$singleJurisdiction . '_id'])) {
 						unset($structure[$singleJurisdiction]);
 						$structure[$singleJurisdiction] = $structure[$singleJurisdiction . '_id'];
 						unset($structure[$singleJurisdiction . '_id']);
