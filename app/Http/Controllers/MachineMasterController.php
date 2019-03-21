@@ -196,7 +196,7 @@ class MachineMasterController extends Controller
 					->where('form_id', $formId)
                     ->whereBetween('createdDateTime', [$startDate, $endDate])                    
                     ->where('isDeleted','!=',true)
-                    ->with('state','district','taluka')
+                    ->with('district','taluka')
 					->orderBy($field, $order)
 					->paginate($limit);
 
