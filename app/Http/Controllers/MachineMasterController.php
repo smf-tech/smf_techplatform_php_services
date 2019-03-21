@@ -69,7 +69,7 @@ class MachineMasterController extends Controller
 
         $data = $this->request->all();
         $userId = $this->request->user()->id;
-        $district = District::find($this->request->input('district_id'));
+        $district = District::find($this->request->input('district'));
         // $machines = MachineMaster::where('machine_code','LIKE',$district->abbr.'%')->get(['machine_code']);
         // $machines = MachineMaster::where('machine_code','LIKE',$district->abbr.'%')->max('machine_code');
         $machines = MachineMaster::where('machine_code','LIKE',$district->abbr.'%')->orderBy('createdDateTime','desc')->first();
