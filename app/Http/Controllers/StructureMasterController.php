@@ -216,7 +216,7 @@ class StructureMasterController extends Controller
 						unset($structure[$singleJurisdiction . '_id']);
 					}
 				}
-				$structure['form_title'] = $this->generateFormTitle($formId, $structure['_id'], 'structure_trackings');
+				$structure['form_title'] = $this->generateFormTitle($formId, $structure['_id'], 'structure_masters');
 				$values[] = \Illuminate\Support\Arr::except($structure, ['form_id', 'userName', 'createdDateTime']);
 			}
 
