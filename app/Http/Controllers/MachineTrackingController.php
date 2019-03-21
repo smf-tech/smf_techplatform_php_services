@@ -192,8 +192,9 @@ class MachineTrackingController extends Controller
 
 			$deployed_machines = MachineTracking::where('userName', $userName)
 					->where('form_id', $formId)
-                    // ->whereBetween('createdDateTime', [$startDate, $endDate])
+                    ->whereBetween('createdDateTime', [$startDate, $endDate])
                     ->where('isDeleted','!=',true)
+                    ->where('deployed',true)
                     ->with('village')
                     ->with('taluka')
                     ->with('shiftingRecords')
