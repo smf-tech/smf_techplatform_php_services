@@ -47,7 +47,8 @@ class MachineTrackingController extends Controller
             $machineTracking->userName = $userId;
 			$machineTracking->form_id = $form_id;
 			$machineTracking->isDeleted = false;
-            
+            $machineTracking->deployed = true;
+
             $condition = ['userName' => $userId];   
             $condition['form_id'] = $form_id;         
 
