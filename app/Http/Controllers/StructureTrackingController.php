@@ -11,6 +11,7 @@ use App\Village;
 use Carbon\Carbon;
 use App\Taluka;
 use Illuminate\Support\Facades\DB;
+use App\MachineTracking;
 
 class StructureTrackingController extends Controller
 {
@@ -380,7 +381,12 @@ class StructureTrackingController extends Controller
             	]);
 			}
 			
-            $structureTracking->save();
+			$structureTracking->save();
+			
+			if( $structureTracking->status === self::COMPLETED ) {
+				$machines = MachineTracking::where('structure_code',$structureTracking->structure_code)
+											->where('village_id',$structureTracking->village_id)->update(['deployed' => false]);
+			}
 			
 			return response()->json([
                 'status' => 'success',
@@ -448,6 +454,18 @@ class StructureTrackingController extends Controller
 				}
 	
 				$structureTracking->save();
+
+				if( $structureTracking->status === self::COMPLETED ) {
+					$machines = MachineTracking::where('structure_code',$structureTracking->structure_code)
+												->where('village_id',$structureTracking->village_id)
+												->where('isDeleted','!=',true)
+												->update(['deployed' => false]);
+				} elseif( $structureTracking->status === self::PREPARED ) {
+					$machines = MachineTracking::where('structure_code',$structureTracking->structure_code)
+												->where('village_id',$structureTracking->village_id)
+												->where('isDeleted','!=',true)
+												->update(['deployed' => true]);
+				}
 			
             return response()->json([
                 'status' => 'success',
