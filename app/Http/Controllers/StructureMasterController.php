@@ -60,7 +60,7 @@ class StructureMasterController extends Controller
             }
 
             $userId = $this->request->user()->id;
-            $department_abbr = array('water_resources_department'=>'WRD','forest'=>'FST',
+            /*$department_abbr = array('water_resources_department'=>'WRD','forest'=>'FST',
                                      'agriculture'=>'AGR','minor_irrigation(ZP)'=>'MIZP',
                                      'soil_and_water_conservation'=>'SWC',
                                      'irrigation_department'=>'IRG'
@@ -79,14 +79,14 @@ class StructureMasterController extends Controller
                                  'nala_rundikaran_kholikaran-NRK'=>'NRK',
                                  'compartment_bunding-CB'=>'CMPB',
                                  'village_cleaning-VC'=>'VC',
-                                 'dhalicha_bandh'=>'GCB','vantale'=>'FSTP');
+                                 'dhalicha_bandh'=>'GCB','vantale'=>'FSTP');*/
             
             $data = $this->request->all();
             $district = District::find($this->request->input('district'));
             $taluka = Taluka::find($this->request->input('taluka'));
             $village = Village::find($this->request->input('village'));
-            $department_code = $department_abbr[$this->request->input('structure_owner_department')];
-            $structuretype_code = $struct_abbr[$this->request->input('type')];
+            $department_code = $this->request->input('structure_owner_department');
+            $structuretype_code = $this->request->input('type');
           
             $structures =StructureMaster::where('structure_code','LIKE',$district->abbr.'/'.$taluka->abbr.'/'.$village->name.'/'.$department_code.'/'.$structuretype_code.'%')->orderby('createdDateTime','DESC')->get()->first();
             //var_dump($structures->structure_code);exit;
