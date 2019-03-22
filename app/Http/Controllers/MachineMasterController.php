@@ -196,7 +196,7 @@ class MachineMasterController extends Controller
 					->where('form_id', $formId)
                     ->whereBetween('createdDateTime', [$startDate, $endDate])                    
                     ->where('isDeleted','!=',true)
-                    ->with('state','district','taluka')
+                    ->with('district','taluka')
 					->orderBy($field, $order)
 					->paginate($limit);
 
@@ -220,7 +220,7 @@ class MachineMasterController extends Controller
 			$values = [];
 			foreach ($machine_masters as &$structure) {
 				foreach (array_map('strtolower', $this->getLevels()->toArray()) as $singleJurisdiction) {
-					if (isset($structure[$singleJurisdiction])) {
+					if (isset($structure[$singleJurisdiction . '_id'])) {
 						unset($structure[$singleJurisdiction]);
 						$structure[$singleJurisdiction] = $structure[$singleJurisdiction . '_id'];
 						unset($structure[$singleJurisdiction . '_id']);
