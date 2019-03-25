@@ -137,6 +137,21 @@ class MachineMasterController extends Controller
         }
         $finalCode = $district->abbr.$queueValue.$this->request->input('machine_make').$this->request->input('machine_model').$modelcode;
 
+        $userLocation = $this->request->user()->location;
+			// $machines = [];
+        $role = $this->request->user()->role_id;
+        $roleConfig = \App\RoleConfig::where('role_id', $role)->first();
+        $jurisdictionType = \App\JurisdictionType::find($roleConfig->jurisdiction_type_id);
+        $firstLevel = strtolower(array_values($jurisdictionType->jurisdictions)[0]);
+        if (!isset($data[$firstLevel])) {
+            $location = \App\Location::where([
+                'jurisdiction_type_id' => $jurisdictionType->id,
+                'district_id' => $data['district'],
+                'taluka_id' => $data['taluka']
+            ])->first();
+            $data[$firstLevel] = $location->state_id;
+        }
+
         $primaryKeys = \App\Survey::find($formId)->form_keys;
 			$condition = ['userName' => $userId];
             $associatedFields = array_map('strtolower', $this->getLevels()->toArray());
