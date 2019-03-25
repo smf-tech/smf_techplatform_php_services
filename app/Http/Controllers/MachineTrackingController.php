@@ -15,6 +15,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use App\MachineMou;
 use App\Survey;
+use App\MachineMaster;
 
 
 use App\Images;
@@ -290,22 +291,23 @@ class MachineTrackingController extends Controller
                                                 ->with('village')
                                                 ->get();
 				} else {
-					$machineCodes = [];
-					$machineLevels = ['state', 'district', 'taluka'];
-                    $machineTrackingRecords = MachineTracking::whereIn('village_id', $userLocation['village'])
-                                                                ->where('isDeleted','!=',true)
-                                                                ->get();
-					$machineTrackingRecords->each(function($machineTracking, $key) {
-						$machineCodes[] = $machineTracking->machine_code;
-					});
-                    $machineRecords = \App\MachineMaster::whereNotIn('machine_code', $machineCodes)
-                                                        ->where('isDeleted','!=',true);
+					$deployedMachines = MachineTracking::where([
+						'userName' => $this->request->user()->id,
+						'deployed' => true,
+						])
+						->where('isDeleted', '!=', true)
+						->whereIn('village_id', $userLocation['village'])
+						->pluck('machine_code')
+						->all();
+					$machine = MachineMaster::whereNotIn('machine_code', $deployedMachines);
 					foreach ($userLocation as $level => $location) {
-						if (in_array($level, $machineLevels)) {
-							$machineRecords->whereIn($level . '_id', $location);
+						if (strtolower($level) !== 'village') {
+							$machine->whereIn(strtolower($level) . '_id', $location);
 						}
 					}
-					$machines = $machineRecords->get();
+					$machine->where('isDeleted', '!=', true);
+					$machine->with('state', 'district', 'taluka');
+					$machines = $machine->get(['machine_code', 'state_id', 'district_id', 'taluka_id']);
 				}
 			}
 			return response()->json([

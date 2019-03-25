@@ -98,13 +98,26 @@ class StructureMasterController extends Controller
             }
             $structure_code = $district->abbr.'/'.$taluka->abbr.'/'.$village->name.'/'.$department_code.'/'.$structuretype_code.$queueValue;
 
-
-
             $structure_master = new StructureMaster;
 
             $primaryKeys = \App\Survey::find($form_id)->form_keys;
 			$condition = ['userName' => $userId];
 			$associatedFields = array_map('strtolower', $this->getLevels()->toArray());
+
+			$role = $this->request->user()->role_id;
+			$roleConfig = \App\RoleConfig::where('role_id', $role)->first();
+			$jurisdictionType = \App\JurisdictionType::find($roleConfig->jurisdiction_type_id);
+			$firstLevel = strtolower(array_values($jurisdictionType->jurisdictions)[0]);
+			if (!isset($data[$firstLevel])) {
+				$location = \App\Location::where([
+					'jurisdiction_type_id' => $jurisdictionType->id,
+					'district_id' => $district->id,
+					'taluka_id' => $taluka->id,
+					'village_id' => $village->id
+				])->first();
+				$data[$firstLevel] = $location->state_id;
+			}
+
 			foreach ($data as $field => $value) {
 				
 				if (in_array($field, $associatedFields)) {
