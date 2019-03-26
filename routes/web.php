@@ -120,7 +120,11 @@ $api->version('v1',function($api){
         $api->post('machine/{form_id}', 'MachineMasterController@createMachineCode');
         $api->get('machine/{form_id}', 'MachineMasterController@getMachineCodes');
         $api->delete('machine/{recordId}','MachineMasterController@deleteMachine');
-
+        
+        $api->get('forms/aggregate/{form_id}','SurveyController@showAggregateResponse');
+        $api->post('forms/aggregate/{form_id}','SurveyController@createAggregateResponse');
+        $api->put('forms/aggregate/{form_id}/{group_id}','SurveyController@updateAggregateResponse');
+        $api->delete('forms/aggregate/{form_id}/{group_id}','SurveyController@deleteAggregateResponse');
     });
 
 });
