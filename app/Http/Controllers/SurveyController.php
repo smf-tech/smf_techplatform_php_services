@@ -109,7 +109,7 @@ class SurveyController extends Controller
         }
 
         // Function defined below, it queries the collection $collection_name using the parameters
-        if(isset($survey->entity_id)) {
+        if(!isset($survey->entity_id)) {
             
             $fields['form_id']=$survey_id;
             // If the set of values are present in the collection then an update occurs and 'submit_count' gets incremented
@@ -328,7 +328,7 @@ class SurveyController extends Controller
         $endDate = $this->request->input('start_date') ?:Carbon::now('Asia/Calcutta')->getTimestamp();
         $startDate = $this->request->input('end_date') ?:Carbon::now('Asia/Calcutta')->subMonth()->getTimestamp();
 
-        if(isset($survey->entity_id)) {
+        if(!isset($survey->entity_id)) {
             $collection_name = 'survey_results';
             $surveyResults = DB::collection('survey_results')
                                 ->where('form_id','=',$survey_id)
