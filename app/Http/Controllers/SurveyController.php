@@ -19,6 +19,7 @@ use Illuminate\Support\Arr;
 use Validator;
 use Illuminate\Support\Facades\Input;
 use \DateTime;
+use App\RoleConfig;
 
 class SurveyController extends Controller
 {
@@ -46,10 +47,8 @@ class SurveyController extends Controller
         $primaryKeys = $survey->form_keys;
 
         $fields = array();
-        // $responseId = $this->request->input('responseId');
         
         $fields['userName']=$user->id;
-
 
         $primaryValues = array();
 
@@ -68,36 +67,11 @@ class SurveyController extends Controller
         // Gives current date and time in the format :  2019-01-24 10:30:46
         $date = Carbon::now();
         
-        // foreach($date as $key=>$value)
-        // {
-        //     if($key == 'date')
-        //         $dateTime = $value;
-        // }
-                
         $fields['updatedDateTime'] = $date->getTimestamp();
 
         // Selecting the collection to use depending on whether the survey has an entity_id or not
         $collection_name = isset($survey->entity_id)?'entity_'.$survey->entity_id:'survey_results';
 
-
-        // return $survey_id;  => 5c382eaa48b6710aa00065d3
-        // $formExists = DB::collection($collection_name)->where(function($q) {
-        //         $q->where('form_id','=','5c382eaa48b6710aa00065d3')
-        //           ->orWhere('survey_id','=','5c382eaa48b6710aa00065d3');
-        //     })
-        //     ->where('userName','=',$user->id)
-        //     ->where(function($q) use ($primaryValues)
-        //     {
-        //         foreach($primaryValues as $key => $value)
-        //         {
-        //             $q->where($key, '=', $value);
-        //         }
-        //     })
-        //     ->where('_id','!=',$responseId)
-        //     ->get()->first();
-        // $uri = explode("/",$_SERVER['REQUEST_URI']);
-        // $survey_id = $uri[4];
-        // return $survey_id;
         $formExists = DB::collection($collection_name)->where(function($q) use ($survey_id){
             $q->where('form_id','=',$survey_id)
               ->orWhere('survey_id','=',$survey_id);
@@ -113,7 +87,6 @@ class SurveyController extends Controller
         ->where('_id','!=',$responseId)
         ->get()->first();
 
-// return $formExists;
         if (!empty($formExists)) {
             return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Update Failure!!! Entry already exists with the same values.'],400);
         }
@@ -136,19 +109,20 @@ class SurveyController extends Controller
         }
 
         // Function defined below, it queries the collection $collection_name using the parameters
-        if($survey->entity_id == null)
-        {
+        if(isset($survey->entity_id)) {
+            
             $fields['form_id']=$survey_id;
             // If the set of values are present in the collection then an update occurs and 'submit_count' gets incremented
-            if(isset($user_submitted->first()['submit_count'])){
+            
+            if(isset($user_submitted->first()['submit_count'])) {
+
                 $fields['submit_count']= $user_submitted->first()['submit_count']+1;   
             } 
+            
             $user_submitted->update($fields);
-
             $data['form_title'] = $this->generateFormTitle($survey_id,$responseId,'survey_results');
-        }
-        else
-        {
+        } else {
+
             $fields['survey_id']=$survey_id;
 
             $user_submitted->update($fields);
@@ -237,6 +211,13 @@ class SurveyController extends Controller
         }
 
         $user = $this->request->user();
+        $userLocation = $this->request->cuser()->location;  
+        
+        $userRole = $this->request->user()->role_id;  
+        $userRoleLocation = ['role_id' => $userRole];
+        $userRoleLocation = array_merge($userRoleLocation,$userLocation);
+
+        $roleConfig = RoleConfig::where('role_id',$userRole)->first();
 
         $survey = Survey::find($survey_id);
         $primaryKeys = isset($survey->form_keys)?$survey->form_keys:[];
@@ -245,6 +226,8 @@ class SurveyController extends Controller
         
         $fields['userName'] = $user->id;
         $fields['isDeleted'] = false;
+        $fields['jurisdiction_type_id'] = $roleConfig->jurisdiction_type_id;
+        $fields['user_role_location'] = $userRoleLocation;
 
         $primaryValues = array();
 
@@ -263,22 +246,15 @@ class SurveyController extends Controller
         // Gives current date and time in the format :  2019-01-24 10:30:46
         $date = Carbon::now();
         
-        // foreach($date as $key=>$value)
-        // {
-        //     if($key == 'date')
-        //         $dateTime = $value;
-        // }
         $fields['submit_count'] = 1;
         $fields['updatedDateTime'] = $date->getTimestamp();
         $fields['createdDateTime'] = $date->getTimestamp();
 
 
-        if($survey->entity_id == null)
-        {
+        if($survey->entity_id == null) {
             $collection_name = 'survey_results';
             $fields['form_id'] = $survey_id;
 
-            // if(!empty($primaryValues)){
                 // 'getUserResponse' function defined below, it queries the collection $collection_name using the parameters
                 // $user->id,$survey_id,$primaryValues and returns the results
                 $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
@@ -291,24 +267,12 @@ class SurveyController extends Controller
                     $form = DB::collection('survey_results')->insertGetId($fields);
 					$data['_id'] = $form;
                 }
-            // } else {
-            //     $form = DB::collection('survey_results')->insertGetId($fields);
-			//     $data['_id'] = $form;
-            // }
         } else {
             $collection_name = 'entity_'.$survey->entity_id;
             $fields['survey_id'] = $survey_id;
 
             $entity = Entity::find($survey->entity_id);
-            if ($entity !== null) {
-                if (in_array(strtolower($entity->Name), ['structure', 'structure master', 'structuremaster'])) {
-                    $collection_name = 'structure_masters';
-                } elseif (in_array(strtolower($entity->Name), ['machine', 'machine master', 'machinemaster'])) {
-                    $collection_name = 'machine_masters';
-                }
-            }
 
-            // if(!empty($primaryValues)) {
                 unset($fields['submit_count']);
                 $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
                 
@@ -318,11 +282,6 @@ class SurveyController extends Controller
                     $form = DB::collection('entity_'.$survey->entity_id)->insertGetId($fields);
 					$data['_id'] = $form;
                 }
-
-            // } else {         
-            //     $form = DB::collection('entity_'.$survey->entity_id)->insertGetId($fields);
-			//     $data['_id'] = $form;
-            // }
 
         }    
 
@@ -368,8 +327,7 @@ class SurveyController extends Controller
         $endDate = $this->request->input('start_date') ?:Carbon::now('Asia/Calcutta')->getTimestamp();
         $startDate = $this->request->input('end_date') ?:Carbon::now('Asia/Calcutta')->subMonth()->getTimestamp();
 
-        if($survey->entity_id == null)
-        {
+        if(isset($survey->entity_id)) {
             $collection_name = 'survey_results';
             $surveyResults = DB::collection('survey_results')
                                 ->where('form_id','=',$survey_id)
@@ -378,9 +336,7 @@ class SurveyController extends Controller
                                 ->whereBetween('createdDateTime',array($startDate,$endDate))
                                 ->orderBy($field,$order)
                                 ->paginate($limit);
-        }
-        else
-        {    
+        } else {    
             $collection_name = 'entity_'.$survey->entity_id;           
             $surveyResults = DB::collection('entity_'.$survey->entity_id)
                                 ->where('survey_id','=',$survey_id)
@@ -396,7 +352,6 @@ class SurveyController extends Controller
         }
         
         $createdDateTime = $surveyResults[0]['createdDateTime'];
-        // $updatedDateTime = $surveyResults[0]['updatedDateTime'];
         $responseCount = $surveyResults->count();
         $result = ['form'=>['form_id'=>$survey_id,'userName'=>$surveyResults[0]['userName'],'createdDateTime'=>$createdDateTime, 'submit_count'=>$responseCount]];
 
@@ -416,7 +371,6 @@ class SurveyController extends Controller
 
         $result['Current page'] = 'Page '.$surveyResults->currentPage().' of '.$surveyResults->lastPage();
         $result['Total number of records'] = $surveyResults->total();
-        // $result['Total number of pages'] = $surveyResults->lastPage();
         return response()->json(['status'=>'success','metadata'=>[$result],'values'=>$values,'message'=>'']);
 
     }
@@ -448,8 +402,6 @@ class SurveyController extends Controller
         else
             $record = DB::collection('entity_'.$form->entity_id)->where('_id',$recordId);
 
-            // return $record->first()['userName'];
-            // return isset($record->userName)?"success":"failure";
             if((!isset($record->userName) && $this->request->user()->id !== $record->first()['userName']) || (isset($record->userName) && $this->request->user()->id !== $record->userName ) ){
                 return response()->json(
                     [
