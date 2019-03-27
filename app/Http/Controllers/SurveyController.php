@@ -211,7 +211,7 @@ class SurveyController extends Controller
         }
 
         $user = $this->request->user();
-        $userLocation = $this->request->cuser()->location;  
+        $userLocation = $this->request->user()->location;  
         
         $userRole = $this->request->user()->role_id;  
         $userRoleLocation = ['role_id' => $userRole];
