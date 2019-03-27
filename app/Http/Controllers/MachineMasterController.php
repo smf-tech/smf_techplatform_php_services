@@ -153,31 +153,49 @@ class MachineMasterController extends Controller
         }
 
         $primaryKeys = \App\Survey::find($formId)->form_keys;
-			$condition = ['userName' => $userId];
-            $associatedFields = array_map('strtolower', $this->getLevels()->toArray());
-            
-            $machineRecord = new MachineMaster;
+        $condition = ['userName' => $userId];
+        $associatedFields = array_map('strtolower', $this->getLevels()->toArray());
+        
+        $machineRecord = new MachineMaster;
 
-			foreach ($data as $field => $value) {
-				
-				if (in_array($field, $associatedFields)) {
-					if (in_array($field, $primaryKeys) && !empty($value)) {
-						$field .= '_id';
-						$condition[$field] = $value;
-					} else {
-						$field .= '_id';
-					}
-				}
-				if (in_array($field, $primaryKeys) && !empty($value)) {
-					$condition[$field] = $value;
-				}
-				$machineRecord->$field = $value;
-			}
+        foreach ($data as $field => $value) {
+            
+            if (in_array($field, $associatedFields)) {
+                if (in_array($field, $primaryKeys) && !empty($value)) {
+                    $field .= '_id';
+                    $condition[$field] = $value;
+                } else {
+                    $field .= '_id';
+                }
+            }
+            if (in_array($field, $primaryKeys) && !empty($value)) {
+                $condition[$field] = $value;
+            }
+            $machineRecord->$field = $value;
+        }
+        
+        $existingMachine = MachineMaster::where($condition)->first();
+        if (isset($existingMachine)) {
+            return response()->json(
+                    [
+                    'status' => 'error',
+                    'data' => '',
+                    'message' => 'Machine already exists. Please change the parameters.'
+                ],
+                400
+            );
+        }    
 
         $machineRecord->userName = $userId;
         $machineRecord->machine_code = $finalCode;
         $machineRecord->form_id = $formId;
         $machineRecord->isDeleted = false;
+        //add user role location object to the machine master record
+        $userRoleLocation = $this->request->user()->location;
+        $userRoleLocation['role_id'] = $role;
+        $machineRecord->user_role_location = $userRoleLocation;
+        $machineRecord->jurisdiction_type_id = $roleConfig->jurisdiction_type_id;
+
         $machineRecord->save();
         
         $record['_id']['$oid'] = $machineRecord->id;
@@ -198,7 +216,8 @@ class MachineMasterController extends Controller
 			if ($database === null) {
 				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
 			}
-			$userName = $this->request->user()->id;
+            $userName = $this->request->user()->id;
+            $userLocation = $this->request->user()->location;
 			$limit = (int)$this->request->input('limit') ?:50;
 			$offset = $this->request->input('offset') ?:0;
 			$order = $this->request->input('order') ?:'desc';
@@ -208,7 +227,12 @@ class MachineMasterController extends Controller
 			$endDate = $this->request->filled('end_date') ? $this->request->end_date : Carbon::now()->getTimestamp();
 
 			$machine_masters= MachineMaster::where('userName', $userName)
-					->where('form_id', $formId)
+                    ->where('form_id', $formId)
+                    ->where(function($q) use ($userLocation) {
+                        foreach ($userLocation as $level => $location) {
+                            $q->whereIn('user_role_location.' . $level, $location);
+                        }
+                    })        
                     ->whereBetween('createdDateTime', [$startDate, $endDate])                    
                     ->where('isDeleted','!=',true)
                     ->with('district','taluka')

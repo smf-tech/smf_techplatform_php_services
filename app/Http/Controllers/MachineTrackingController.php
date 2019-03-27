@@ -79,7 +79,12 @@ class MachineTrackingController extends Controller
                 	'message' => 'Machine already deployed please change parameters'
                 ],200);
             }
-            
+            $role = $this->request->user()->role_id;
+            $roleConfig = \App\RoleConfig::where('role_id', $role)->first();
+            $userRoleLocation = $this->request->user()->location;
+            $userRoleLocation['role_id'] = $role;
+            $machineTracking->user_role_location = $userRoleLocation;
+            $machineTracking->jurisdiction_type_id = $roleConfig->jurisdiction_type_id;
 
             $machineTracking->save();
 
@@ -182,7 +187,8 @@ class MachineTrackingController extends Controller
 			if ($database === null) {
 				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
 			}
-			$userName = $this->request->user()->id;
+            $userName = $this->request->user()->id;
+            $userLocation = $this->request->user()->location;
 			$limit = (int)$this->request->input('limit') ?:50;
 			$offset = $this->request->input('offset') ?:0;
 			$order = $this->request->input('order') ?:'desc';
@@ -192,7 +198,12 @@ class MachineTrackingController extends Controller
 			$endDate = $this->request->filled('end_date') ? $this->request->end_date : Carbon::now()->getTimestamp();
 
 			$deployed_machines = MachineTracking::where('userName', $userName)
-					->where('form_id', $formId)
+                    ->where('form_id', $formId)
+                    ->where(function($q) use ($userLocation) {
+                        foreach ($userLocation as $level => $location) {
+                            $q->whereIn('user_role_location.' . $level, $location);
+                        }
+                    })                       
                     ->whereBetween('createdDateTime', [$startDate, $endDate])
                     ->where('isDeleted','!=',true)
                     ->where('deployed',true)
@@ -387,12 +398,27 @@ class MachineTrackingController extends Controller
                 'isDeleted' => false
             ]);
 
-                $shiftingRecord->machineTrackings()->attach([$machineAtSource->id, $machineAtDestination->id]);
-                $shiftingRecord->save();
-                $machineAtSource->shifting_record_ids = [$shiftingRecord->id];
-                $machineAtSource->save();
-                $machineAtDestination->shifting_record_ids = [$shiftingRecord->id];
-                $machineAtDestination->save();
+            $role = $this->request->user()->role_id;
+            $roleConfig = \App\RoleConfig::where('role_id', $role)->first();
+            $userRoleLocation = $this->request->user()->location;
+            $userRoleLocation['role_id'] = $role;
+
+            
+            $shiftingRecord->machineTrackings()->attach([$machineAtSource->id, $machineAtDestination->id]);
+            $shiftingRecord->user_role_location = $userRoleLocation;
+            $shiftingRecord->jurisdiction_type_id = $roleConfig->jurisdiction_type_id;
+            $shiftingRecord->save();
+
+
+            $machineAtSource->shifting_record_ids = [$shiftingRecord->id];
+            $machineAtSource->user_role_location = $userRoleLocation;
+            $machineAtSource->jurisdiction_type_id = $roleConfig->jurisdiction_type_id;
+            $machineAtSource->save();
+
+            $machineAtDestination->user_role_location = $userRoleLocation;
+            $machineAtDestination->jurisdiction_type_id = $roleConfig->jurisdiction_type_id;            
+            $machineAtDestination->shifting_record_ids = [$shiftingRecord->id];
+            $machineAtDestination->save();
 
             // $machineAtSource->shiftingRecords()->sync([$shiftingRecord->id]);
             // $machineAtSource->save();
@@ -511,7 +537,8 @@ class MachineTrackingController extends Controller
 			if ($database === null) {
 				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
 			}
-			$userName = $this->request->user()->id;
+            $userName = $this->request->user()->id;
+            $userLocation = $this->request->user()->location;
 			$limit = (int)$this->request->input('limit') ?:50;
 			$offset = $this->request->input('offset') ?:0;
 			$order = $this->request->input('order') ?:'desc';
@@ -521,7 +548,12 @@ class MachineTrackingController extends Controller
 			$endDate = $this->request->filled('end_date') ? $this->request->end_date : Carbon::now()->getTimestamp();
 
             $shifted_machines = ShiftingRecord::where('userName', $userName)
-					->where('form_id', $formId)
+                    ->where('form_id', $formId)
+                    ->where(function($q) use ($userLocation) {
+                        foreach ($userLocation as $level => $location) {
+                            $q->whereIn('user_role_location.' . $level, $location);
+                        }
+                    })   
                     ->where('isDeleted','!=',true)
                     ->with('movedFromVillage','movedToVillage')
                     ->with('machineTrackings')
@@ -660,6 +692,12 @@ class MachineTrackingController extends Controller
         $machine->form_id = $formId;
         $machine->userName = $userId;
         $machine->isDeleted = false;
+        $role = $this->request->user()->role_id;
+        $userRoleLocation = $this->request->user()->location;
+        $userRoleLocation['role_id'] = $role;
+        $roleConfig = \App\RoleConfig::where('role_id', $role)->first();
+        $machine->user_role_location = $userRoleLocation;
+        $machine->jurisdiction_type_id = $roleConfig->jurisdiction_type_id;        
         $machine->save();
 
        
@@ -737,7 +775,8 @@ class MachineTrackingController extends Controller
 			if ($database === null) {
 				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
 			}
-			$userName = $this->request->user()->id;
+            $userName = $this->request->user()->id;
+            $userLocation = $this->request->user()->location;
 			$limit = (int)$this->request->input('limit') ?:50;
 			$offset = $this->request->input('offset') ?:0;
 			$order = $this->request->input('order') ?:'desc';
@@ -747,7 +786,12 @@ class MachineTrackingController extends Controller
 			$endDate = $this->request->filled('end_date') ? $this->request->end_date : Carbon::now()->getTimestamp();
 
 			$machine_mou = MachineMou::where('userName', $userName)
-					->where('form_id', $formId)
+                    ->where('form_id', $formId)
+                    ->where(function($q) use ($userLocation) {
+                        foreach ($userLocation as $level => $location) {
+                            $q->whereIn('user_role_location.' . $level, $location);
+                        }
+                    })                     
                     ->whereBetween('createdDateTime', [$startDate, $endDate])
                     ->where('isDeleted','!=',true)
                     ->with('state','district','taluka')
