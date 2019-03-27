@@ -150,7 +150,11 @@ class StructureMasterController extends Controller
             $structure_master->structure_code = $structure_code;
             $structure_master->isDeleted = false;
             $structure_master->form_id = $form_id;
-           
+			$userRoleLocation = $this->request->user()->location;
+			$userRoleLocation['role_id'] = $role;
+			$structure_master->user_role_location = $userRoleLocation;
+			$structure_master->jurisdiction_type_id = $roleConfig->jurisdiction_type_id;
+
             $structure_master->save();
 
             $result = [
@@ -194,9 +198,15 @@ class StructureMasterController extends Controller
 			$page = $this->request->input('page') ?:1;
 			$startDate = $this->request->filled('start_date') ? $this->request->start_date : Carbon::now()->subMonth()->getTimestamp();
 			$endDate = $this->request->filled('end_date') ? $this->request->end_date : Carbon::now()->getTimestamp();
+			$userLocation = $this->request->user()->location;
 
 			$structures = StructureMaster::where('userName', $userName)
 					->where('form_id', $formId)
+					->where(function($q) use ($userLocation) {
+						foreach ($userLocation as $level => $location) {
+							$q->whereIn('user_role_location.' . $level, $location);
+						}
+					})
                     ->whereBetween('createdDateTime', [$startDate, $endDate])
                     ->where('isDeleted','!=',true)
 					->with('district', 'taluka', 'village')

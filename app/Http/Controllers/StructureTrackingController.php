@@ -36,6 +36,8 @@ class StructureTrackingController extends Controller
             }
 
 			$userId = $this->request->user()->id;
+			$role = $this->request->user()->role_id;
+			$roleConfig = \App\RoleConfig::where('role_id', $role)->first();
 			$data = $this->request->all();
 
 			$structureTracking = new StructureTracking;
@@ -43,6 +45,10 @@ class StructureTrackingController extends Controller
             $structureTracking->userName = $userId;
 			$structureTracking->form_id = $formId;
 			$structureTracking->isDeleted = false;
+			$userRoleLocation = $this->request->user()->location;
+			$userRoleLocation['role_id'] = $role;
+			$structureTracking->user_role_location = $userRoleLocation;
+			$structureTracking->jurisdiction_type_id = $roleConfig->jurisdiction_type_id;
 
             
 			$primaryKeys = \App\Survey::find($formId)->form_keys;
@@ -265,9 +271,15 @@ class StructureTrackingController extends Controller
 			$page = $this->request->input('page') ?:1;
 			$startDate = $this->request->filled('start_date') ? $this->request->start_date : Carbon::now()->subMonth()->getTimestamp();
 			$endDate = $this->request->filled('end_date') ? $this->request->end_date : Carbon::now()->getTimestamp();
+			$userLocation = $this->request->user()->location;
 
 			$structures = StructureTracking::where('userName', $userName)
 					->where('form_id', $formId)
+					->where(function($q) use ($userLocation) {
+						foreach ($userLocation as $level => $location) {
+							$q->whereIn('user_role_location.' . $level, $location);
+						}
+					})
 					->where('status', $status)
 					->where('isDeleted','!=',true)
 					->whereBetween('createdDateTime', [$startDate, $endDate])
@@ -335,6 +347,8 @@ class StructureTrackingController extends Controller
 			}
 			
             $userId = $this->request->user()->id;
+			$role = $this->request->user()->role_id;
+			$roleConfig = \App\RoleConfig::where('role_id', $role)->first();
 			$data = $this->request->all();
 			
 			$structureTracking = new StructureTracking;
@@ -342,6 +356,10 @@ class StructureTrackingController extends Controller
             $structureTracking->userName = $data['userName'] = $userId;
 			$structureTracking->form_id = $data['form_id'] = $formId;
 			$structureTracking->isDeleted = $data['isDeleted'] = false;
+			$userRoleLocation = $this->request->user()->location;
+			$userRoleLocation['role_id'] = $role;
+			$structureTracking->user_role_location = $userRoleLocation;
+			$structureTracking->jurisdiction_type_id = $roleConfig->jurisdiction_type_id;
             
 			$primaryKeys = \App\Survey::find($formId)->form_keys;
 			$condition = ['userName' => $userId];
