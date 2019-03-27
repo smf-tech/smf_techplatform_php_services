@@ -805,7 +805,7 @@ class MachineTrackingController extends Controller
 		}       
     }
 
-    public function deleteMachineTracking($recordId)
+    public function deleteMachineTracking($formId, $recordId)
     {
         try {
 
@@ -861,7 +861,7 @@ class MachineTrackingController extends Controller
                 );
             }
     }
-    public function deleteMachineMoU($recordId)
+    public function deleteMachineMoU($formId, $recordId)
     {
         try {
 
@@ -918,7 +918,7 @@ class MachineTrackingController extends Controller
             }
     }
 
-    public function deleteMachineShift($recordId)
+    public function deleteMachineShift($formId, $recordId)
     {
         try {
 

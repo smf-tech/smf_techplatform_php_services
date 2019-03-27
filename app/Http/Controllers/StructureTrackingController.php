@@ -491,7 +491,7 @@ class StructureTrackingController extends Controller
         }
 	}
 	
-	public function deleteStructureTracking($recordId)
+	public function deleteStructureTracking($formId, $recordId)
 	{
 		try {
 

@@ -254,7 +254,7 @@ class StructureMasterController extends Controller
 		}
     }
     
-    public function deleteStructure($recordId)
+    public function deleteStructure($formId, $recordId)
 	{
         try {
 

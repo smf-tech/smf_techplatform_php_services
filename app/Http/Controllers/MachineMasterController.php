@@ -266,7 +266,7 @@ class MachineMasterController extends Controller
 		}      
     }
 
-    public function deleteMachine($recordId)
+    public function deleteMachine($formId, $recordId)
 	{
         try {
 
