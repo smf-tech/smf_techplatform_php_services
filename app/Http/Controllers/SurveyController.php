@@ -297,6 +297,7 @@ class SurveyController extends Controller
         $formKey = $collection_name == 'survey_results' ? 'form_id' : 'survey_id';
         $response = DB::collection($collection_name)->where($formKey,'=',$survey_id)
                                                   ->where('userName','=',$user_id)
+                                                  ->where('isDeleted','=',false)
                                                   ->where(function($q) use ($primaryValues)
                                                   {
                                                       foreach($primaryValues as $key => $value)
@@ -435,4 +436,481 @@ class SurveyController extends Controller
                 );
             }
     }
+
+    public function createAggregateResponse($survey_id)
+    {
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
+
+        $user = $this->request->user();
+
+        $survey = Survey::find($survey_id);
+        $primaryKeys = isset($survey->form_keys)?$survey->form_keys:[];
+
+        $fields = array();
+        
+        $fields['userName'] = $user->id;
+        $fields['isDeleted'] = false;
+
+        $primaryValues = array();
+
+        // Looping through the response object from the body
+        foreach($this->request->all() as $key=>$value)
+        {
+            // Checking if the key is marked as a primary key and storing the value 
+            // in primaryValues if it is
+            if(in_array($key,$primaryKeys))
+            {
+                $primaryValues[$key] = $value;
+            }
+            $fields[$key] = $value;
+        } 
+
+        // Gives current date and time in the format :  2019-01-24 10:30:46
+        $date = Carbon::now();
+        
+        $fields['updatedDateTime'] = $date->getTimestamp();
+        $fields['createdDateTime'] = $date->getTimestamp();
+
+
+        if($survey->entity_id == null)
+        {
+            $collection_name = 'survey_results';
+            $fields['form_id'] = $survey_id;
+
+            list($matrix_field_label, $matrix_fields) = $this->getMatrixdynamicFields($survey);      
+            
+            if(isset($matrix_field_label)){
+                $matrix_request_data = $this->request->input($matrix_field_label);
+                foreach($matrix_request_data as $matrix_data){
+                    foreach($matrix_data as $key=>$value){
+                        if(in_array($key,$primaryKeys)){
+                            $primaryValues[$key] = $value; 
+                        }
+                    }
+                    $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
+                    if(!empty($user_submitted)){
+                        return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Some Entries already exists with the same values.'],400);
+                    }
+                }
+ 
+                unset($fields[$matrix_field_label]);
+                $group_arr = [];
+                foreach($matrix_request_data as $matrix_data){
+                    foreach($matrix_data as $key=>$value){
+                        $fields[$key] = $value;
+                    }
+                    $form = DB::collection('survey_results')->insertGetId($fields);
+                    $form_insert_id = $form->__toString();
+                    array_push($group_arr,$form_insert_id);
+                }
+                $assoc_data = array('user_id'=>$user->id,'children'=>$group_arr,'form_id'=>$survey_id,'createdDateTime'=>$date->getTimestamp(),'updatedDateTime'=>$date->getTimestamp());
+                $aggregate_assoc = DB::collection('aggregate_associations')->insertGetId($assoc_data);
+                $data['_id'] = $aggregate_assoc;
+                }
+
+        } else {
+            $collection_name = 'entity_'.$survey->entity_id;
+            $fields['survey_id'] = $survey_id;
+
+            list($matrix_field_label, $matrix_fields) = $this->getMatrixdynamicFields($survey);      
+            
+            if(isset($matrix_field_label)){
+                //loop and handle validations before saving records
+                $matrix_request_data = $this->request->input($matrix_field_label);
+                foreach($matrix_request_data as $matrix_data){
+                    foreach($matrix_data as $key=>$value){
+                        if(in_array($key,$primaryKeys)){
+                            $primaryValues[$key] = $value; 
+                        }
+                    }
+                    $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
+                    if(!empty($user_submitted)){
+                        return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Entry already exists with the same values.'],400);
+                    }
+                }
+
+                //loop and save the records after above validations are passed
+                unset($fields[$matrix_field_label]);
+                $group_arr = [];
+                foreach($matrix_request_data as $matrix_data){
+                    foreach($matrix_data as $key=>$value){
+                        $fields[$key] = $value;
+                    }
+
+                    $form = DB::collection('entity_'.$survey->entity_id)->insertGetId($fields);
+                    $form_insert_id = $form->__toString();
+                    array_push($group_arr,$form_insert_id);
+                }
+                $assoc_data = array('user_id'=>$user->id,'children'=>$group_arr,'form_id'=>$survey_id,'createdDateTime'=>$date->getTimestamp(),'updatedDateTime'=>$date->getTimestamp(),'isDeleted'=>false);
+                $aggregate_assoc = DB::collection('aggregate_associations')->insertGetId($assoc_data);
+                $data['_id'] = $aggregate_assoc;
+            }                   
+
+
+        }    
+
+        $data['form_title'] = $this->generateFormTitle($survey_id,$form,$collection_name);
+        $data['createdDateTime'] = $fields['createdDateTime'];
+        $data['updatedDateTime'] = $fields['updatedDateTime'];
+
+        return response()->json(['status'=>'success', 'data' => $data, 'message'=>'']);
+
+    }  
+    
+    public function getMatrixdynamicFields($survey){
+        $data = json_decode($survey->json,true); 
+
+        $pages = $data['pages'];
+
+        $matrix_name = null;
+        foreach($pages as $page)
+        {
+            // Accessing the value of key elements to obtain the names of the questions
+            foreach($page['elements'] as $element)
+            {
+                if($element['type'] == 'matrixdynamic'){
+                    $matrix_name = $element['name'];
+                    $columns = array_key_exists('columns',$element)? $element['columns']: [];
+                    foreach($columns as $column){
+                        $matrix_fields[] = $column['name']; 
+                    }
+                    break;
+                }
+            }
+        }
+        return [$matrix_name,$matrix_fields];
+    }
+
+    public function showAggregateResponse($survey_id)
+    {
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
+
+        $user = $this->request->user();
+        
+        $survey = Survey::find($survey_id);
+
+        $limit = (int)$this->request->input('limit') ?:50;
+        $offset = $this->request->input('offset') ?:0;
+        $order = $this->request->input('order') ?:'desc';
+        $field = $this->request->input('field') ?:'createdDateTime';
+        $page = $this->request->input('page') ?:1;
+        $endDate = $this->request->input('start_date') ?:Carbon::now('Asia/Calcutta')->getTimestamp();
+        $startDate = $this->request->input('end_date') ?:Carbon::now('Asia/Calcutta')->subMonth()->getTimestamp();
+
+        $aggregateResults = DB::collection('aggregate_associations')
+        ->where('form_id','=',$survey_id)
+        ->where('user_id','=',$user->id)
+        ->where('isDeleted','=',false)
+        ->whereBetween('createdDateTime',array($startDate,$endDate))
+        ->orderBy($field,$order)
+        ->paginate($limit);    
+        
+       // var_dump($aggregateResults);exit;
+        
+        if($survey->entity_id == null)
+            $collection_name = 'survey_results';
+        else
+            $collection_name = 'entity_'.$survey->entity_id;           
+ 
+
+        if ($aggregateResults->count() === 0) {
+            return response()->json(['status'=>'success','metadata'=>[],'values'=>[],'message'=>'']);
+        }
+        
+
+        $responseCount = $aggregateResults->count();
+        $result = ['form'=>['form_id'=>$survey_id,'userName'=>$aggregateResults[0]['user_id'],'submit_count'=>$responseCount]];
+
+        $values = [];
+        list($matrix_field_label, $matrix_fields) = $this->getMatrixdynamicFields($survey);  
+        foreach($aggregateResults as &$aggregateResult)
+        {
+            $associated_results = $this->getAssociatedDocuments($aggregateResult['children'],$collection_name,$user->id); 
+            $record_id = $aggregateResult['_id'];
+            $first_iteration_flag = false;
+            $matrix_fields_data =array();
+            $matrix_obj = array();
+            foreach ($associated_results as &$associated_result){
+                if($first_iteration_flag){
+                    foreach($matrix_fields as $matrix_field){
+                        $matrix_obj[$matrix_field] = $associated_result[$matrix_field];
+                    }
+                    array_push($matrix_fields_data ,$matrix_obj);
+
+                }else{
+                    $aggregateResult = $associated_result;
+                    $aggregateResult['_id']=$record_id;
+                    foreach($matrix_fields as $matrix_field){
+                        $matrix_obj[$matrix_field] = $associated_result[$matrix_field];
+                        unset($aggregateResult[$matrix_field]);
+                    }
+                    array_push($matrix_fields_data ,$matrix_obj);
+                    $first_iteration_flag = true;
+                    $form_title =$this->generateFormTitle($survey,$associated_result['_id'],$collection_name);
+                    $aggregateResult['form_title'] = $form_title;
+                }
+
+
+            }
+            $aggregateResult[$matrix_field_label] = $matrix_fields_data;
+            // Excludes values 'form_id','user_id','created_at','updated_at','group_id' from the $surveyResult array
+            //  and stores it in values
+            $values[] = Arr::except($aggregateResult,['survey_id','userName']);
+        }
+
+        $result['Current page'] = 'Page '.$aggregateResults->currentPage().' of '.$aggregateResults->lastPage();
+        $result['Total number of records'] = $aggregateResults->total();
+        // $result['Total number of pages'] = $surveyResults->lastPage();
+        return response()->json(['status'=>'success','metadata'=>[$result],'values'=>$values,'message'=>'']);
+
+    }
+
+    public function getAssociatedDocuments($children,$collection_name,$user_id){
+        $results = DB::collection($collection_name)
+                                ->where('userName','=',$user_id)
+                                ->where('isDeleted','!=',true)
+                                ->whereIn('_id',$children)
+                                ->get();
+        return $results;
+    }
+
+
+    public function updateAggregateResponse($survey_id,$groupId)
+    {
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
+
+        $user = $this->request->user();
+
+        $survey = Survey::find($survey_id);
+
+        // Selecting the collection to use depending on whether the survey has an entity_id or not
+        $collection_name = isset($survey->entity_id)?'entity_'.$survey->entity_id:'survey_results';
+
+        $primaryKeys = $survey->form_keys;
+
+        $fields = array();
+        // $responseId = $this->request->input('responseId');
+        
+        $fields['userName']=$user->id;
+
+        $primaryValues = array();
+
+        $group_record = DB::collection('aggregate_associations')
+        ->where('form_id','=',$survey_id)
+        ->where('user_id','=',$user->id)
+        ->where('_id','=',$groupId);
+        
+        $children = $group_record->first()['children'];
+
+        // Looping through the response object from the body
+        foreach($this->request->all() as $key=>$value)
+        {
+            // Checking if the key is marked as a primary key and storing the value 
+            // in primaryValues if it is
+            if(in_array($key,$primaryKeys))
+            {
+                $primaryValues[$key] = $value;
+            }
+            $fields[$key] = $value;
+        }        
+
+        list($matrix_field_label, $matrix_fields) = $this->getMatrixdynamicFields($survey); 
+            
+        if($matrix_field_label != null){
+            $matrix_request_data = $this->request->input($matrix_field_label);
+            unset($fields[$matrix_field_label]);
+            foreach ($matrix_request_data as $matrix_request_data_entry){
+                $update_id = null;
+                //validate the matrix dynamic PUT request
+                foreach($matrix_request_data_entry  as $key=>$value){
+                    if(in_array($key,$primaryKeys)){
+                        $primaryValues[$key] = $value; 
+                    }
+
+                    if($key == '_id'){
+                        $update_id = $matrix_request_data_entry[$key];
+                    }
+                }
+
+                if($update_id !== null){
+                    $formExists = DB::collection($collection_name)->where(function($q) use ($survey_id){
+                        $q->where('form_id','=',$survey_id)
+                        ->orWhere('survey_id','=',$survey_id);
+                    })
+                                        ->where('userName','=',$user->id)
+                                        ->where(function($q) use ($primaryValues)
+                                        {
+                                            foreach($primaryValues as $key => $value)
+                        {
+                            $q->where($key, '=', $value);
+                        }
+                    })
+                    ->where('_id','!=',$update_id)
+                    ->get()->first();
+            
+                }else{
+                    $formExists = DB::collection($collection_name)->where(function($q) use ($survey_id){
+                        $q->where('form_id','=',$survey_id)
+                        ->orWhere('survey_id','=',$survey_id);
+                    })
+                                        ->where('userName','=',$user->id)
+                                        ->where(function($q) use ($primaryValues)
+                                        {
+                                            foreach($primaryValues as $key => $value)
+                        {
+                            $q->where($key, '=', $value);
+                        }
+                    })
+                    ->get()->first();
+                }
+                if (!empty($formExists)) {
+                    return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Update Failure!!! Entry already exists with the same values.'],400);
+                }
+            }
+
+            // Gives current date and time in the format :  2019-01-24 10:30:46
+            $date = Carbon::now();
+            $fields['updatedDateTime'] = $date->getTimestamp();       
+
+            //loop through the validated data and Update or create Records
+            $group_arr = array();
+            foreach ($matrix_request_data as $matrix_request_data_entry){
+                $update_id = null;
+                foreach($matrix_request_data_entry as $key=>$value){
+                    if($key == '_id'){
+                        $update_id = $matrix_request_data_entry[$key];
+                    }else{
+                    $fields[$key] = $value;
+                    }
+                }
+
+                if($update_id !== null){
+                    $update_rec =  DB::collection($collection_name)
+                    ->where('_id',$update_id);
+                    $update_rec->update($fields);
+                    array_push($group_arr,$update_id);
+                }else{
+                    $fields['createdDateTime'] = $date->getTimestamp(); 
+                    $fields['isDeleted'] = false;
+                    $fields['survey_id'] = $survey_id;
+                    $form = DB::collection($collection_name)->insertGetId($fields);
+                    unset($fields['createdDateTime']);
+                    unset($fields['isDeleted']);
+                    unset($fields['survey_id']);
+                    $form_insert_id = $form->__toString();
+                    array_push($group_arr,$form_insert_id);
+                }
+            }
+            
+            $deleted_entries = array_diff($children,$group_arr);
+            if(!empty($deleted_entries)){
+                DB::collection($collection_name)->whereIn('_id', $deleted_entries)->update(['isDeleted' => true]);
+            }
+            
+            $group_record->update(array('children'=>$group_arr,'updatedDateTime'=>$fields['updatedDateTime']));
+            
+        }
+
+        // Function defined below, it queries the collection $collection_name using the parameters
+        if($survey->entity_id == null)
+        {
+            $data['form_title'] = $this->generateFormTitle($survey_id,$group_arr[0],'survey_results');
+        }
+        else
+        {         
+            $data['form_title'] = $this->generateFormTitle($survey_id,$group_arr[0],'entity_'.$survey->entity_id);
+        }
+
+        $data['_id']['$oid'] = $groupId;
+        $data['createdDateTime'] = $group_record->first()['createdDateTime'];
+        $data['updatedDateTime'] = $group_record->first()['updatedDateTime'];
+        return response()->json(['status'=>'success', 'data' => $data, 'message'=>'']);
+
+    }
+
+    public function deleteAggregateResponse($survey_id,$groupId){
+        try {
+            $database = $this->connectTenantDatabase($this->request);
+            if ($database === null) {
+                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+            }
+
+            $group_record = DB::collection('aggregate_associations')
+                            ->where('_id',$groupId)
+                            ->where('isDeleted','=',false);
+
+            $record_data = $group_record->first();
+            
+            if($record_data != null){
+                if((!isset($record_data['user_id'])) || (isset($record_data['user_id']) && $this->request->user()->id !== $record_data['user_id'] ) ){
+                    return response()->json(
+                        [
+                            'status' => 'error',
+                            'data' => '',
+                            'message' => "Responses cannot be deleted as you have not created the form"
+                        ],
+                        403
+                    );
+                }
+
+            $form = Survey::find($survey_id);
+        
+            if(empty($form)) {
+                return response()->json(
+                    [
+                        'status' => 'error',
+                        'data' => '',
+                        'message' => "Form does not exist"
+                    ],
+                    404
+                );
+            }
+            // Selecting the collection to use depending on whether the survey has an entity_id or not
+            $collection_name = isset($form->entity_id)?'entity_'.$form->entity_id:'survey_results';
+
+            foreach ($record_data['children'] as $child_id){
+                $record = DB::collection($collection_name)->where('_id',$child_id);
+                $record->update(array('isDeleted'=>true));
+            }
+
+            $group_record->update(array('isDeleted'=>true,'children'=>[]));
+            return response()->json(
+                [
+                    'status' => 'success',
+                    'data' => '',
+                    'message' => "Record deleted successfully"
+                ],
+                200
+            );
+            }else{
+                return response()->json(
+                    [
+                        'status' => 'error',
+                        'data' => '',
+                        'message' => "Resource not found"
+                    ],
+                    404
+                );         
+            }
+        } catch(\Exception $exception) {
+            return response()->json(
+                [
+                    'status' => 'error',
+                    'data' => null,
+                    'message' => $exception->getMessage()
+                ],
+                404
+            );
+        }
+    }
+
 }
