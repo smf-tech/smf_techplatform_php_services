@@ -77,7 +77,7 @@ class MachineTrackingController extends Controller
                 	'status' => 'error',
                 	'data' => '',
                 	'message' => 'Machine already deployed please change parameters'
-                ],200);
+                ],400);
             }
             
 
