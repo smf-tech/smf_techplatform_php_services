@@ -555,6 +555,11 @@ class SurveyController extends Controller
                     array_push($group_arr,$form_insert_id);
                 }
                 $assoc_data = array('user_id'=>$user->id,'children'=>$group_arr,'form_id'=>$survey_id,'createdDateTime'=>$date->getTimestamp(),'updatedDateTime'=>$date->getTimestamp(),'isDeleted'=>false);
+                $userRoleLocation = $user->location;
+                $userRoleLocation['role_id'] = $user->role_id;
+                $assoc_data['user_role_location'] = $userRoleLocation;
+                $roleConfig = \App\RoleConfig::where('role_id', $user->role_id)->first();
+                $assoc_data['jurisdiction_type_id'] = $roleConfig->jurisdiction_type_id;
                 $aggregate_assoc = DB::collection('aggregate_associations')->insertGetId($assoc_data);
                 $data['_id'] = $aggregate_assoc;
             }                   
@@ -602,6 +607,7 @@ class SurveyController extends Controller
         }
 
         $user = $this->request->user();
+        $userLocation = $user->location;
         
         $survey = Survey::find($survey_id);
 
@@ -615,6 +621,11 @@ class SurveyController extends Controller
 
         $aggregateResults = DB::collection('aggregate_associations')
         ->where('form_id','=',$survey_id)
+        ->where(function($q) use ($userLocation) {
+            foreach ($userLocation as $level => $location) {
+                $q->whereIn('user_role_location.' . $level, $location);
+            }
+        })            
         ->where('user_id','=',$user->id)
         ->where('isDeleted','=',false)
         ->whereBetween('createdDateTime',array($startDate,$endDate))
