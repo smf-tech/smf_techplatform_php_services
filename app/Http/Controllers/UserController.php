@@ -63,13 +63,13 @@ class UserController extends Controller
                     $update_data['org_id'] = $orgId;
                 }
             }
-
+            $update_project_id = (isset($update_data['project_id']) && is_array($update_data['project_id']))?$update_data['project_id'][0]:$update_data['project_id'];
             if (
                 (isset($update_data['org_id']) && $update_data['org_id'] != $user->org_id)
                 ||
                 (isset($update_data['project_id']) && !is_array($user->project_id))
                 ||
-                ($update_data['project_id'] != $user->project_id[0])
+                (!in_array($update_project_id,$user->project_id))
                 ||
                 (isset($update_data['role_id']) && $update_data['role_id'] != $user->role_id)
 				||
@@ -89,7 +89,7 @@ class UserController extends Controller
                  $user->location = [];  
                  $user->save(); 
             }
-
+//var_dump($update_data);exit;
             $user->update($update_data);
 			$approverList = [];
 			$approverIds = [];
