@@ -109,7 +109,7 @@ class SurveyController extends Controller
         }
 
         // Function defined below, it queries the collection $collection_name using the parameters
-        if(isset($survey->entity_id)) {
+        if(!isset($survey->entity_id)) {
             
             $fields['form_id']=$survey_id;
             // If the set of values are present in the collection then an update occurs and 'submit_count' gets incremented
@@ -317,7 +317,7 @@ class SurveyController extends Controller
         }
 
         $user = $this->request->user();
-        
+        $userLocation = $this->request->user()->location;
         $survey = Survey::find($survey_id);
 
         $limit = (int)$this->request->input('limit') ?:50;
@@ -328,13 +328,18 @@ class SurveyController extends Controller
         $endDate = $this->request->input('start_date') ?:Carbon::now('Asia/Calcutta')->getTimestamp();
         $startDate = $this->request->input('end_date') ?:Carbon::now('Asia/Calcutta')->subMonth()->getTimestamp();
 
-        if(isset($survey->entity_id)) {
+        if(!isset($survey->entity_id)) {
             $collection_name = 'survey_results';
             $surveyResults = DB::collection('survey_results')
                                 ->where('form_id','=',$survey_id)
                                 ->where('userName','=',$user->id)
                                 ->where('isDeleted','!=',true)
                                 ->whereBetween('createdDateTime',array($startDate,$endDate))
+                                ->where(function ($q) use ($userLocation) {
+                                    foreach ($userLocation as $level => $value) {
+                                        $q->whereIn('user_role_location.'.$level,$value);
+                                    }
+                                })
                                 ->orderBy($field,$order)
                                 ->paginate($limit);
         } else {    
@@ -344,6 +349,11 @@ class SurveyController extends Controller
                                 ->where('userName','=',$user->id)
                                 ->where('isDeleted','!=',true)
                                 ->whereBetween('createdDateTime',array($startDate,$endDate))
+                                ->where(function ($q) use ($userLocation) {
+                                    foreach ($userLocation as $level => $value) {
+                                        $q->whereIn('user_role_location.'.$level,$value);
+                                    }
+                                })
                                 ->orderBy($field,$order)
                                 ->paginate($limit);
         }           
