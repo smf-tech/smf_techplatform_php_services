@@ -45,7 +45,7 @@ $api->version('v1',function($api){
         $api->get('projects/{org_id}','OrganisationController@getorgprojects');
         $api->get('states','LocationController@getstates');
         $api->get('location/level/{orgId}/{jurisdictionTypeId}/{jurisdictionLevel}','LocationController@getLevelData');
-        
+
     });
     
     $api->group(['prefix'=>'oauth'],function($api){
@@ -65,6 +65,7 @@ $api->version('v1',function($api){
         $api->get('modules/{org_id}/{role_id}','RoleController@getroleconfig');
         $api->put('users/approval/{approvalLogId}', ['uses' => 'UserController@approveuser']);
         $api->post('upload-image', 'UserController@upload');
+		$api->post('upload-images', 'UserController@uploadImages');
 
         $api->get('forms/schema','SurveyController@getSurveys');
         $api->get('forms/schema/{form_id}','SurveyController@getSurveyDetails');

@@ -16,7 +16,13 @@ class UserController extends Controller
 {
     use Helpers;
 
-    /**
+	protected $types = [
+            'profile' => 'BJS/Images/profile',
+            'form' => 'BJS/Images/forms',
+            'story' => 'BJS/Images/stories'
+        ];
+
+	/**
      *
      * @var Request
      */
@@ -199,7 +205,47 @@ class UserController extends Controller
         }
     }
 
-    public function approvalList()
+	public function uploadImages()
+	{
+		if (!$this->request->filled('type')) {
+			return response()->json(
+				[
+					'status' => 'error',
+					'data' => '',
+					'message' => 'Please specify type field and value must be either form, profile or story'
+				],
+				400
+			);
+        }
+
+        if (!isset($this->types[$this->request->type])) {
+			return response()->json(['status' => 'error', 'data' => '', 'message' => 'Invalid type value'], 400);
+        }
+
+		$urls = [];
+
+		if ($this->request->file('images') === null) {
+			return response()->json(['status' => 'error', 'data' => '', 'message' => 'Images not found'], 400);
+		}
+
+		foreach ($this->request->file('images') as $image) {
+			if ($image->isValid()) {
+				$name = $image->getClientOriginalName();
+				$s3Path = $image->storePubliclyAs($this->types[$this->request->type], $name, 's3');
+
+				if ($s3Path == null || !$s3Path) {
+					continue;
+				}
+				$urls[] = 'https://' . env('AWS_BUCKET') . '.' . env('AWS_URL') . '/' . $s3Path;
+			}
+		}
+		if (count($urls) === 0) {
+			return response()->json(['status' => 'error', 'data' => ['urls' => $urls], 'message' => 'Error while uploading images in S3'], 403);
+		}
+		return response()->json(['status' => 'success', 'data' => ['urls' => $urls], 'message' => 'Images uploaded successfully in S3']);
+	}
+
+	public function approvalList()
     {
         $loggedInUser = $this->request->user();
 
