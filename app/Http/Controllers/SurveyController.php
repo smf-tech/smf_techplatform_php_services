@@ -490,9 +490,11 @@ class SurveyController extends Controller
                             $primaryValues[$key] = $value; 
                         }
                     }
-                    $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
-                    if(!empty($user_submitted)){
-                        return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Some Entries already exists with the same values.'],400);
+                    if(!empty($primaryValues)){
+                        $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
+                        if(!empty($user_submitted)){
+                            return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Some Entries already exists with the same values.'],400);
+                        }
                     }
                 }
  
@@ -526,9 +528,11 @@ class SurveyController extends Controller
                             $primaryValues[$key] = $value; 
                         }
                     }
-                    $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
-                    if(!empty($user_submitted)){
-                        return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Entry already exists with the same values.'],400);
+                    if(!empty($primaryValues)){
+                        $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
+                        if(!empty($user_submitted)){
+                            return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Entry already exists with the same values.'],400);
+                        }
                     }
                 }
 
@@ -758,19 +762,22 @@ class SurveyController extends Controller
                     ->get()->first();
             
                 }else{
-                    $formExists = DB::collection($collection_name)->where(function($q) use ($survey_id){
-                        $q->where('form_id','=',$survey_id)
-                        ->orWhere('survey_id','=',$survey_id);
-                    })
-                                        ->where('userName','=',$user->id)
-                                        ->where(function($q) use ($primaryValues)
-                                        {
-                                            foreach($primaryValues as $key => $value)
-                        {
-                            $q->where($key, '=', $value);
-                        }
-                    })
-                    ->get()->first();
+                    $formExists = [];
+                    if(!empty($primaryValues)){
+                        $formExists = DB::collection($collection_name)->where(function($q) use ($survey_id){
+                            $q->where('form_id','=',$survey_id)
+                            ->orWhere('survey_id','=',$survey_id);
+                        })
+                                            ->where('userName','=',$user->id)
+                                            ->where(function($q) use ($primaryValues)
+                                            {
+                                                foreach($primaryValues as $key => $value)
+                            {
+                                $q->where($key, '=', $value);
+                            }
+                        })
+                        ->get()->first();
+                    }
                 }
                 if (!empty($formExists)) {
                     return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Update Failure!!! Entry already exists with the same values.'],400);
