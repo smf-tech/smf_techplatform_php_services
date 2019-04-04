@@ -632,10 +632,10 @@ class SurveyController extends Controller
         $result = ['form'=>['form_id'=>$survey_id,'userName'=>$aggregateResults[0]['user_id'],'submit_count'=>$responseCount]];
 
         $values = [];
-        list($matrix_field_label, $matrix_fields) = $this->getMatrixdynamicFields($survey);  
+        list($matrix_field_label, $matrix_fields) = $this->getMatrixdynamicFields($survey);
         foreach($aggregateResults as &$aggregateResult)
         {
-            $associated_results = $this->getAssociatedDocuments($aggregateResult['children'],$collection_name,$user->id); 
+            $associated_results = $this->getAssociatedDocuments($aggregateResult['children'],$collection_name,$user->id);
             $record_id = $aggregateResult['_id'];
             $first_iteration_flag = false;
             $matrix_fields_data =array();
@@ -643,17 +643,17 @@ class SurveyController extends Controller
             foreach ($associated_results as &$associated_result){
                 if($first_iteration_flag){
                     foreach($matrix_fields as $matrix_field){
-                        $matrix_obj[$matrix_field] = $associated_result[$matrix_field];
-                    }
+							$matrix_obj[$matrix_field] = isset($associated_result[$matrix_field]) ? $associated_result[$matrix_field] : '';
+						}
                     array_push($matrix_fields_data ,$matrix_obj);
 
                 }else{
                     $aggregateResult = $associated_result;
                     $aggregateResult['_id']=$record_id;
                     foreach($matrix_fields as $matrix_field){
-                        $matrix_obj[$matrix_field] = $associated_result[$matrix_field];
-                        unset($aggregateResult[$matrix_field]);
-                    }
+							$matrix_obj[$matrix_field] = isset($associated_result[$matrix_field]) ? $associated_result[$matrix_field] : '';
+							unset($aggregateResult[$matrix_field]);
+						}
                     array_push($matrix_fields_data ,$matrix_obj);
                     $first_iteration_flag = true;
                     $form_title =$this->generateFormTitle($survey,$associated_result['_id'],$collection_name);
