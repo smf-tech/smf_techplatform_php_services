@@ -204,17 +204,28 @@ class StructureTrackingController extends Controller
 				$userLocation['village'] = $locations->pluck('village_id')->all();
 			}
 			if (isset($userLocation['village']) && !empty($userLocation['village'])) {
+
 				if ($this->request->filled('prepared') && $this->request->prepared === 'true') {
-					$structures = StructureTracking::where('status', self::PREPARED)
-							->whereIn('village_id', $userLocation['village'])
-							->where('isDeleted','!=',true)
-							->with('village', 'ffs', 'volunteers')
-							->get();
+					$worktype = $this->request->input('worktype');
+					$query = StructureTracking::query();
+                    $query->when($worktype == 'disilting', function ($q) {
+						return $q->where('work_type','disilting');
+					});
+					$structures = $query->where('status', self::PREPARED)
+					 	->whereIn('village_id', $userLocation['village'])
+					 	->where('isDeleted','!=',true)
+					 	->with('village', 'ffs', 'volunteers')->get();
+					
 				} elseif ($this->request->filled('prepared') && $this->request->prepared === 'false') {
 					$structureCodes = [];
 					$stuctureLevels = ['state', 'district', 'taluka'];
-					$structureTrackingList = StructureTracking::whereIn('village_id', $userLocation['village'])			
-																->where('isDeleted',false)->get();
+					$worktype = $this->request->input('worktype');
+					$query = StructureTracking::query();
+                    $query->when($worktype == 'disilting', function ($q) {
+						return $q->where('work_type','disilting');
+					});
+					$structureTrackingList = $query->whereIn('village_id', $userLocation['village'])			
+						->where('isDeleted',false)->get();
 					$structureTrackingList->each(function($structureTracking, $key) {
 						$structureCodes[] = $structureTracking->structure_code;
 					});
@@ -225,12 +236,18 @@ class StructureTrackingController extends Controller
 					}
 					$structures = $structureRecords->get();
 				} elseif ($this->request->filled('completed') && $this->request->completed === 'true') {
-					$structures = StructureTracking::where('status', self::COMPLETED)
-							->whereIn('village_id', $userLocation['village'])
-							->where('isDeleted',false)
-							->with('village', 'ffs', 'volunteers')
-							->get();
-				}
+					
+					$worktype = $this->request->input('worktype');
+					$query = StructureTracking::query();
+                    $query->when($worktype == 'disilting', function ($q) {
+						return $q->where('work_type','disilting');
+					});
+					$structures = $query->where('status', self::COMPLETED)
+						->whereIn('village_id', $userLocation['village'])
+						->where('isDeleted',false)
+						->with('village', 'ffs', 'volunteers')
+						->get();
+                }
 			}
 			return response()->json([
 				'status' => 'success',
