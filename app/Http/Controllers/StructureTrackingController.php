@@ -336,10 +336,10 @@ class StructureTrackingController extends Controller
 			
             $userId = $this->request->user()->id;
 			$data = $this->request->all();
-			
+
 			$structureTracking = new StructureTracking;
-            $structureTracking->status = $data['status'] == true ? self::COMPLETED : self::PREPARED;
-			unset($data['status']);
+			$data['status'] = $data['status'] == true ? self::COMPLETED : self::PREPARED;
+            $structureTracking->status = $data['status'];
             $structureTracking->userName = $data['userName'] = $userId;
 			$structureTracking->form_id = $data['form_id'] = $formId;
 			$structureTracking->isDeleted = $data['isDeleted'] = false;
@@ -440,9 +440,8 @@ class StructureTrackingController extends Controller
                     'data' => '',
                     'message' => 'Update Failed as record does not exist!'
 				],404);
-			
-			$structureTracking->status = $data['status'] == true ? self::COMPLETED : self::PREPARED;
-			unset($data['status']);
+			$data['status'] = $data['status'] == true ? self::COMPLETED : self::PREPARED;
+			$structureTracking->status = $data['status'];
             $structureTracking->userName = $userId;
 			$associatedFields = ['ffs', 'volunteers'];
 			$associatedFields = array_merge($associatedFields, array_map('strtolower', $this->getLevels()->toArray()));
