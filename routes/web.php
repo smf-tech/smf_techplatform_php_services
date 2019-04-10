@@ -129,12 +129,11 @@ $api->version('v1',function($api){
         $api->get('machine/workhours/aggregate/{form_id}','SurveyController@showAggregateResponse');
         $api->delete('machine/workhours/aggregate/{form_id}/{group_id}','SurveyController@deleteAggregateResponse');        
 
-        $api->post('silttransportation/aggregate/{form_id}','SurveyController@siltTransportationAggregate');
-        $api->put('silttransportation/aggregate/{form_id}/{group_id}','SurveyController@updateAggregateSiltTransportation');
-        $api->get('silttransportation/aggregate/{form_id}','SurveyController@showAggregateResponse');
-        $api->delete('silttransportation/aggregate/{form_id}/{group_id}','SurveyController@deleteAggregateResponse'); 
-    
-        
+        $api->post('silttransportation/{form_id}','SurveyController@siltTransportation');
+        $api->put('silttransportation/{form_id}/{record_id}','SurveyController@updateSiltTransportation');
+        $api->get('silttransportation/{form_id}','SurveyController@showResponse');
+        $api->delete('silttransportation/{form_id}/{record_id}','SurveyController@deleteFormResponse'); 
+       
         $api->get('entity/{entity_id}/column/{column_name}','EntityController@getEntityInfo');
         
         
