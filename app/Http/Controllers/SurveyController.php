@@ -11,6 +11,7 @@ use App\SurveyResult;
 use App\Entity;
 use App\Microservice;
 use App\Category;
+use App\StructureTracking;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Carbon\Carbon;
@@ -508,7 +509,7 @@ class SurveyController extends Controller
                     $form_insert_id = $form->__toString();
                     array_push($group_arr,$form_insert_id);
                 }
-                $assoc_data = array('user_id'=>$user->id,'children'=>$group_arr,'form_id'=>$survey_id,'createdDateTime'=>$date->getTimestamp(),'updatedDateTime'=>$date->getTimestamp());
+                $assoc_data = array('userName'=>$user->id,'children'=>$group_arr,'form_id'=>$survey_id,'createdDateTime'=>$date->getTimestamp(),'updatedDateTime'=>$date->getTimestamp(),'isDeleted'=>false);
                 $aggregate_assoc = DB::collection('aggregate_associations')->insertGetId($assoc_data);
                 $data['_id'] = $aggregate_assoc;
                 }
@@ -548,7 +549,7 @@ class SurveyController extends Controller
                     $form_insert_id = $form->__toString();
                     array_push($group_arr,$form_insert_id);
                 }
-                $assoc_data = array('user_id'=>$user->id,'children'=>$group_arr,'form_id'=>$survey_id,'createdDateTime'=>$date->getTimestamp(),'updatedDateTime'=>$date->getTimestamp(),'isDeleted'=>false);
+                $assoc_data = array('userName'=>$user->id,'children'=>$group_arr,'form_id'=>$survey_id,'createdDateTime'=>$date->getTimestamp(),'updatedDateTime'=>$date->getTimestamp(),'isDeleted'=>false);
                 $aggregate_assoc = DB::collection('aggregate_associations')->insertGetId($assoc_data);
                 $data['_id'] = $aggregate_assoc;
             }                   
@@ -609,7 +610,7 @@ class SurveyController extends Controller
 
         $aggregateResults = DB::collection('aggregate_associations')
         ->where('form_id','=',$survey_id)
-        ->where('user_id','=',$user->id)
+        ->where('userName','=',$user->id)
         ->where('isDeleted','=',false)
         ->whereBetween('createdDateTime',array($startDate,$endDate))
         ->orderBy($field,$order)
@@ -629,7 +630,7 @@ class SurveyController extends Controller
         
 
         $responseCount = $aggregateResults->count();
-        $result = ['form'=>['form_id'=>$survey_id,'userName'=>$aggregateResults[0]['user_id'],'submit_count'=>$responseCount]];
+        $result = ['form'=>['form_id'=>$survey_id,'userName'=>$aggregateResults[0]['userName'],'submit_count'=>$responseCount]];
 
         $values = [];
         list($matrix_field_label, $matrix_fields) = $this->getMatrixdynamicFields($survey);
@@ -710,7 +711,7 @@ class SurveyController extends Controller
 
         $group_record = DB::collection('aggregate_associations')
         ->where('form_id','=',$survey_id)
-        ->where('user_id','=',$user->id)
+        ->where('userName','=',$user->id)
         ->where('_id','=',$groupId);
         
         $children = $group_record->first()['children'];
@@ -858,7 +859,7 @@ class SurveyController extends Controller
             $record_data = $group_record->first();
             
             if($record_data != null){
-                if((!isset($record_data['user_id'])) || (isset($record_data['user_id']) && $this->request->user()->id !== $record_data['user_id'] ) ){
+                if((!isset($record_data['userName'])) || (isset($record_data['userName']) && $this->request->user()->id !== $record_data['userName'] ) ){
                     return response()->json(
                         [
                             'status' => 'error',
@@ -918,6 +919,678 @@ class SurveyController extends Controller
                 404
             );
         }
+    }
+
+    public function machineAggregateWorkhours($survey_id)
+    {
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
+
+        $user = $this->request->user();
+
+        $survey = Survey::find($survey_id);
+        $primaryKeys = isset($survey->form_keys)?$survey->form_keys:[];
+
+        $fields = array();
+        
+        $fields['userName'] = $user->id;
+        $fields['isDeleted'] = false;
+
+        $primaryValues = array();
+
+        // Looping through the response object from the body
+        foreach($this->request->all() as $key=>$value)
+        {
+            // Checking if the key is marked as a primary key and storing the value 
+            // in primaryValues if it is
+            if(in_array($key,$primaryKeys))
+            {
+                $primaryValues[$key] = $value;
+            }
+            $fields[$key] = $value;
+        } 
+
+        // Gives current date and time in the format :  2019-01-24 10:30:46
+        $date = Carbon::now();
+        
+        $fields['updatedDateTime'] = $date->getTimestamp();
+        $fields['createdDateTime'] = $date->getTimestamp();
+
+
+        if($survey->entity_id == null)
+        {
+            $collection_name = 'survey_results';
+            $fields['form_id'] = $survey_id;
+
+            list($matrix_field_label, $matrix_fields) = $this->getMatrixdynamicFields($survey);      
+            
+            if(isset($matrix_field_label)){
+                $machine_code = $this->request->input('machine_code');
+                $matrix_request_data = $this->request->input($matrix_field_label);
+                foreach($matrix_request_data as $matrix_data){
+                    foreach($matrix_data as $key=>$value){
+                        if(in_array($key,$primaryKeys)){
+                            $primaryValues[$key] = $value; 
+                        }
+                        if($key== 'work_date'){
+                            $work_date = $value;
+                        }
+                    }
+                    if(!empty($primaryValues)){
+                        $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
+                        if(!empty($user_submitted)){
+                            return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Some Entries already exists with the same values.'],400);
+                        }
+                    }
+                    //validation check to see if record exists in machine non_utilization
+                    $machine_non_utilized= $this->checkMachineNonUtilized($user->id,$machine_code,$work_date);
+                    if($machine_non_utilized){
+                        return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Machine Non utilized for a selected date.'],400); 
+                    }
+                }
+ 
+                unset($fields[$matrix_field_label]);
+                $group_arr = [];
+                foreach($matrix_request_data as $matrix_data){
+                    foreach($matrix_data as $key=>$value){
+                        $fields[$key] = $value;
+                    }
+                    $form = DB::collection('survey_results')->insertGetId($fields);
+                    $form_insert_id = $form->__toString();
+                    array_push($group_arr,$form_insert_id);
+                }
+                $assoc_data = array('userName'=>$user->id,'children'=>$group_arr,'form_id'=>$survey_id,'createdDateTime'=>$date->getTimestamp(),'updatedDateTime'=>$date->getTimestamp(),'isDeleted'=>false);
+                $aggregate_assoc = DB::collection('aggregate_associations')->insertGetId($assoc_data);
+                $data['_id'] = $aggregate_assoc;
+                }
+
+        } else {
+            $collection_name = 'entity_'.$survey->entity_id;
+            $fields['survey_id'] = $survey_id;
+
+            list($matrix_field_label, $matrix_fields) = $this->getMatrixdynamicFields($survey);      
+            
+            if(isset($matrix_field_label)){
+                //loop and handle validations before saving records
+                $machine_code = $this->request->input('machine_code');
+                $matrix_request_data = $this->request->input($matrix_field_label);
+                foreach($matrix_request_data as $matrix_data){
+                    $machine_non_utilized = false;
+                    foreach($matrix_data as $key=>$value){
+                        if(in_array($key,$primaryKeys)){
+                            $primaryValues[$key] = $value; 
+                        }
+                        if($key== 'work_date'){
+                            $work_date = $value;
+                        }
+                    }
+                    if(!empty($primaryValues)){
+                        $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
+                        if(!empty($user_submitted)){
+                            return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Entry already exists with the same values.'],400);
+                        }
+                    }
+                    //validation check to see if record exists in machine non_utilization
+                    $machine_non_utilized= $this->checkMachineNonUtilized($user->id,$machine_code,$work_date);
+                    if($machine_non_utilized){
+                        return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Machine Non utilized for a selected date.'],400); 
+                    }
+                    
+                }
+
+                //loop and save the records after above validations are passed
+                unset($fields[$matrix_field_label]);
+                $group_arr = [];
+                foreach($matrix_request_data as $matrix_data){
+                    foreach($matrix_data as $key=>$value){
+                        $fields[$key] = $value;
+                    }
+
+                    $form = DB::collection('entity_'.$survey->entity_id)->insertGetId($fields);
+                    $form_insert_id = $form->__toString();
+                    array_push($group_arr,$form_insert_id);
+                }
+                $assoc_data = array('userName'=>$user->id,'children'=>$group_arr,'form_id'=>$survey_id,'createdDateTime'=>$date->getTimestamp(),'updatedDateTime'=>$date->getTimestamp(),'isDeleted'=>false);
+                $aggregate_assoc = DB::collection('aggregate_associations')->insertGetId($assoc_data);
+                $data['_id'] = $aggregate_assoc;
+            }                   
+
+
+        }    
+
+        $data['form_title'] = $this->generateFormTitle($survey_id,$form,$collection_name);
+        $data['createdDateTime'] = $fields['createdDateTime'];
+        $data['updatedDateTime'] = $fields['updatedDateTime'];
+
+        return response()->json(['status'=>'success', 'data' => $data, 'message'=>'']);
+
+    }
+    
+    public function checkMachineNonUtilized($user_id,$machine_code,$work_date){
+        $entity = Entity::where('Name', '=', 'machinenonutilization')->first();
+        $collection_name = 'entity_'.$entity->id;
+        $response = DB::collection($collection_name)->where('userName','=',$user_id)
+                                                  ->where('isDeleted','=',false)
+                                                  ->where('machine_code','=',$machine_code)
+                                                  ->where('reporting_date','=',$work_date)
+                                                  ->get()->first();
+        if(empty($response)){
+            return false;
+        }else{
+            return true;
+        }
+    }
+
+    public function updateAggregateWorkhours($survey_id,$groupId)
+    {
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
+
+        $user = $this->request->user();
+
+        $survey = Survey::find($survey_id);
+
+        // Selecting the collection to use depending on whether the survey has an entity_id or not
+        $collection_name = isset($survey->entity_id)?'entity_'.$survey->entity_id:'survey_results';
+
+        $primaryKeys = $survey->form_keys;
+
+        $fields = array();
+        // $responseId = $this->request->input('responseId');
+        
+        $fields['userName']=$user->id;
+
+        $primaryValues = array();
+
+        $group_record = DB::collection('aggregate_associations')
+        ->where('form_id','=',$survey_id)
+        ->where('userName','=',$user->id)
+        ->where('_id','=',$groupId);
+        
+        $children = $group_record->first()['children'];
+
+        // Looping through the response object from the body
+        foreach($this->request->all() as $key=>$value)
+        {
+            // Checking if the key is marked as a primary key and storing the value 
+            // in primaryValues if it is
+            if(in_array($key,$primaryKeys))
+            {
+                $primaryValues[$key] = $value;
+            }
+            $fields[$key] = $value;
+        }        
+
+        list($matrix_field_label, $matrix_fields) = $this->getMatrixdynamicFields($survey); 
+            
+        if($matrix_field_label != null){
+            $machine_code = $this->request->input('machine_code');
+            $matrix_request_data = $this->request->input($matrix_field_label);
+            unset($fields[$matrix_field_label]);
+            foreach ($matrix_request_data as $matrix_request_data_entry){
+                $update_id = null;
+                //validate the matrix dynamic PUT request
+                foreach($matrix_request_data_entry  as $key=>$value){
+                    if(in_array($key,$primaryKeys)){
+                        $primaryValues[$key] = $value; 
+                    }
+
+                    if($key == '_id'){
+                        $update_id = $value;
+                    }
+                    if($key== 'work_date'){
+                        $work_date = $value;
+                    }
+                }
+
+                if($update_id !== null){
+                    $formExists = DB::collection($collection_name)->where(function($q) use ($survey_id){
+                        $q->where('form_id','=',$survey_id)
+                        ->orWhere('survey_id','=',$survey_id);
+                    })
+                                        ->where('userName','=',$user->id)
+                                        ->where(function($q) use ($primaryValues)
+                                        {
+                                            foreach($primaryValues as $key => $value)
+                        {
+                            $q->where($key, '=', $value);
+                        }
+                    })
+                    ->where('_id','!=',$update_id)
+                    ->get()->first();
+            
+                }else{
+                    $formExists = [];
+                    if(!empty($primaryValues)){
+                        $formExists = DB::collection($collection_name)->where(function($q) use ($survey_id){
+                            $q->where('form_id','=',$survey_id)
+                            ->orWhere('survey_id','=',$survey_id);
+                        })
+                                            ->where('userName','=',$user->id)
+                                            ->where(function($q) use ($primaryValues)
+                                            {
+                                                foreach($primaryValues as $key => $value)
+                            {
+                                $q->where($key, '=', $value);
+                            }
+                        })
+                        ->get()->first();
+                    }
+                }
+                if (!empty($formExists)) {
+                    return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Update Failure!!! Entry already exists with the same values.'],400);
+                }
+
+                //validation check to see if record exists in machine non_utilization
+                $machine_non_utilized= $this->checkMachineNonUtilized($user->id,$machine_code,$work_date);
+                if($machine_non_utilized){
+                    return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Machine Non utilized for a selected date.'],400); 
+                }
+            }
+
+            // Gives current date and time in the format :  2019-01-24 10:30:46
+            $date = Carbon::now();
+            $fields['updatedDateTime'] = $date->getTimestamp();       
+
+            //loop through the validated data and Update or create Records
+            $group_arr = array();
+            foreach ($matrix_request_data as $matrix_request_data_entry){
+                $update_id = null;
+                foreach($matrix_request_data_entry as $key=>$value){
+                    if($key == '_id'){
+                        $update_id = $matrix_request_data_entry[$key];
+                    }else{
+                    $fields[$key] = $value;
+                    }
+                }
+
+                if($update_id !== null){
+                    $update_rec =  DB::collection($collection_name)
+                    ->where('_id',$update_id);
+                    $update_rec->update($fields);
+                    array_push($group_arr,$update_id);
+                }else{
+                    $fields['createdDateTime'] = $date->getTimestamp(); 
+                    $fields['isDeleted'] = false;
+                    $fields['survey_id'] = $survey_id;
+                    $form = DB::collection($collection_name)->insertGetId($fields);
+                    unset($fields['createdDateTime']);
+                    unset($fields['isDeleted']);
+                    unset($fields['survey_id']);
+                    $form_insert_id = $form->__toString();
+                    array_push($group_arr,$form_insert_id);
+                }
+            }
+            
+            $deleted_entries = array_diff($children,$group_arr);
+            if(!empty($deleted_entries)){
+                DB::collection($collection_name)->whereIn('_id', $deleted_entries)->update(['isDeleted' => true]);
+            }
+            
+            $group_record->update(array('children'=>$group_arr,'updatedDateTime'=>$fields['updatedDateTime']));
+            
+        }
+
+        // Function defined below, it queries the collection $collection_name using the parameters
+        if($survey->entity_id == null)
+        {
+            $data['form_title'] = $this->generateFormTitle($survey_id,$group_arr[0],'survey_results');
+        }
+        else
+        {         
+            $data['form_title'] = $this->generateFormTitle($survey_id,$group_arr[0],'entity_'.$survey->entity_id);
+        }
+
+        $data['_id']['$oid'] = $groupId;
+        $data['createdDateTime'] = $group_record->first()['createdDateTime'];
+        $data['updatedDateTime'] = $group_record->first()['updatedDateTime'];
+        return response()->json(['status'=>'success', 'data' => $data, 'message'=>'']);
+
+    }
+
+    public function siltTransportationAggregate($survey_id)
+    {
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
+
+        $user = $this->request->user();
+
+        $survey = Survey::find($survey_id);
+        $primaryKeys = isset($survey->form_keys)?$survey->form_keys:[];
+
+        //validation check to see if structure is completed
+        $structure_code = $this->request->input('structure_code');
+        if($this->isStructureCompleted($user->id,$structure_code)){
+            return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Structure status is completed.'],400);
+        }
+
+        $fields = array();
+        
+        $fields['userName'] = $user->id;
+        $fields['isDeleted'] = false;
+
+        $primaryValues = array();
+
+        // Looping through the response object from the body
+        foreach($this->request->all() as $key=>$value)
+        {
+            // Checking if the key is marked as a primary key and storing the value 
+            // in primaryValues if it is
+            if(in_array($key,$primaryKeys))
+            {
+                $primaryValues[$key] = $value;
+            }
+            $fields[$key] = $value;
+        } 
+
+        // Gives current date and time in the format :  2019-01-24 10:30:46
+        $date = Carbon::now();
+        
+        $fields['updatedDateTime'] = $date->getTimestamp();
+        $fields['createdDateTime'] = $date->getTimestamp();
+
+
+        if($survey->entity_id == null)
+        {
+            $collection_name = 'survey_results';
+            $fields['form_id'] = $survey_id;
+
+            list($matrix_field_label, $matrix_fields) = $this->getMatrixdynamicFields($survey);      
+            
+            if(isset($matrix_field_label)){
+                $machine_code = $this->request->input('machine_code');
+                $matrix_request_data = $this->request->input($matrix_field_label);
+                foreach($matrix_request_data as $matrix_data){
+                    foreach($matrix_data as $key=>$value){
+                        if(in_array($key,$primaryKeys)){
+                            $primaryValues[$key] = $value; 
+                        }
+                        if($key== 'work_date'){
+                            $work_date = $value;
+                        }
+                    }
+                    if(!empty($primaryValues)){
+                        $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
+                        if(!empty($user_submitted)){
+                            return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Some Entries already exists with the same values.'],400);
+                        }
+                    }
+
+                    //validation check to see if record exists in machine non_utilization
+                    $machine_non_utilized= $this->checkMachineNonUtilized($user->id,$machine_code,$work_date);
+                    if($machine_non_utilized){
+                        return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Machine Non utilized for a selected date.'],400); 
+                    }
+                }
+ 
+                unset($fields[$matrix_field_label]);
+                $group_arr = [];
+                foreach($matrix_request_data as $matrix_data){
+                    foreach($matrix_data as $key=>$value){
+                        $fields[$key] = $value;
+                    }
+                    $form = DB::collection('survey_results')->insertGetId($fields);
+                    $form_insert_id = $form->__toString();
+                    array_push($group_arr,$form_insert_id);
+                }
+                $assoc_data = array('userName'=>$user->id,'children'=>$group_arr,'form_id'=>$survey_id,'createdDateTime'=>$date->getTimestamp(),'updatedDateTime'=>$date->getTimestamp(),'isDeleted'=>false);
+                $aggregate_assoc = DB::collection('aggregate_associations')->insertGetId($assoc_data);
+                $data['_id'] = $aggregate_assoc;
+                }
+
+        } else {
+            $collection_name = 'entity_'.$survey->entity_id;
+            $fields['survey_id'] = $survey_id;
+
+            list($matrix_field_label, $matrix_fields) = $this->getMatrixdynamicFields($survey);      
+            
+            if(isset($matrix_field_label)){
+                //loop and handle validations before saving records
+                $machine_code = $this->request->input('machine_code');
+                $matrix_request_data = $this->request->input($matrix_field_label);
+                foreach($matrix_request_data as $matrix_data){
+                    $machine_non_utilized = false;
+                    foreach($matrix_data as $key=>$value){
+                        if(in_array($key,$primaryKeys)){
+                            $primaryValues[$key] = $value; 
+                        }
+                        if($key== 'work_date'){
+                            $work_date = $value;
+                        }
+                    }
+                    if(!empty($primaryValues)){
+                        $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
+                        if(!empty($user_submitted)){
+                            return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Entry already exists with the same values.'],400);
+                        }
+                    }
+                    //validation check to see if record exists in machine non_utilization
+                    $machine_non_utilized= $this->checkMachineNonUtilized($user->id,$machine_code,$work_date);
+                    if($machine_non_utilized){
+                        return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Machine Non utilized for a selected date.'],400); 
+                    }
+                    
+                }
+
+                //loop and save the records after above validations are passed
+                unset($fields[$matrix_field_label]);
+                $group_arr = [];
+                foreach($matrix_request_data as $matrix_data){
+                    foreach($matrix_data as $key=>$value){
+                        $fields[$key] = $value;
+                    }
+
+                    $form = DB::collection('entity_'.$survey->entity_id)->insertGetId($fields);
+                    $form_insert_id = $form->__toString();
+                    array_push($group_arr,$form_insert_id);
+                }
+                $assoc_data = array('userName'=>$user->id,'children'=>$group_arr,'form_id'=>$survey_id,'createdDateTime'=>$date->getTimestamp(),'updatedDateTime'=>$date->getTimestamp(),'isDeleted'=>false);
+                $aggregate_assoc = DB::collection('aggregate_associations')->insertGetId($assoc_data);
+                $data['_id'] = $aggregate_assoc;
+            }                   
+
+
+        }    
+
+        $data['form_title'] = $this->generateFormTitle($survey_id,$form,$collection_name);
+        $data['createdDateTime'] = $fields['createdDateTime'];
+        $data['updatedDateTime'] = $fields['updatedDateTime'];
+
+        return response()->json(['status'=>'success', 'data' => $data, 'message'=>'']);
+
+    }
+
+    public function updateAggregateSiltTransportation($survey_id,$groupId)
+    {
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
+
+        $user = $this->request->user();
+
+        //validation check to see if structure is completed
+        $structure_code = $this->request->input('structure_code');
+        if($this->isStructureCompleted($user->id,$structure_code)){
+            return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Structure status is completed.'],400);
+        }
+
+        $survey = Survey::find($survey_id);
+
+        // Selecting the collection to use depending on whether the survey has an entity_id or not
+        $collection_name = isset($survey->entity_id)?'entity_'.$survey->entity_id:'survey_results';
+
+        $primaryKeys = $survey->form_keys;
+
+        $fields = array();
+        // $responseId = $this->request->input('responseId');
+        
+        $fields['userName']=$user->id;
+
+        $primaryValues = array();
+
+        $group_record = DB::collection('aggregate_associations')
+        ->where('form_id','=',$survey_id)
+        ->where('userName','=',$user->id)
+        ->where('_id','=',$groupId);
+        
+        $children = $group_record->first()['children'];
+
+        // Looping through the response object from the body
+        foreach($this->request->all() as $key=>$value)
+        {
+            // Checking if the key is marked as a primary key and storing the value 
+            // in primaryValues if it is
+            if(in_array($key,$primaryKeys))
+            {
+                $primaryValues[$key] = $value;
+            }
+            $fields[$key] = $value;
+        }        
+
+        list($matrix_field_label, $matrix_fields) = $this->getMatrixdynamicFields($survey); 
+            
+        if($matrix_field_label != null){
+            $machine_code = $this->request->input('machine_code');
+            $matrix_request_data = $this->request->input($matrix_field_label);
+            unset($fields[$matrix_field_label]);
+            foreach ($matrix_request_data as $matrix_request_data_entry){
+                $update_id = null;
+                //validate the matrix dynamic PUT request
+                foreach($matrix_request_data_entry  as $key=>$value){
+                    if(in_array($key,$primaryKeys)){
+                        $primaryValues[$key] = $value; 
+                    }
+
+                    if($key == '_id'){
+                        $update_id = $value;
+                    }
+                    if($key== 'work_date'){
+                        $work_date = $value;
+                    }
+                }
+
+                if($update_id !== null){
+                    $formExists = DB::collection($collection_name)->where(function($q) use ($survey_id){
+                        $q->where('form_id','=',$survey_id)
+                        ->orWhere('survey_id','=',$survey_id);
+                    })
+                                        ->where('userName','=',$user->id)
+                                        ->where(function($q) use ($primaryValues)
+                                        {
+                                            foreach($primaryValues as $key => $value)
+                        {
+                            $q->where($key, '=', $value);
+                        }
+                    })
+                    ->where('_id','!=',$update_id)
+                    ->get()->first();
+            
+                }else{
+                    $formExists = [];
+                    if(!empty($primaryValues)){
+                        $formExists = DB::collection($collection_name)->where(function($q) use ($survey_id){
+                            $q->where('form_id','=',$survey_id)
+                            ->orWhere('survey_id','=',$survey_id);
+                        })
+                                            ->where('userName','=',$user->id)
+                                            ->where(function($q) use ($primaryValues)
+                                            {
+                                                foreach($primaryValues as $key => $value)
+                            {
+                                $q->where($key, '=', $value);
+                            }
+                        })
+                        ->get()->first();
+                    }
+                }
+                if (!empty($formExists)) {
+                    return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Update Failure!!! Entry already exists with the same values.'],400);
+                }
+
+                //validation check to see if record exists in machine non_utilization
+                $machine_non_utilized= $this->checkMachineNonUtilized($user->id,$machine_code,$work_date);
+                if($machine_non_utilized){
+                    return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Machine Non utilized for a selected date.'],400); 
+                }
+            }
+
+            // Gives current date and time in the format :  2019-01-24 10:30:46
+            $date = Carbon::now();
+            $fields['updatedDateTime'] = $date->getTimestamp();       
+
+            //loop through the validated data and Update or create Records
+            $group_arr = array();
+            foreach ($matrix_request_data as $matrix_request_data_entry){
+                $update_id = null;
+                foreach($matrix_request_data_entry as $key=>$value){
+                    if($key == '_id'){
+                        $update_id = $matrix_request_data_entry[$key];
+                    }else{
+                    $fields[$key] = $value;
+                    }
+                }
+
+                if($update_id !== null){
+                    $update_rec =  DB::collection($collection_name)
+                    ->where('_id',$update_id);
+                    $update_rec->update($fields);
+                    array_push($group_arr,$update_id);
+                }else{
+                    $fields['createdDateTime'] = $date->getTimestamp(); 
+                    $fields['isDeleted'] = false;
+                    $fields['survey_id'] = $survey_id;
+                    $form = DB::collection($collection_name)->insertGetId($fields);
+                    unset($fields['createdDateTime']);
+                    unset($fields['isDeleted']);
+                    unset($fields['survey_id']);
+                    $form_insert_id = $form->__toString();
+                    array_push($group_arr,$form_insert_id);
+                }
+            }
+            
+            $deleted_entries = array_diff($children,$group_arr);
+            if(!empty($deleted_entries)){
+                DB::collection($collection_name)->whereIn('_id', $deleted_entries)->update(['isDeleted' => true]);
+            }
+            
+            $group_record->update(array('children'=>$group_arr,'updatedDateTime'=>$fields['updatedDateTime']));
+            
+        }
+
+        // Function defined below, it queries the collection $collection_name using the parameters
+        if($survey->entity_id == null)
+        {
+            $data['form_title'] = $this->generateFormTitle($survey_id,$group_arr[0],'survey_results');
+        }
+        else
+        {         
+            $data['form_title'] = $this->generateFormTitle($survey_id,$group_arr[0],'entity_'.$survey->entity_id);
+        }
+
+        $data['_id']['$oid'] = $groupId;
+        $data['createdDateTime'] = $group_record->first()['createdDateTime'];
+        $data['updatedDateTime'] = $group_record->first()['updatedDateTime'];
+        return response()->json(['status'=>'success', 'data' => $data, 'message'=>'']);
+
+    }
+
+
+    public function isStructureCompleted($user_id,$structure_code){
+        $structure = StructureTracking::where('userName', $user_id)
+                        ->where('structure_code', $structure_code)
+                        ->where('isDeleted','!=',true)->first();
+        if($structure !== null){
+            return $structure->status == 'completed' ? true: false;
+        }else{
+            return false;
+        }  
     }
 
 }

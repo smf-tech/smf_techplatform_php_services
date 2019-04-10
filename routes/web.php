@@ -107,6 +107,21 @@ $api->version('v1',function($api){
         $api->put('forms/aggregate/{form_id}/{group_id}','SurveyController@updateAggregateResponse');
         $api->delete('forms/aggregate/{form_id}/{group_id}','SurveyController@deleteAggregateResponse');
 
+        $api->post('machine/deploy/aggregate/{form_id}','MachineTrackingController@machineAggregateDeploy');
+        $api->put('machine/deploy/aggregate/{form_id}/{group_id}','MachineTrackingController@updateAggregateDeployedMachine');
+        $api->get('machine/deploy/aggregate/{form_id}','MachineTrackingController@getAggregateMachinesDeployed');
+        $api->delete('machine/deploy/aggregate/{form_id}/{group_id}','MachineTrackingController@deleteAggregateMachinesDeployed');
+
+        $api->post('machine/workhours/aggregate/{form_id}','SurveyController@machineAggregateWorkhours');
+        $api->put('machine/workhours/aggregate/{form_id}/{group_id}','SurveyController@updateAggregateWorkhours');
+        $api->get('machine/workhours/aggregate/{form_id}','SurveyController@showAggregateResponse');
+        $api->delete('machine/workhours/aggregate/{form_id}/{group_id}','SurveyController@deleteAggregateResponse');        
+
+        $api->post('silttransportation/aggregate/{form_id}','SurveyController@siltTransportationAggregate');
+        $api->put('silttransportation/aggregate/{form_id}/{group_id}','SurveyController@updateAggregateSiltTransportation');
+        $api->get('silttransportation/aggregate/{form_id}','SurveyController@showAggregateResponse');
+        $api->delete('silttransportation/aggregate/{form_id}/{group_id}','SurveyController@deleteAggregateResponse'); 
+    
         $api->post('entity/{entity_name}/','EntityController@createEntityInfo');
         $api->get('entity/{entity_name}/column/{column_name}','EntityController@getEntityInfo');
         $api->put('entity/{entity_name}/{recordId}','EntityController@updateEntityInfo');
