@@ -193,6 +193,7 @@ class StructureTrackingController extends Controller
             }
 			$userLocation = $this->request->user()->location;
 			$structures = [];
+			$worktype = '';
 			$roleId = $this->request->user()->role_id;
 			$roleConfig = \App\RoleConfig::where('role_id', $roleId)->first();
 			$level = \App\Jurisdiction::find($roleConfig->level);
@@ -207,7 +208,10 @@ class StructureTrackingController extends Controller
 			if (isset($userLocation['village']) && !empty($userLocation['village'])) {
 
 				if ($this->request->filled('prepared') && $this->request->prepared === 'true') {
-					$worktype = $this->request->input('worktype');
+					if ($this->request->filled('worktype') && $this->request->worktype === 'desilting') {
+						$worktype = $this->request->input('worktype');
+					}
+					
 					$query = StructureTracking::query();
 					$query->when($worktype == 'desilting', function ($q) {
 						return $q->where('work_type','desilting');
@@ -220,7 +224,9 @@ class StructureTrackingController extends Controller
 				} elseif ($this->request->filled('prepared') && $this->request->prepared === 'false') {
 					$structureCodes = [];
 					$stuctureLevels = ['state', 'district', 'taluka'];
-					$worktype = $this->request->input('worktype');
+					if ($this->request->filled('worktype') && $this->request->worktype === 'desilting') {
+						$worktype = $this->request->input('worktype');
+					}
 					$query = StructureTracking::query();
 					$query->when($worktype == 'desilting', function ($q) {
 						return $q->where('work_type','desilting');
@@ -238,7 +244,9 @@ class StructureTrackingController extends Controller
 					$structures = $structureRecords->get();
 				} elseif ($this->request->filled('completed') && $this->request->completed === 'true') {
 					
-					$worktype = $this->request->input('worktype');
+					if ($this->request->filled('worktype') && $this->request->worktype === 'desilting') {
+						$worktype = $this->request->input('worktype');
+					}
 					$query = StructureTracking::query();
 					$query->when($worktype == 'desilting', function ($q) {
 						return $q->where('work_type','desilting');
