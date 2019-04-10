@@ -109,8 +109,8 @@ $api->version('v1',function($api){
 
         $api->post('entity/{entity_name}/','EntityController@createEntityInfo');
         $api->get('entity/{entity_name}/column/{column_name}','EntityController@getEntityInfo');
-        $api->put('entity/{entity_name}/recordId/{recordId}','EntityController@updateEntityInfo');
-        $api->delete('entity/{entity_name}/recordId/{recordId}','EntityController@deleteEntityInfo');
+        $api->put('entity/{entity_name}/{recordId}','EntityController@updateEntityInfo');
+        $api->delete('entity/{entity_name}/{recordId}','EntityController@deleteEntityInfo');
         
     });
 });
