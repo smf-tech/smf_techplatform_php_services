@@ -83,7 +83,8 @@ class MachineMasterController extends Controller
 							});
 						})
 						->get(['machine_code']);
-				if ($mou !== null) {
+
+				if ($mou->count()) {
 					return true;
 				}
 				return false;
