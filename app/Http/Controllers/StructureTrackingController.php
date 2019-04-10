@@ -186,22 +186,14 @@ class StructureTrackingController extends Controller
                     400
                 );
 			}
-			if (!$this->request->filled('worktype')) {
-				return response()->json(
-					[
-					'status' => 'error',
-					'data' => '',
-					'message' => 'worktype parameter is missing'
-					],
-					400
-				);
-			}
+			
             $database = $this->connectTenantDatabase($this->request);
             if ($database === null) {
                 return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
             }
 			$userLocation = $this->request->user()->location;
 			$structures = [];
+			$worktype = '';
 			$roleId = $this->request->user()->role_id;
 			$roleConfig = \App\RoleConfig::where('role_id', $roleId)->first();
 			$level = \App\Jurisdiction::find($roleConfig->level);
@@ -216,10 +208,13 @@ class StructureTrackingController extends Controller
 			if (isset($userLocation['village']) && !empty($userLocation['village'])) {
 
 				if ($this->request->filled('prepared') && $this->request->prepared === 'true') {
-					$worktype = $this->request->input('worktype');
+					if ($this->request->filled('worktype') && $this->request->worktype === 'desilting') {
+						$worktype = $this->request->input('worktype');
+					}
+					
 					$query = StructureTracking::query();
-					$query->when($worktype == 'disilting', function ($q) {
-						return $q->where('work_type','disilting');
+					$query->when($worktype == 'desilting', function ($q) {
+						return $q->where('work_type','desilting');
 					});
 					$structures = $query->where('status', self::PREPARED)
 					 	->whereIn('village_id', $userLocation['village'])
@@ -229,10 +224,12 @@ class StructureTrackingController extends Controller
 				} elseif ($this->request->filled('prepared') && $this->request->prepared === 'false') {
 					$structureCodes = [];
 					$stuctureLevels = ['state', 'district', 'taluka'];
-					$worktype = $this->request->input('worktype');
+					if ($this->request->filled('worktype') && $this->request->worktype === 'desilting') {
+						$worktype = $this->request->input('worktype');
+					}
 					$query = StructureTracking::query();
-					$query->when($worktype == 'disilting', function ($q) {
-						return $q->where('work_type','disilting');
+					$query->when($worktype == 'desilting', function ($q) {
+						return $q->where('work_type','desilting');
 					});
 					$structureTrackingList = $query->whereIn('village_id', $userLocation['village'])			
 						->where('isDeleted',false)->get();
@@ -247,10 +244,12 @@ class StructureTrackingController extends Controller
 					$structures = $structureRecords->get();
 				} elseif ($this->request->filled('completed') && $this->request->completed === 'true') {
 					
-					$worktype = $this->request->input('worktype');
+					if ($this->request->filled('worktype') && $this->request->worktype === 'desilting') {
+						$worktype = $this->request->input('worktype');
+					}
 					$query = StructureTracking::query();
-					$query->when($worktype == 'disilting', function ($q) {
-						return $q->where('work_type','disilting');
+					$query->when($worktype == 'desilting', function ($q) {
+						return $q->where('work_type','desilting');
 					});
 					$structures = $query->where('status', self::COMPLETED)
 						->whereIn('village_id', $userLocation['village'])
