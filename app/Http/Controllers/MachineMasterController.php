@@ -27,15 +27,74 @@ class MachineMasterController extends Controller
 				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
 			}
 			$userLocation = $this->request->user()->location;
-			$machine = MachineMaster::where('machine_code', '!=', null);
+
+			if (!isset($userLocation['village'])) {
+				$roleId = $this->request->user()->role_id;
+				$roleConfig = \App\RoleConfig::where('role_id', $roleId)->first();
+				$jurisdictionTypeId = $roleConfig->jurisdiction_type_id;
+				$locations = \App\Location::where('jurisdiction_type_id', $jurisdictionTypeId);
+				foreach ($userLocation as $levelName => $values) {
+					$locations->whereIn($levelName . '_id', $values);
+				}
+				$userVillages = $locations->pluck('village_id')->all();
+			} else {
+				$userVillages = $userLocation['village'];
+			}
+			$deployedMachines = MachineTracking::where([
+				'userName' => $this->request->user()->id,
+				'deployed' => true,
+				])
+				->where('isDeleted', '!=', true)
+				->whereIn('village_id', $userVillages)
+				->pluck('machine_code')
+				->all();
+
+			$machine = MachineMaster::whereNotIn('machine_code', $deployedMachines);
+			$machine->where('owned_by_bjs', true);
 			foreach ($userLocation as $level => $location) {
 				$machine->whereIn(strtolower($level) . '_id', $location);
 			}
 			$machine->with('state', 'district', 'taluka');
+			$BJSOwnedMachines = $machine->get(['machine_code', 'state_id', 'district_id', 'taluka_id']);
+
+			$machine = MachineMaster::whereNotIn('machine_code', $deployedMachines);
+			$machine->where('owned_by_bjs', '!=', true);
+
+			foreach ($userLocation as $level => $location) {
+				$machine->whereIn(strtolower($level) . '_id', $location);
+			}
+			$machine->with('state', 'district', 'taluka');
+			$rentedMachines = $machine->get(['machine_code', 'state_id', 'district_id', 'taluka_id']);
+
+			$rentedMachines = $rentedMachines->filter(function($value, $key) {
+				$mou = \App\MachineMou::where(
+							[
+								'machine_code' => $value->machine_code,
+								'mou_cancellation'=> false
+							]
+						)
+						->where(function($query) {
+							$query->orWhere(function($query) {
+								$query->where('rate1_from', '<=', Carbon::now()->getTimestamp())->where('rate1_to', '>=', Carbon::now()->getTimestamp());
+							})->orWhere(function($query) {
+								$query->where('rate2_from', '<=', Carbon::now()->getTimestamp())->where('rate2_to', '>=', Carbon::now()->getTimestamp());
+							})->orWhere(function($query) {
+								$query->where('rate3_from', '<=', Carbon::now()->getTimestamp())->where('rate3_to', '>=', Carbon::now()->getTimestamp());
+							});
+						})
+						->get(['machine_code']);
+				if ($mou !== null) {
+					return true;
+				}
+				return false;
+			});
+
+			$result = $BJSOwnedMachines->merge($rentedMachines);
+
             return response()->json([
-                'status' => 'success',
-                'data' => $machine->get(['machine_code', 'state_id', 'district_id', 'taluka_id']),
-                'message' => 'List of Machine codes.'
+				'status' => 'success',
+				'data' => $result,
+				'message' => 'List of Machine codes.'
             ],200);
         } catch(\Exception $exception) {
             return response()->json(
