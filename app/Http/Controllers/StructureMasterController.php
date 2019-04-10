@@ -29,8 +29,28 @@ class StructureMasterController extends Controller
                 return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
             }
 			$userLocation = $this->request->user()->location;
-			$structure = StructureMaster::where('structure_code', '!=', null);
 
+			if (!isset($userLocation['village'])) {
+				$roleId = $this->request->user()->role_id;
+				$roleConfig = \App\RoleConfig::where('role_id', $roleId)->first();
+				$jurisdictionTypeId = $roleConfig->jurisdiction_type_id;
+				$locations = \App\Location::where('jurisdiction_type_id', $jurisdictionTypeId);
+				foreach ($userLocation as $levelName => $values) {
+					$locations->whereIn($levelName . '_id', $values);
+				}
+				$userLocation['village'] = $locations->pluck('village_id')->all();
+			}
+
+			$preparedStructures = StructureTracking::where([
+				'userName' => $this->request->user()->id,
+				'status' => 'prepared',
+				'isDeleted' => false
+			])
+			->whereIn('village_id', $userLocation['village'])
+			->pluck('structure_code')
+			->all();
+
+			$structure = StructureMaster::whereNotIn('structure_code', $preparedStructures);
 			foreach ($userLocation as $level => $location) {
 				$structure->whereIn(strtolower($level) . '_id', $location);
 			}

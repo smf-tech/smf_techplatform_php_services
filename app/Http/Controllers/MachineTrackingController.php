@@ -371,7 +371,18 @@ class MachineTrackingController extends Controller
                 	'message' => 'Machine already shifted please change parameters'
                 ],400);
             }
-            
+            $completeStructure = \App\StructureTracking::where([
+				'village_id' => $this->request->moved_to_village,
+				'structure_code' => $this->request->new_structure_code,
+				'status' => 'completed'
+			])->first();
+			if (isset($completeStructure)) {
+				return response()->json([
+                	'status' => 'error',
+					'data' => '',
+					'message' => 'Machine can not be shifted to completed structure.'
+                ],400);
+			}
             $machineAtSource = MachineTracking::firstOrCreate([
                 'village_id' => $this->request->moved_from_village,
                 'structure_code' => $this->request->old_structure_code,
@@ -441,6 +452,19 @@ class MachineTrackingController extends Controller
                 $machine_shifted->userName = $userId;
                 $associatedFields = ['moved_from_village','moved_to_village'];
 				$associatedFields = array_merge($associatedFields,array_map('strtolower', $this->getLevels()->toArray()));
+
+				$completeStructure = \App\StructureTracking::where([
+					'village_id' => $this->request->moved_to_village,
+					'structure_code' => $this->request->new_structure_code,
+					'status' => 'completed'
+				])->first();
+				if (isset($completeStructure)) {
+					return response()->json([
+						'status' => 'error',
+						'data' => '',
+						'message' => 'Machine can not be shifted to completed structure.'
+					],400);
+				}
 
 				foreach ($data as $field => $value) {
 				
