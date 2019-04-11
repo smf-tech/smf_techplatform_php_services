@@ -402,6 +402,7 @@ class MachineTrackingController extends Controller
                 $shiftingRecord->machineTrackings()->attach([$machineAtSource->id, $machineAtDestination->id]);
                 $shiftingRecord->save();
                 $machineAtSource->shifting_record_ids = [$shiftingRecord->id];
+                $machineAtSource->deployed = false;
                 $machineAtSource->save();
                 $machineAtDestination->shifting_record_ids = [$shiftingRecord->id];
                 $machineAtDestination->save();
@@ -479,7 +480,7 @@ class MachineTrackingController extends Controller
                             'village_id' => $this->request->moved_from_village,
                             'structure_code' => $this->request->old_structure_code,
                             'machine_code' => $this->request->machine_code,
-                            'deployed' => true,
+                            'deployed' => false,
                             'isDeleted' => false
                         ]);
 
