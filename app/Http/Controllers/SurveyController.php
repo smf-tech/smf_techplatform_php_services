@@ -642,6 +642,12 @@ class SurveyController extends Controller
             $matrix_fields_data =array();
             $matrix_obj = array();
             foreach ($associated_results as &$associated_result){
+				foreach (array_map('strtolower', $this->getLevels()->toArray()) as $singleJurisdiction) {
+					if (isset($associated_result[$singleJurisdiction . '_id'])) {
+						$associated_result[$singleJurisdiction] = $associated_result[$singleJurisdiction . '_id'];
+						unset($associated_result[$singleJurisdiction . '_id']);
+					}
+				}
                 if($first_iteration_flag){
                     foreach($matrix_fields as $matrix_field){
 							$matrix_obj[$matrix_field] = isset($associated_result[$matrix_field]) ? $associated_result[$matrix_field] : '';
