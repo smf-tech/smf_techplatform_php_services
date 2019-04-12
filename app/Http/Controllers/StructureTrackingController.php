@@ -328,7 +328,7 @@ class StructureTrackingController extends Controller
 					}
 				}
 				$structure['form_title'] = $this->generateFormTitle($formId, $structure['_id'], 'structure_trackings');
-				$values[] = \Illuminate\Support\Arr::except($structure, ['form_id', 'userName', 'createdDateTime']);
+				$values[] = \Illuminate\Support\Arr::except($structure, ['form_id', 'taluka', 'userName', 'createdDateTime']);
 			}
 
 			$result['Current page'] = 'Page ' . $structures->currentPage() . ' of ' . $structures->lastPage();
