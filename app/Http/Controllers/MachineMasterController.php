@@ -26,47 +26,71 @@ class MachineMasterController extends Controller
 			if ($database === null) {
 				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
 			}
+			$bjsOwned = $this->request->filled('bjsowned') && $this->request->bjsowned == 'true';
+			$rented = $this->request->filled('rented') && $this->request->rented == 'true';
+			$considerMou = $this->request->filled('mou') && $this->request->mou == 'true';
+			$ignoreMou = $this->request->filled('mou') && $this->request->mou == 'false';
 			$userLocation = $this->request->user()->location;
 
-			if (!isset($userLocation['village'])) {
-				$roleId = $this->request->user()->role_id;
-				$roleConfig = \App\RoleConfig::where('role_id', $roleId)->first();
-				$jurisdictionTypeId = $roleConfig->jurisdiction_type_id;
-				$locations = \App\Location::where('jurisdiction_type_id', $jurisdictionTypeId);
-				foreach ($userLocation as $levelName => $values) {
-					$locations->whereIn($levelName . '_id', $values);
+			if ($bjsOwned || $rented) {
+				if (!isset($userLocation['village'])) {
+					$roleId = $this->request->user()->role_id;
+					$roleConfig = \App\RoleConfig::where('role_id', $roleId)->first();
+					$jurisdictionTypeId = $roleConfig->jurisdiction_type_id;
+					$locations = \App\Location::where('jurisdiction_type_id', $jurisdictionTypeId);
+					foreach ($userLocation as $levelName => $values) {
+						$locations->whereIn($levelName . '_id', $values);
+					}
+					$userVillages = $locations->pluck('village_id')->all();
+				} else {
+					$userVillages = $userLocation['village'];
 				}
-				$userVillages = $locations->pluck('village_id')->all();
-			} else {
-				$userVillages = $userLocation['village'];
+				$deployedMachines = MachineTracking::where([
+					'userName' => $this->request->user()->id,
+					'deployed' => true,
+					])
+					->where('isDeleted', '!=', true)
+					->whereIn('village_id', $userVillages)
+					->pluck('machine_code')
+					->all();
 			}
-			$deployedMachines = MachineTracking::where([
-				'userName' => $this->request->user()->id,
-				'deployed' => true,
-				])
-				->where('isDeleted', '!=', true)
-				->whereIn('village_id', $userVillages)
-				->pluck('machine_code')
-				->all();
 
-			$machine = MachineMaster::whereNotIn('machine_code', $deployedMachines);
-			$machine->where('owned_by_bjs', true);
+			$machine = MachineMaster::query();
+			if ($bjsOwned || $rented) {
+				$machine->whereNotIn('machine_code', $deployedMachines);
+			}
+			if ($bjsOwned && !$rented) {
+				$machine->where('owned_by_bjs', true);
+			}
+			if (!$bjsOwned && $rented) {
+				$machine->where('owned_by_bjs', '!=', true);
+			}
 			foreach ($userLocation as $level => $location) {
 				$machine->whereIn(strtolower($level) . '_id', $location);
 			}
 			$machine->with('state', 'district', 'taluka');
-			$BJSOwnedMachines = $machine->get(['machine_code', 'state_id', 'district_id', 'taluka_id']);
-
-			$machine = MachineMaster::whereNotIn('machine_code', $deployedMachines);
-			$machine->where('owned_by_bjs', '!=', true);
-
-			foreach ($userLocation as $level => $location) {
-				$machine->whereIn(strtolower($level) . '_id', $location);
+			$machines = $machine->get(['machine_code', 'state_id', 'district_id', 'taluka_id', 'owned_by_bjs']);
+			if ((
+					(!$bjsOwned && !$rented)
+					||
+					($bjsOwned && !$rented)
+					||
+					(!$bjsOwned && $rented)
+					||
+					($bjsOwned && $rented && !$considerMou)
+				) && !$ignoreMou) {
+				return response()->json([
+					'status' => 'success',
+					'data' => $machines,
+					'message' => 'List of Machine codes.'
+				],200);
 			}
-			$machine->with('state', 'district', 'taluka');
-			$rentedMachines = $machine->get(['machine_code', 'state_id', 'district_id', 'taluka_id']);
 
-			$rentedMachines = $rentedMachines->filter(function($value, $key) {
+			$machines = $machines->filter(function($value, $key) use ($ignoreMou) {
+				if ($value->owned_by_bjs) {
+					return true;
+				}
+
 				$mou = \App\MachineMou::where(
 							[
 								'machine_code' => $value->machine_code,
@@ -83,18 +107,17 @@ class MachineMasterController extends Controller
 							});
 						})
 						->get(['machine_code']);
-
-				if ($mou->count()) {
+				if ($mou->count() && !$ignoreMou) {
+					return true;
+				} elseif ($mou->count() === 0 && $ignoreMou) {
 					return true;
 				}
 				return false;
 			});
 
-			$result = $BJSOwnedMachines->merge($rentedMachines);
-
             return response()->json([
 				'status' => 'success',
-				'data' => $result,
+				'data' => $machines->values(),
 				'message' => 'List of Machine codes.'
             ],200);
         } catch(\Exception $exception) {
