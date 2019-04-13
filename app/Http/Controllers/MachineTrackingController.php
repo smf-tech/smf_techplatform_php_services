@@ -1148,7 +1148,13 @@ class MachineTrackingController extends Controller
                 }
 
                 $date = Carbon::now();
+				$user = $this->request->user();
                 $assoc_data = array('userName'=>$userId,'children'=>$children,'form_id'=>$form_id,'createdDateTime'=>$date->getTimestamp(),'updatedDateTime'=>$date->getTimestamp(),'isDeleted'=>false);
+				$userRoleLocation = $user->location;
+                $userRoleLocation['role_id'] = $user->role_id;
+                $assoc_data['user_role_location'] = $userRoleLocation;
+                $roleConfig = \App\RoleConfig::where('role_id', $user->role_id)->first();
+                $assoc_data['jurisdiction_type_id'] = $roleConfig->jurisdiction_type_id;
                 $aggregate_assoc = DB::collection('aggregate_associations')->insertGetId($assoc_data);
                        
 
@@ -1184,6 +1190,7 @@ class MachineTrackingController extends Controller
         }
 
         $user = $this->request->user();
+		$userLocation = $user->location;
         
         $survey = Survey::find($survey_id);
 
@@ -1197,6 +1204,11 @@ class MachineTrackingController extends Controller
 
         $aggregateResults = DB::collection('aggregate_associations')
         ->where('form_id','=',$survey_id)
+		->where(function($q) use ($userLocation) {
+            foreach ($userLocation as $level => $location) {
+                $q->whereIn('user_role_location.' . $level, $location);
+            }
+        })
         ->where('userName','=',$user->id)
         ->where('isDeleted','=',false)
         ->whereBetween('createdDateTime',array($startDate,$endDate))
