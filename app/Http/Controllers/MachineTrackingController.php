@@ -1431,7 +1431,7 @@ class MachineTrackingController extends Controller
         // Function defined below, it queries the collection $collection_name using the parameters
        
         $data['form_title'] = $this->generateFormTitle($survey_id,$group_arr[0],'machine_tracking');
-        $data['_id']['$oid'] = $groupId;
+        $data['_id'] = $groupId;
         $data['createdDateTime'] = $group_record->first()['createdDateTime'];
         $data['updatedDateTime'] = $group_record->first()['updatedDateTime'];
         return response()->json(['status'=>'success', 'data' => $data, 'message'=>'']);

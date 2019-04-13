@@ -633,7 +633,7 @@ class SurveyController extends Controller
                 $q->whereIn('user_role_location.' . $level, $location);
             }
         })            
-        ->where('user_id','=',$user->id)
+        ->where('userName','=',$user->id)
         ->where('isDeleted','=',false)
         ->whereBetween('createdDateTime',array($startDate,$endDate))
         ->orderBy($field,$order)
@@ -1055,17 +1055,19 @@ class SurveyController extends Controller
                             $work_date = $value;
                         }
                     }
+                    //validation check to see if record exists in machine non_utilization
+                    $machine_non_utilized= $this->checkMachineNonUtilized($user->id,$machine_code,$work_date);
+                    if($machine_non_utilized){
+                        return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Machine Non utilized for a selected date.'],400); 
+                    }
+
                     if(!empty($primaryValues)){
                         $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
                         if(!empty($user_submitted)){
                             return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Entry already exists with the same values.'],400);
                         }
                     }
-                    //validation check to see if record exists in machine non_utilization
-                    $machine_non_utilized= $this->checkMachineNonUtilized($user->id,$machine_code,$work_date);
-                    if($machine_non_utilized){
-                        return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Machine Non utilized for a selected date.'],400); 
-                    }
+
                     
                 }
 
@@ -1176,6 +1178,12 @@ class SurveyController extends Controller
                     }
                 }
 
+                //validation check to see if record exists in machine non_utilization
+                $machine_non_utilized= $this->checkMachineNonUtilized($user->id,$machine_code,$work_date);
+                if($machine_non_utilized){
+                    return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Machine Non utilized for a selected date.'],400); 
+                }
+
                 if($update_id !== null){
                     $formExists = DB::collection($collection_name)->where(function($q) use ($survey_id){
                         $q->where('form_id','=',$survey_id)
@@ -1214,11 +1222,7 @@ class SurveyController extends Controller
                     return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Update Failure!!! Entry already exists with the same values.'],400);
                 }
 
-                //validation check to see if record exists in machine non_utilization
-                $machine_non_utilized= $this->checkMachineNonUtilized($user->id,$machine_code,$work_date);
-                if($machine_non_utilized){
-                    return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Machine Non utilized for a selected date.'],400); 
-                }
+
             }
 
             // Gives current date and time in the format :  2019-01-24 10:30:46
