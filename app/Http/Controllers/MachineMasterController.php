@@ -349,7 +349,7 @@ class MachineMasterController extends Controller
 					}
 				}
 				$structure['form_title'] = $this->generateFormTitle($formId, $structure['_id'], 'machine_masters');
-				$values[] = \Illuminate\Support\Arr::except($structure, ['form_id', 'userName', 'createdDateTime']);
+				$values[] = \Illuminate\Support\Arr::except($structure, ['form_id', 'userName', 'createdDateTime', 'user_role_location', 'jurisdiction_type_id']);
 			}
 
 			$result['Current page'] = 'Page ' . $machine_masters->currentPage() . ' of ' . $machine_masters->lastPage();

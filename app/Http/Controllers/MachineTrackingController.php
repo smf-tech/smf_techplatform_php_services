@@ -241,7 +241,7 @@ class MachineTrackingController extends Controller
 					}
 				}
 				$structure['form_title'] = $this->generateFormTitle($formId, $structure['_id'], 'machine_tracking');
-				$values[] = \Illuminate\Support\Arr::except($structure, ['form_id', 'userName', 'createdDateTime']);
+				$values[] = \Illuminate\Support\Arr::except($structure, ['form_id', 'userName', 'createdDateTime', 'user_role_location', 'jurisdiction_type_id']);
 			}
 
 			$result['Current page'] = 'Page ' . $deployed_machines->currentPage() . ' of ' . $deployed_machines->lastPage();
@@ -614,7 +614,7 @@ class MachineTrackingController extends Controller
 					unset($structure['moved_to_village_id']);
 				}
 				$structure['form_title'] = $this->generateFormTitle($formId, $structure['_id'], 'shifting_records');
-				$values[] = \Illuminate\Support\Arr::except($structure, ['form_id', 'userName', 'createdDateTime']);
+				$values[] = \Illuminate\Support\Arr::except($structure, ['form_id', 'userName', 'createdDateTime', 'user_role_location', 'jurisdiction_type_id']);
 			}
 
 			$result['Current page'] = 'Page ' . $shifted_machines->currentPage() . ' of ' . $shifted_machines->lastPage();
@@ -849,7 +849,7 @@ class MachineTrackingController extends Controller
 					}
 				}
 				$structure['form_title'] = $this->generateFormTitle($formId, $structure['_id'], 'machine_mou');
-				$values[] = \Illuminate\Support\Arr::except($structure, ['form_id', 'userName', 'createdDateTime']);
+				$values[] = \Illuminate\Support\Arr::except($structure, ['form_id', 'userName', 'createdDateTime', 'user_role_location', 'jurisdiction_type_id']);
 			}
 
 			$result['Current page'] = 'Page ' . $machine_mou->currentPage() . ' of ' . $machine_mou->lastPage();

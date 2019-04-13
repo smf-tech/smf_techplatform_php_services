@@ -260,7 +260,7 @@ class StructureMasterController extends Controller
 					}
 				}
 				$structure['form_title'] = $this->generateFormTitle($formId, $structure['_id'], 'structure_masters');
-				$values[] = \Illuminate\Support\Arr::except($structure, ['form_id', 'userName', 'createdDateTime']);
+				$values[] = \Illuminate\Support\Arr::except($structure, ['form_id', 'userName', 'createdDateTime', 'user_role_location', 'jurisdiction_type_id']);
 			}
 
 			$result['Current page'] = 'Page ' . $structures->currentPage() . ' of ' . $structures->lastPage();

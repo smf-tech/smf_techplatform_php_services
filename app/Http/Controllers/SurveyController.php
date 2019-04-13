@@ -378,7 +378,7 @@ class SurveyController extends Controller
             $surveyResult['form_title'] = $form_title;
             // Excludes values 'form_id','user_id','created_at','updated_at' from the $surveyResult array
             //  and stores it in values
-            $values[] = Arr::except($surveyResult,['survey_id','userName','createdDateTime']);
+            $values[] = Arr::except($surveyResult,['survey_id','userName','createdDateTime', 'user_role_location', 'jurisdiction_type_id']);
         }
 
         $result['Current page'] = 'Page '.$surveyResults->currentPage().' of '.$surveyResults->lastPage();
