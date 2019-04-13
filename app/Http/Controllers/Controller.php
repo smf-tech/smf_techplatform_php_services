@@ -265,6 +265,9 @@ class Controller extends BaseController
 		$this->connectTenantDatabase($request, $orgId);
 		$roleConfig = \App\RoleConfig::where('role_id', $roleId)->first();
 		$approverRoleConfig = \App\RoleConfig::where('role_id', $roleConfig->approver_role)->first();
+		if ($approverRoleConfig === null) {
+			return [];
+		}
 		$levelDetail = \App\Jurisdiction::find($approverRoleConfig->level);
 		$jurisdictions = \App\JurisdictionType::where('_id',$roleConfig->jurisdiction_type_id)->pluck('jurisdictions')[0];
 		DB::setDefaultConnection('mongodb');
