@@ -1159,9 +1159,7 @@ class MachineTrackingController extends Controller
                        
 
                 $result = [
-                    '_id' => [
-                        '$oid' => $aggregate_assoc
-                    ],
+                    '_id' => $aggregate_assoc,
                     'form_title' => $this->generateFormTitle($form_id,$children[0],'machine_tracking'),
                     'createdDateTime' => $date->getTimestamp(),
                     'updatedDateTime' => $date->getTimestamp()
