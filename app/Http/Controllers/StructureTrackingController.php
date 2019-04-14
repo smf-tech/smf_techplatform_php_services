@@ -408,6 +408,11 @@ class StructureTrackingController extends Controller
 				$structureTracking->$field = $value;
 			}
 
+			if( $structureTracking->status === self::COMPLETED ) {
+				$machines = MachineTracking::where('structure_code',$structureTracking->structure_code)
+											->where('village_id',$structureTracking->village_id)->update(['deployed' => false]);
+			}
+
 			$existingStructure = StructureTracking::where($condition)->first();
 			if(isset($existingStructure)) { 
 				$existingStructure->update($data);
@@ -427,12 +432,7 @@ class StructureTrackingController extends Controller
 			}
 			
 			$structureTracking->save();
-			
-			if( $structureTracking->status === self::COMPLETED ) {
-				$machines = MachineTracking::where('structure_code',$structureTracking->structure_code)
-											->where('village_id',$structureTracking->village_id)->update(['deployed' => false]);
-			}
-			
+
 			return response()->json([
                 'status' => 'success',
                 'data' => [
