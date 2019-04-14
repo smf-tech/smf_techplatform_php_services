@@ -223,6 +223,7 @@ class StructureTrackingController extends Controller
 						return $q->where('work_type','desilting');
 					});
 					$structures = $query->where('status', self::PREPARED)
+						->where('userName', $this->request->user()->id)
 					 	->whereIn('village_id', $userLocation['village'])
 					 	->where('isDeleted','!=',true)
 					 	->with('village', 'ffs', 'volunteers')->get();
