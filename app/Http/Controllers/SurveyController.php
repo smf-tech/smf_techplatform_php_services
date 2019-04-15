@@ -1031,6 +1031,11 @@ class SurveyController extends Controller
                     array_push($group_arr,$form_insert_id);
                 }
                 $assoc_data = array('userName'=>$user->id,'children'=>$group_arr,'form_id'=>$survey_id,'createdDateTime'=>$date->getTimestamp(),'updatedDateTime'=>$date->getTimestamp(),'isDeleted'=>false);
+				$userRoleLocation = $user->location;
+                $userRoleLocation['role_id'] = $user->role_id;
+                $assoc_data['user_role_location'] = $userRoleLocation;
+                $roleConfig = \App\RoleConfig::where('role_id', $user->role_id)->first();
+                $assoc_data['jurisdiction_type_id'] = $roleConfig->jurisdiction_type_id;
                 $aggregate_assoc = DB::collection('aggregate_associations')->insertGetId($assoc_data);
                 $data['_id'] = $aggregate_assoc;
                 }
@@ -1084,6 +1089,11 @@ class SurveyController extends Controller
                     array_push($group_arr,$form_insert_id);
                 }
                 $assoc_data = array('userName'=>$user->id,'children'=>$group_arr,'form_id'=>$survey_id,'createdDateTime'=>$date->getTimestamp(),'updatedDateTime'=>$date->getTimestamp(),'isDeleted'=>false);
+				$userRoleLocation = $user->location;
+                $userRoleLocation['role_id'] = $user->role_id;
+                $assoc_data['user_role_location'] = $userRoleLocation;
+                $roleConfig = \App\RoleConfig::where('role_id', $user->role_id)->first();
+                $assoc_data['jurisdiction_type_id'] = $roleConfig->jurisdiction_type_id;
                 $aggregate_assoc = DB::collection('aggregate_associations')->insertGetId($assoc_data);
                 $data['_id'] = $aggregate_assoc;
             }                   
