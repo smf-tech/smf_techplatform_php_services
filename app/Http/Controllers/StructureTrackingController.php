@@ -223,7 +223,7 @@ class StructureTrackingController extends Controller
 						return $q->where('work_type','desilting');
 					});
 					$structures = $query->where('status', self::PREPARED)
-						->where('userName', $this->request->user()->id)
+//						->where('userName', $this->request->user()->id)
 					 	->whereIn('village_id', $userLocation['village'])
 					 	->where('isDeleted','!=',true)
 					 	->with('village', 'ffs', 'volunteers')->get();
@@ -415,8 +415,8 @@ class StructureTrackingController extends Controller
 			}
 
 			$existingStructure = StructureTracking::where($condition)->first();
-			if(isset($existingStructure)) { 
-				$existingStructure->update($data);
+			if(isset($existingStructure)) {
+				StructureTracking::raw()->findOneAndUpdate($condition, ['$set' => $data]);
 			
 				return response()->json([
                 	'status' => 'success',
