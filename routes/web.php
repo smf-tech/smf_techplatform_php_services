@@ -38,6 +38,7 @@ $api->version('v1',function($api){
         $api->get('organizations','OrganisationController@listOrgs');
         $api->get('projects/{org_id}','OrganisationController@getorgprojects');
         $api->get('states','LocationController@getstates');
+        $api->get('event-types','EventTypeController@getEventTypes');
         $api->get('location/level/{orgId}/{jurisdictionTypeId}/{jurisdictionLevel}','LocationController@getLevelData');
     });
     
@@ -48,6 +49,7 @@ $api->version('v1',function($api){
         $api->get('roles/{org_id}','RoleController@getorgroles');
         //$api->get('user/{phone}','UserController@show');
         $api->get('user','UserController@getUserDetails');
+        $api->get('users','UserController@getUsers');
 		
         $api->get('tasks','TaskController@show');
         $api->get('tasksOfUser','TaskController@getTask');

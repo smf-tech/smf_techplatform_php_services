@@ -11,6 +11,8 @@ use App\Organisation;
 use App\RoleConfig;
 use Illuminate\Support\Facades\DB;
 use App\ApprovalLog;
+use Carbon\Carbon;
+use Illuminate\Support\Arr;
 
 class UserController extends Controller
 {
@@ -335,5 +337,67 @@ class UserController extends Controller
                     404
                 );
 		}
-	}
+    }
+    
+    public function getUsers() {
+        $user = $this->request->user();
+        //set pagination variables
+        $limit = (int)$this->request->filled('limit') ?(int)$this->request->input('limit'):50;
+        $order = $this->request->filled('order') ? $this->request->input('order'):'desc';
+        $field = $this->request->filled('field') ? $this->request->input('field'):'createdDateTime';
+        
+        //check for query params
+        $role = $this->request->filled('role')?$this->request->input('role'):null;
+        $project = $this->request->filled('project')?$this->request->input('project'):null;
+        $organization = $this->request->filled('organization')?$this->request->input('organization'):null;
+        $location = $this->request->filled('location')?$this->request->input('location'):null;
+        
+        if(is_null($role) && is_null($project) && is_null($organization) && is_null($location)){
+            return response()->json(['status' => 'error',
+            'data' => [],
+            'message '=> 'Please set query params'],
+            400); 
+        }
+
+        $roles = isset($role)?explode(',',$role): [];
+        $projects =isset($project)?explode(',',$project): [];
+        $organizations =isset($organization)?explode(',',$organization): [];
+        $location =isset($location)?json_decode($location,true): [];
+        $users = User::select(['name','gender','email','role_id','project_id'])
+                ->where('isDeleted','!=',true)
+                ->where('is_admin','!=',true)
+                ->where(function($q) use ($roles) {
+                    if(!empty($roles)){
+                        $q->whereIn('role_id',$roles);
+                    }
+                })   
+                ->where(function($q) use ($projects) {
+                    if(!empty($projects)){
+                        $q->whereIn('project_id',$projects);
+                    }
+                })
+                ->where(function($q) use ($organizations) {
+                    if(!empty($organizations)){
+                        $q->whereIn('org_id',$organizations);
+                    }
+                })  
+                ->where(function($q) use ($location) {
+                    foreach ($location as $level => $location) {
+                        $q->whereIn('location.' . $level, $location);
+                    }
+                })               
+                ->orderBy($field, $order)
+                ->paginate($limit);
+
+        $result = [];
+        $result['Per Page'] = $users->perPage();
+        $result['Total Pages'] = $users->lastPage();
+        $result['Total number of records'] = $users->total(); 
+
+        return response()->json(['status' => 'success',
+                                    'metadata' => [$result],
+                                    'data' => $users->items(),
+                                    'message '=> ''],
+                                    200);
+    }
 }
