@@ -223,7 +223,7 @@ class StructureTrackingController extends Controller
 						return $q->where('work_type','desilting');
 					});
 					$structures = $query->where('status', self::PREPARED)
-						->where('userName', $this->request->user()->id)
+//						->where('userName', $this->request->user()->id)
 					 	->whereIn('village_id', $userLocation['village'])
 					 	->where('isDeleted','!=',true)
 					 	->with('village', 'ffs', 'volunteers')->get();
@@ -379,7 +379,7 @@ class StructureTrackingController extends Controller
 			$data = $this->request->all();
 
 			$structureTracking = new StructureTracking;
-			$data['status'] = $data['status'] == true ? self::COMPLETED : self::PREPARED;
+			$data['status'] = self::COMPLETED;
             $structureTracking->status = $data['status'];
             $structureTracking->userName = $data['userName'] = $userId;
 			$structureTracking->form_id = $data['form_id'] = $formId;
@@ -409,14 +409,13 @@ class StructureTrackingController extends Controller
 				$structureTracking->$field = $value;
 			}
 
-			if( $structureTracking->status === self::COMPLETED ) {
-				$machines = MachineTracking::where('structure_code',$structureTracking->structure_code)
-											->where('village_id',$structureTracking->village_id)->update(['deployed' => false]);
-			}
+			MachineTracking::where('structure_code',$structureTracking->structure_code)
+					->where('village_id',$structureTracking->village_id)
+					->update(['deployed' => false]);
 
 			$existingStructure = StructureTracking::where($condition)->first();
-			if(isset($existingStructure)) { 
-				$existingStructure->update($data);
+			if(isset($existingStructure)) {
+				StructureTracking::raw()->findOneAndUpdate($condition, ['$set' => $data]);
 			
 				return response()->json([
                 	'status' => 'success',
@@ -485,34 +484,26 @@ class StructureTrackingController extends Controller
                     'data' => '',
                     'message' => 'Update Failed as record does not exist!'
 				],404);
-			$data['status'] = $data['status'] == true ? self::COMPLETED : self::PREPARED;
+			$data['status'] = self::COMPLETED;
 			$structureTracking->status = $data['status'];
             $structureTracking->userName = $userId;
 			$associatedFields = ['ffs', 'volunteers'];
 			$associatedFields = array_merge($associatedFields, array_map('strtolower', $this->getLevels()->toArray()));
 
-				foreach ($data as $field => $value) {
-				
-					if (in_array($field, $associatedFields)) {
-							$field .= '_id';
-					}
-					$structureTracking->$field = $value;
+			foreach ($data as $field => $value) {
+				if (in_array($field, $associatedFields)) {
+						$field .= '_id';
 				}
-	
-				$structureTracking->save();
+				$structureTracking->$field = $value;
+			}
 
-				if( $structureTracking->status === self::COMPLETED ) {
-					$machines = MachineTracking::where('structure_code',$structureTracking->structure_code)
-												->where('village_id',$structureTracking->village_id)
-												->where('isDeleted','!=',true)
-												->update(['deployed' => false]);
-				} elseif( $structureTracking->status === self::PREPARED ) {
-					$machines = MachineTracking::where('structure_code',$structureTracking->structure_code)
-												->where('village_id',$structureTracking->village_id)
-												->where('isDeleted','!=',true)
-												->update(['deployed' => true]);
-				}
-			
+			$structureTracking->save();
+
+			MachineTracking::where('structure_code',$structureTracking->structure_code)
+				->where('village_id',$structureTracking->village_id)
+				->where('isDeleted','!=',true)
+				->update(['deployed' => false]);
+
             return response()->json([
                 'status' => 'success',
                 'data' => [

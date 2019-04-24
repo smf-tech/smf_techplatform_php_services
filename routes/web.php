@@ -138,6 +138,6 @@ $api->version('v1',function($api){
        
         $api->get('entity/{entity_id}/column/{column_name}','EntityController@getEntityInfo');
         
-        
+        $api->post('events', 'EventController@create');
     });
 });
