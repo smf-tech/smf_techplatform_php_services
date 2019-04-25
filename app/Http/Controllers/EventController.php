@@ -255,11 +255,17 @@ class EventController extends Controller
 					->with('participants')
 					->orderBy($field, $order)
 					->paginate($limit);
+			$result = [];
+			$result['Per Page'] = $events->perPage();
+			$result['Total Pages'] = $events->lastPage();
+			$result['Total number of records'] = $events->total();
+
 			return response()->json(
 					[
 						'status' => 'success',
-						'data' => $events,
-						'message' => 'Events have been created successfully.'
+						'metadata' => [$events],
+						'data' => $events->items(),
+						'message '=> 'List of Events'
 					],
 					200
 			);
