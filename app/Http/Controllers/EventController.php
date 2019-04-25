@@ -263,7 +263,7 @@ class EventController extends Controller
 			return response()->json(
 					[
 						'status' => 'success',
-						'metadata' => [$events],
+						'metadata' => [$result],
 						'data' => $events->items(),
 						'message '=> 'List of Events'
 					],
