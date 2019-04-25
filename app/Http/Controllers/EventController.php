@@ -230,4 +230,49 @@ class EventController extends Controller
 		}
 	}
 
+	public function getEvents()
+	{
+		try {
+			$database = $this->connectTenantDatabase($this->request);
+            if ($database === null) {
+                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+            }
+			$userName = $this->request->user()->id;
+			$limit = (int)$this->request->input('limit') ?:50;
+			$offset = $this->request->input('offset') ?:0;
+			$order = $this->request->input('order') ?:'desc';
+			$field = $this->request->input('field') ?:'createdDateTime';
+			$page = $this->request->input('page') ?:1;
+			$startDate = $this->request->filled('start_date') ? $this->request->start_date : Carbon::now()->subMonth()->getTimestamp();
+			$endDate = $this->request->filled('end_date') ? $this->request->end_date : Carbon::now()->getTimestamp();
+
+			$events = Event::where('userName', $userName)
+					->where('isDeleted', '!=', true)
+					->when($this->request->filled('status'), function($query) {
+						 $query->where('status', $this->request->status);
+					})
+					->whereBetween('createdDateTime', [$startDate, $endDate])
+					->with('participants')
+					->orderBy($field, $order)
+					->paginate($limit);
+			return response()->json(
+					[
+						'status' => 'success',
+						'data' => $events,
+						'message' => 'Events have been created successfully.'
+					],
+					200
+			);
+		} catch(\Exception $exception) {
+			return response()->json(
+				[
+					'status' => 'error',
+					'data' => '',
+					'message' => $exception->getMessage()
+				],
+				404
+			);
+		}
+	}
+
 }

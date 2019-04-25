@@ -38,7 +38,6 @@ $api->version('v1',function($api){
         $api->get('organizations','OrganisationController@listOrgs');
         $api->get('projects/{org_id}','OrganisationController@getorgprojects');
         $api->get('states','LocationController@getstates');
-        $api->get('event-types','EventTypeController@getEventTypes');
         $api->get('location/level/{orgId}/{jurisdictionTypeId}/{jurisdictionLevel}','LocationController@getLevelData');
     });
     
@@ -135,9 +134,12 @@ $api->version('v1',function($api){
         $api->put('silttransportation/{form_id}/{record_id}','SurveyController@updateSiltTransportation');
         $api->get('silttransportation/{form_id}','SurveyController@showResponse');
         $api->delete('silttransportation/{form_id}/{record_id}','SurveyController@deleteFormResponse'); 
-       
+
         $api->get('entity/{entity_id}/column/{column_name}','EntityController@getEntityInfo');
         
         $api->post('events', 'EventController@create');
+		$api->get('events', 'EventController@getEvents');
+
+        $api->get('event-types','EventTypeController@getEventTypes');
     });
 });
