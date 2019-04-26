@@ -47,7 +47,7 @@ class UserController extends Controller
             $org_object->name = $organisation->name;
             $role_object = new \stdClass;
             $role_object->_id = $role->id;
-            $role_object->name = $role->name;
+            $role_object->name = $role->display_name;
             $user->org_id = $org_object;
             $user->role_id = $role_object;
             
