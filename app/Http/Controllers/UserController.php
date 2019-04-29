@@ -108,18 +108,17 @@ class UserController extends Controller
 			$approvalLogId = '';
 			if (isset($update_data['role_id'])) {
                 $approverList = $this->getApprovers($this->request, $update_data['role_id'], $userLocation, $update_data['org_id']);
-                foreach($approverList as $approver){
-                    $approver = $this->getUserAssociatedData($approver);
-                    array_push($approverUsers,$approver);
-                }
-                $this->connectTenantDatabase($this->request);
+                
 				foreach($approverList as $approver) {
 					$approverIds[] = $approver['id'];
 					if (isset($approver['firebase_id']) && !empty($approver['firebase_id'])) {
 						$firebaseIds[] = $approver['firebase_id'];
-					}
+                    }
+                    $approver = $this->getUserAssociatedData($approver);
+                    array_push($approverUsers,$approver);
 				}
             }
+            $this->connectTenantDatabase($this->request);
 			if (isset($update_data['approve_status']) && $update_data['approve_status'] === self::STATUS_PENDING) {
 				$approvalLogId = $this->addApprovalLog($this->request, $userId, self::ENTITY_USER, $approverIds, self::STATUS_PENDING, $userId,null,$update_data['org_id']);
 			}
