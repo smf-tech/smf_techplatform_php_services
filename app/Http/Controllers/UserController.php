@@ -143,6 +143,7 @@ class UserController extends Controller
     }
 
     public function getUserAssociatedData($user){
+        DB::setDefaultConnection('mongodb');
         $organisation = Organisation::find($user->org_id);
         $role = \App\Role::find($user->role_id);
         $org_object = new \stdClass;
