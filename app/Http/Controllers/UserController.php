@@ -103,11 +103,15 @@ class UserController extends Controller
             $user->update($update_data);
 			$approverList = [];
 			$approverIds = [];
-			$firebaseIds = [];
+            $firebaseIds = [];
+            $approverUsers=[];
 			$approvalLogId = '';
 			if (isset($update_data['role_id'])) {
                 $approverList = $this->getApprovers($this->request, $update_data['role_id'], $userLocation, $update_data['org_id']);
-
+                foreach($approverList as $approver){
+                    $approver = $this->getUserAssociatedData($approver);
+                    array_push($approverUsers,$approver);
+                }
                 $this->connectTenantDatabase($this->request);
 				foreach($approverList as $approver) {
 					$approverIds[] = $approver['id'];
@@ -132,7 +136,7 @@ class UserController extends Controller
                     $update_data['org_id']
 				);
 			}
-            $user['approvers'] = $approverList;
+            $user['approvers'] = $approverUsers;
             $user = $this->getUserAssociatedData($user);
 
             return response()->json(['status'=>'success', 'data'=>$user, 'message'=>''],200);
