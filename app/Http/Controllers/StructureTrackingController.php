@@ -410,7 +410,6 @@ class StructureTrackingController extends Controller
 			}
 
 			MachineTracking::where('structure_code',$structureTracking->structure_code)
-					->where('village_id',$structureTracking->village_id)
 					->update(['deployed' => false]);
 
 			$existingStructure = StructureTracking::where($condition)->first();

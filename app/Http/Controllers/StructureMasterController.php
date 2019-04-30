@@ -43,9 +43,9 @@ class StructureMasterController extends Controller
 
 			$preparedStructures = StructureTracking::where([
 				'userName' => $this->request->user()->id,
-				'status' => 'prepared',
 				'isDeleted' => false
 			])
+			->whereIn('status', ['prepared', 'completed'])
 			->whereIn('village_id', $userLocation['village'])
 			->pluck('structure_code')
 			->all();
