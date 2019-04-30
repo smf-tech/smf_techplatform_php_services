@@ -141,5 +141,15 @@ $api->version('v1',function($api){
 		$api->get('events', 'EventController@getEvents');
 
         $api->get('event-types','EventTypeController@getEventTypes');
+
+        $api->post('machinemeterreading/{form_id}','SurveyController@machineMeterReading');
+        $api->put('machinemeterreading/{form_id}/{record_id}','SurveyController@updateMachineMeterReading');
+        $api->get('machinemeterreading/{form_id}','SurveyController@showResponse');
+        $api->delete('machinemeterreading/{form_id}/{record_id}','SurveyController@deleteFormResponse'); 
+
+        $api->post('farmersilttransportation/{form_id}','SurveyController@farmerSiltTransportation');
+        $api->put('farmersilttransportation/{form_id}/{record_id}','SurveyController@updateFarmerSiltTransportation');
+        $api->get('farmersilttransportation/{form_id}','SurveyController@showResponse');
+        $api->delete('farmersilttransportation/{form_id}/{record_id}','SurveyController@deleteFormResponse'); 
     });
 });
