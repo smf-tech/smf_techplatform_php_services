@@ -274,9 +274,12 @@ class SurveyController extends Controller
 
             $entity = Entity::find($survey->entity_id);
 
-            /*if($entity->Name == 'machinenonutilization'){
+            if($entity->Name == 'machinenonutilization'){
                 $validate_filled_form = $this->validateMachineNonUtilization($user->id,$fields);
-            }*/
+                if(!$validate_filled_form){
+                    return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Machine already utilized for the date'],400);
+                }
+            }
 
             unset($fields['submit_count']);
             $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
@@ -323,6 +326,29 @@ class SurveyController extends Controller
             return false;
         }   
 
+        $entity = Entity::where('Name', '=', 'MachineMeterReadingPhotos')->first();
+        $response = DB::collection($collection_name)->where('userName','=',$user_id)
+                                                    ->where('isDeleted','=',false)
+                                                    ->where('machine_code','=',$fields['machine_code'])
+                                                    ->where('structure_code','=',$fields['structure_code'])
+                                                    ->where('reporting_date','=',$fields['reporting_date'])
+                                                    ->get()->first(); 
+
+        if(!empty($response)){
+            return false;
+        } 
+
+        $entity = Entity::where('Name', '=', 'farmersilttransportationrecord')->first();
+        $response = DB::collection($collection_name)->where('userName','=',$user_id)
+                                                    ->where('isDeleted','=',false)
+                                                    ->where('machine_code','=',$fields['machine_code'])
+                                                    ->where('structure_code','=',$fields['structure_code'])
+                                                    ->where('reporting_date','=',$fields['reporting_date'])
+                                                    ->get()->first(); 
+
+        if(!empty($response)){
+            return false;
+        } 
         return true;
     } 
 
