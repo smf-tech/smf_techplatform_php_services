@@ -147,56 +147,69 @@ class UserController extends Controller
 
     public function getUserAssociatedData($user){
         DB::setDefaultConnection('mongodb');
-        $organisation = Organisation::find($user->org_id);
-        $role = \App\Role::find($user->role_id);
-        $org_object = new \stdClass;
-        $org_object->_id = $organisation->id;
-        $org_object->name = $organisation->name;
-        $role_object = new \stdClass;
-        $role_object->_id = $role->id;
-        $role_object->name = $role->display_name;
-        $user->org_id = $org_object;
-        $user->role_id = $role_object;
+        if(isset($user->org_id)){
+            $organisation = Organisation::find($user->org_id);
+            $org_object = new \stdClass;
+            $org_object->_id = $organisation->id;
+            $org_object->name = $organisation->name;
+            $user->org_id = $org_object;
+        }
+        if(isset($user->role_id)){
+            $role = \App\Role::find($user->role_id);
+            $role_object = new \stdClass;
+            $role_object->_id = $role->id;
+            $role_object->name = $role->display_name;
+            $user->role_id = $role_object;
+        }
         
-        $database = $this->connectTenantDatabase($this->request,$organisation->id);
-        $location =  new \stdClass;
-        foreach($user->location as $level => $location_level){
-            $level_data = array();
-            foreach ($location_level as $location_id){
-               if ($level == 'state'){
-                $location_obj = \App\State::find($location_id);
-               }
-               if ($level == 'district'){
-                $location_obj = \App\District::find($location_id);
-               }
-               if ($level == 'taluka'){
-                $location_obj = \App\Taluka::find($location_id);
-               }
-               if ($level == 'village'){
-                $location_obj = \App\Village::find($location_id);
-               }
-               $location_std_obj =  new \stdClass;
-               $location_std_obj->_id = $location_obj->id; 
-               $location_std_obj->name = $location_obj->name; 
-               array_push($level_data,$location_std_obj);
+        if(isset($user->location) && isset($user->org_id)){
+            $database = $this->connectTenantDatabase($this->request,$organisation->id);
+            if ($database !== null) {
+                $location =  new \stdClass;
+                foreach($user->location as $level => $location_level){
+                    $level_data = array();
+                    foreach ($location_level as $location_id){
+                    if ($level == 'state'){
+                        $location_obj = \App\State::find($location_id);
+                    }
+                    if ($level == 'district'){
+                        $location_obj = \App\District::find($location_id);
+                    }
+                    if ($level == 'taluka'){
+                        $location_obj = \App\Taluka::find($location_id);
+                    }
+                    if ($level == 'village'){
+                        $location_obj = \App\Village::find($location_id);
+                    }
+                    $location_std_obj =  new \stdClass;
+                    $location_std_obj->_id = $location_obj->id; 
+                    $location_std_obj->name = $location_obj->name; 
+                    array_push($level_data,$location_std_obj);
+                    }
+                    $location->{$level} = $level_data;
+                }
+                $user->location = $location;
             }
-            $location->{$level} = $level_data;
         }
-        $user->location = $location;
-        $projects = array();
-        if ($database === null) {
-            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
-        }
-        foreach($user->project_id as $project_id){
+
+        if(isset($user->project_id)){
+            $database = $this->connectTenantDatabase($this->request,$organisation->id);
+            $projects = array();
+            if ($database !== null) {
+           
+            foreach($user->project_id as $project_id){
+                
+                $project = Project::find($project_id); 
+                //var_dump($database); exit;
+                $project_object = new \stdClass;
+                $project_object->_id = $project->id;
+                $project_object->name = $project->name;
+                array_push($projects,$project_object);
+            }
             
-            $project = Project::find($project_id); 
-            //var_dump($database); exit;
-            $project_object = new \stdClass;
-            $project_object->_id = $project->id;
-            $project_object->name = $project->name;
-            array_push($projects,$project_object);
+            $user->project_id = $projects;
+            }
         }
-        $user->project_id = $projects;
 
         return $user;
     }
