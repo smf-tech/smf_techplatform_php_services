@@ -153,17 +153,19 @@ class StructureMasterController extends Controller
 				}
 				$structure_master->$field = $value;
             }
-
-            $existingStructure = StructureMaster::where($condition)->first();
-			if (isset($existingStructure)) {
-				return response()->json(
-						[
-						'status' => 'error',
-						'data' => '',
-						'message' => 'Structure already exists. Please change the parameters.'
-					],
-					400
-				);
+			
+			if(!empty($primaryKeys)){
+				$existingStructure = StructureMaster::where($condition)->first();
+				if (isset($existingStructure)) {
+					return response()->json(
+							[
+							'status' => 'error',
+							'data' => '',
+							'message' => 'Structure already exists. Please change the parameters.'
+						],
+						400
+					);
+				}
 			}
 
             $structure_master->userName = $this->request->user()->id;
