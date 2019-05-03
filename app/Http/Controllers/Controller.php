@@ -51,7 +51,7 @@ class Controller extends BaseController
         if ($organisation === null) {
             return null;
         }
-        $dbName = $organisation->name.'_'.$organisation->id;
+        $dbName = str_replace(' ', '_',$organisation->name);
 
         $mongoDBConfig = config('database.connections.mongodb');
         $mongoDBConfig['database'] = $dbName;
