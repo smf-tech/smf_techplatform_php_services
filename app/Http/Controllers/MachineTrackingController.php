@@ -70,14 +70,14 @@ class MachineTrackingController extends Controller
 				}
 				$machineTracking->$field = $value;
 			}
-
+			$condition['deployed'] = true;
 			$existingMachine = MachineTracking::where($condition)->first();
 			if(isset($existingMachine)) { 
 
 				return response()->json([
                 	'status' => 'error',
                 	'data' => '',
-                	'message' => 'Machine already deployed please change parameters'
+					'message' => 'Machine already deployed. Please change parameters.'
                 ],400);
             }
             $role = $this->request->user()->role_id;
