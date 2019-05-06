@@ -1143,7 +1143,7 @@ class MachineTrackingController extends Controller
                         }
                         $machineTracking->$key = $value;
                     }
-
+					$condition['deployed'] = true;
                     $existingMachine = MachineTracking::where($condition)->first();
                     if(isset($existingMachine)) { 
         
