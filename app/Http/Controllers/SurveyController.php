@@ -1394,7 +1394,7 @@ class SurveyController extends Controller
         //validation check to see if record exists in machine non_utilization
          $machine_non_utilized= $this->checkMachineNonUtilized($user->id,$machine_code,$work_date);
          if($machine_non_utilized){
-             return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Machine is not utilized and you can’t enter work hour record for this machine.'],400); 
+             return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Machine is not utilized and you cannot enter Silt transportation record for this machine.'],400); 
          }
 
         $userLocation = $this->request->user()->location;  
