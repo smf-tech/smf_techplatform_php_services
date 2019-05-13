@@ -389,6 +389,19 @@ class MachineTrackingController extends Controller
                 	'message' => 'Machine can not be shifted to same structure. Please select different structure.'
                 ],400);
 			}
+            $shiftedSourceMachine = MachineTracking::where([
+                'village_id' => $this->request->moved_from_village,
+                'structure_code' => $this->request->old_structure_code,
+                'machine_code' => $this->request->machine_code,
+                'deployed' => false
+            ])->first();
+            if (isset($shiftedSourceMachine)) {
+				return response()->json([
+                    'status' => 'error',
+					'data' => '',
+					'message' => 'Machine has already been shifted.'
+                ],400);
+			}
             $completeStructure = \App\StructureTracking::where([
 				'village_id' => $this->request->moved_to_village,
 				'structure_code' => $this->request->new_structure_code,
@@ -488,6 +501,19 @@ class MachineTrackingController extends Controller
 						'message' => 'Machine can not be shifted to same structure. Please select different structure.'
 					],400);
 				}
+                $shiftedSourceMachine = MachineTracking::where([
+                    'village_id' => $this->request->moved_from_village,
+                    'structure_code' => $this->request->old_structure_code,
+                    'machine_code' => $this->request->machine_code,
+                    'deployed' => false
+                ])->first();
+                if (isset($shiftedSourceMachine)) {
+                    return response()->json([
+                        'status' => 'error',
+                        'data' => '',
+                        'message' => 'Machine has already been shifted.'
+                    ],400);
+                }
 
                 $userId = $this->request->user()->id;
                 $machine_shifted->userName = $userId;

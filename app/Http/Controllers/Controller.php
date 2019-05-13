@@ -306,4 +306,19 @@ class Controller extends BaseController
         return Jurisdiction::all()->pluck('levelName');
     }
 
+    public function getFullHierarchyUserLocation(array $userLocation, $jurisdictionTypeId)
+    {
+        $locations = \App\Location::where('jurisdiction_type_id', $jurisdictionTypeId);
+        foreach ($userLocation as $levelName => $values) {
+            $locations->whereIn($levelName . '_id', $values);
+        }
+        $getJurisdictionTypeLevels = \App\JurisdictionType::find($jurisdictionTypeId)->jurisdictions;
+        foreach ($getJurisdictionTypeLevels as $level) {
+            if (!isset($userLocation[strtolower($level)])) {
+                $userLocation[strtolower($level)] = $locations->pluck(strtolower($level) . '_id')->all();
+            }
+        }
+        return $userLocation;
+    }
+
 }
