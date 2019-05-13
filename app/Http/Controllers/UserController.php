@@ -447,7 +447,7 @@ class UserController extends Controller
         $projects =isset($project)?explode(',',$project): [];
         $organizations =isset($organization)?explode(',',$organization): [];
         $location =isset($location)?$location:[];
-        $users = User::select(['name','gender','email','role_id','project_id'])
+        $users = User::select(['name','gender','email','role_id','project_id','org_id','location'])
                 ->where('isDeleted','!=',true)
                 ->where('is_admin','!=',true)
                 ->where(function($q) use ($roles) {
@@ -472,6 +472,13 @@ class UserController extends Controller
                 })               
                 ->orderBy($field, $order)
                 ->paginate($limit);
+        
+        $users_list = [];
+        foreach($users->items() as &$user){
+            $user_data = $this->getUserAssociatedData($user);
+            array_push($users_list,$user_data);
+        }
+        //exit;
 
         $result = [];
         $result['Per Page'] = $users->perPage();
@@ -480,7 +487,7 @@ class UserController extends Controller
 
         return response()->json(['status' => 'success',
                                     'metadata' => [$result],
-                                    'data' => $users->items(),
+                                    'data' => $users_list,
                                     'message '=> ''],
                                     200);
     }

@@ -32,12 +32,11 @@ class EventTypeController extends Controller
         
         $database = $this->connectTenantDatabase($this->request);
         if ($database === null) {
-            return response()->json(['status' => 'error', 'data' => '', 'message' => 'Entity does not belong to any Organization.'], 403);
+            return response()->json(['status' => 'error', 'data' => '',
+                                    'message' => 'Entity does not belong to any Organization.'], 403);
         }
         $responseData = EventType::query()->with('surveys')
                         ->get();
-        return response()->json(['status'=>'success','data'=>$responseData ,'message'=>''],200);
+        return response()->json(['status'=>'success','data'=>$responseData ,'message'=>''], 200);
     }
-
-    
 }
