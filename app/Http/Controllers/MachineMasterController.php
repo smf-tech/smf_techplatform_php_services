@@ -300,7 +300,7 @@ class MachineMasterController extends Controller
 				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
 			}
             $userName = $this->request->user()->id;
-            $userLocation = $this->request->user()->location;
+
 			$limit = (int)$this->request->input('limit') ?:50;
 			$offset = $this->request->input('offset') ?:0;
 			$order = $this->request->input('order') ?:'desc';
@@ -309,13 +309,28 @@ class MachineMasterController extends Controller
 			$startDate = $this->request->filled('start_date') ? $this->request->start_date : Carbon::now()->subMonth()->getTimestamp();
 			$endDate = $this->request->filled('end_date') ? $this->request->end_date : Carbon::now()->getTimestamp();
 
+            $role = $this->request->user()->role_id;
+			$roleConfig = \App\RoleConfig::where('role_id', $role)->first();
+            $jurisdictionTypeId = $roleConfig->jurisdiction_type_id;
+
+			$userLocation = $this->getFullHierarchyUserLocation($this->request->user()->location, $jurisdictionTypeId);
+            $locationKeys = $this->getFormSchemaKeys($formId);
+
 			$machine_masters= MachineMaster::where('userName', $userName)
                     ->where('form_id', $formId)
-                    ->where(function($q) use ($userLocation) {
-                        foreach ($userLocation as $level => $location) {
-                            $q->whereIn('user_role_location.' . $level, $location);
+                    ->where(function($q) use ($userLocation, $locationKeys) {
+						if (!empty($locationKeys)) {
+                            foreach ($locationKeys as $locationKey) {
+                                if (isset($userLocation[$locationKey]) && !empty($userLocation[$locationKey])) {
+                                    $q->whereIn($locationKey . '_id', $userLocation[$locationKey]);
+                                }
+                            }
+                        } else {
+                            foreach ($this->request->user()->location as $level => $location) {
+                                $q->whereIn('user_role_location.' . $level, $location);
+                            }
                         }
-                    })        
+					})
                     ->whereBetween('createdDateTime', [$startDate, $endDate])                    
                     ->where('isDeleted','!=',true)
                     ->with('district','taluka')

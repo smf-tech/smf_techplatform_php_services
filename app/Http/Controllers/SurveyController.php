@@ -376,7 +376,7 @@ class SurveyController extends Controller
         }
 
         $user = $this->request->user();
-        $userLocation = $this->request->user()->location;
+
         $survey = Survey::find($survey_id);
 
         $limit = (int)$this->request->input('limit') ?:50;
@@ -387,6 +387,13 @@ class SurveyController extends Controller
         $endDate = $this->request->input('start_date') ?:Carbon::now('Asia/Calcutta')->getTimestamp();
         $startDate = $this->request->input('end_date') ?:Carbon::now('Asia/Calcutta')->subMonth()->getTimestamp();
 
+        $role = $this->request->user()->role_id;
+        $roleConfig = \App\RoleConfig::where('role_id', $role)->first();
+        $jurisdictionTypeId = $roleConfig->jurisdiction_type_id;
+
+        $userLocation = $this->getFullHierarchyUserLocation($this->request->user()->location, $jurisdictionTypeId);
+        $locationKeys = $this->getFormSchemaKeys($survey_id);
+
         if(!isset($survey->entity_id)) {
             $collection_name = 'survey_results';
             $surveyResults = DB::collection('survey_results')
@@ -394,9 +401,17 @@ class SurveyController extends Controller
                                 ->where('userName','=',$user->id)
                                 ->where('isDeleted','!=',true)
                                 ->whereBetween('createdDateTime',array($startDate,$endDate))
-                                ->where(function ($q) use ($userLocation) {
-                                    foreach ($userLocation as $level => $value) {
-                                        $q->whereIn('user_role_location.'.$level,$value);
+                                ->where(function($q) use ($userLocation, $locationKeys) {
+                                    if (!empty($locationKeys)) {
+                                        foreach ($locationKeys as $locationKey) {
+                                            if (isset($userLocation[$locationKey]) && !empty($userLocation[$locationKey])) {
+                                                $q->whereIn($locationKey, $userLocation[$locationKey]);
+                                            }
+                                        }
+                                    } else {
+                                        foreach ($this->request->user()->location as $level => $location) {
+                                            $q->whereIn('user_role_location.' . $level, $location);
+                                        }
                                     }
                                 })
                                 ->orderBy($field,$order)
@@ -408,9 +423,17 @@ class SurveyController extends Controller
                                 ->where('userName','=',$user->id)
                                 ->where('isDeleted','!=',true)
                                 ->whereBetween('createdDateTime',array($startDate,$endDate))
-                                ->where(function ($q) use ($userLocation) {
-                                    foreach ($userLocation as $level => $value) {
-                                        $q->whereIn('user_role_location.'.$level,$value);
+                                ->where(function($q) use ($userLocation, $locationKeys) {
+                                    if (!empty($locationKeys)) {
+                                        foreach ($locationKeys as $locationKey) {
+                                            if (isset($userLocation[$locationKey]) && !empty($userLocation[$locationKey])) {
+                                                $q->whereIn($locationKey, $userLocation[$locationKey]);
+                                            }
+                                        }
+                                    } else {
+                                        foreach ($this->request->user()->location as $level => $location) {
+                                            $q->whereIn('user_role_location.' . $level, $location);
+                                        }
                                     }
                                 })
                                 ->orderBy($field,$order)
@@ -693,13 +716,20 @@ class SurveyController extends Controller
         $endDate = $this->request->input('start_date') ?:Carbon::now('Asia/Calcutta')->getTimestamp();
         $startDate = $this->request->input('end_date') ?:Carbon::now('Asia/Calcutta')->subMonth()->getTimestamp();
 
+        $role = $this->request->user()->role_id;
+        $roleConfig = \App\RoleConfig::where('role_id', $role)->first();
+        $jurisdictionTypeId = $roleConfig->jurisdiction_type_id;
+
+        $userLocation = $this->getFullHierarchyUserLocation($this->request->user()->location, $jurisdictionTypeId);
+        $locationKeys = $this->getFormSchemaKeys($survey_id);
+
         $aggregateResults = DB::collection('aggregate_associations')
         ->where('form_id','=',$survey_id)
         ->where(function($q) use ($userLocation) {
-            foreach ($userLocation as $level => $location) {
-                $q->whereIn('user_role_location.' . $level, $location);
-            }
-        })            
+            foreach ($this->request->user()->location as $level => $location) {
+                    $q->whereIn('user_role_location.' . $level, $location);
+                }
+        })
         ->where('userName','=',$user->id)
         ->where('isDeleted','=',false)
         ->whereBetween('createdDateTime',array($startDate,$endDate))
@@ -726,7 +756,7 @@ class SurveyController extends Controller
         list($matrix_field_label, $matrix_fields) = $this->getMatrixdynamicFields($survey);
         foreach($aggregateResults as &$aggregateResult)
         {
-            $associated_results = $this->getAssociatedDocuments($aggregateResult['children'],$collection_name,$user->id);
+            $associated_results = $this->getAssociatedDocuments($aggregateResult['children'],$collection_name,$user->id, $userLocation, $locationKeys);
             $record_id = $aggregateResult['_id'];
             $first_iteration_flag = false;
             $matrix_fields_data =array();
@@ -772,11 +802,18 @@ class SurveyController extends Controller
 
     }
 
-    public function getAssociatedDocuments($children,$collection_name,$user_id){
+    public function getAssociatedDocuments($children,$collection_name,$user_id, $userLocation, $locationKeys){
         $results = DB::collection($collection_name)
                                 ->where('userName','=',$user_id)
                                 ->where('isDeleted','!=',true)
                                 ->whereIn('_id',$children)
+                                ->where(function($q) use ($userLocation, $locationKeys) {
+                                    foreach ($locationKeys as $locationKey) {
+                                        if (isset($userLocation[$locationKey]) && !empty($userLocation[$locationKey])) {
+                                            $q->whereIn($locationKey, $userLocation[$locationKey]);
+                                        }
+                                    }
+                                })
                                 ->get();
         return $results;
     }
