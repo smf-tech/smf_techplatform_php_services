@@ -261,7 +261,7 @@ class StructureTrackingController extends Controller
 					$structures = $query->where('status', self::COMPLETED)
 						->whereIn('village_id', $userLocation['village'])
 						->where('isDeleted',false)
-						->with('village', 'ffs', 'volunteers')
+						->with('village','taluka', 'ffs', 'volunteers')
 						->get();
                 }
 			}

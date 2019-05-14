@@ -300,7 +300,7 @@ class MachineTrackingController extends Controller
                     $machines = MachineTracking::where('deployed',true)
                                                 ->where('isDeleted','!=',true)
                                                 ->whereIn('village_id', $userLocation['village'])
-                                                ->with('village')
+                                                ->with('village','taluka')
                                                 ->get();
 				} else {
 					$deployedMachines = MachineTracking::where([
