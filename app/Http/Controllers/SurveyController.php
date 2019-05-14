@@ -263,7 +263,7 @@ class SurveyController extends Controller
                  // If the set of values are present in the collection then an update occurs and 'submit_count' gets incremented
                 // else an insert occurs and 'submit_count' gets value 1
                 if(!empty($user_submitted)){
-                    return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Entry already exists with the same values.'],400);
+                    return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Data already have been created for this structure, please change values and try again.'],400);
                 } else {
                     $form = DB::collection('survey_results')->insertGetId($fields);
 					$data['_id'] = $form;
@@ -285,7 +285,7 @@ class SurveyController extends Controller
             $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
             
             if(!empty($user_submitted)){
-                return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Entry already exists with the same values.'],400);
+                return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Data already have been created for this structure, please change values and try again.'],400);
             } else {                    
                 $form = DB::collection('entity_'.$survey->entity_id)->insertGetId($fields);
                 $data['_id'] = $form;
@@ -585,7 +585,7 @@ class SurveyController extends Controller
                     if(!empty($primaryValues)){
                         $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
                         if(!empty($user_submitted)){
-                            return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Some Entries already exists with the same values.'],400);
+                            return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Data already have been created for this structure, please change values and try again.'],400);
                         }
                     }
                 }
@@ -624,7 +624,7 @@ class SurveyController extends Controller
                     if(!empty($primaryValues)){
                         $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
                         if(!empty($user_submitted)){
-                            return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Insertion Failure!!! Entry already exists with the same values.'],400);
+                            return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Data already have been created for this structure, please change values and try again.'],400);
                         }
                     }
                     
