@@ -226,7 +226,7 @@ class StructureTrackingController extends Controller
 //						->where('userName', $this->request->user()->id)
 					 	->whereIn('village_id', $userLocation['village'])
 					 	->where('isDeleted','!=',true)
-					 	->with('village', 'ffs', 'volunteers')->get();
+					 	->with('village','taluka', 'ffs', 'volunteers')->get();
 					
 				} elseif ($this->request->filled('prepared') && $this->request->prepared === 'false') {
 					$structureCodes = [];
