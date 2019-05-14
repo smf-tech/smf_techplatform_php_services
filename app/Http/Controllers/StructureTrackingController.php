@@ -298,14 +298,28 @@ class StructureTrackingController extends Controller
 			$page = $this->request->input('page') ?:1;
 			$startDate = $this->request->filled('start_date') ? $this->request->start_date : Carbon::now()->subMonth()->getTimestamp();
 			$endDate = $this->request->filled('end_date') ? $this->request->end_date : Carbon::now()->getTimestamp();
-			$userLocation = $this->request->user()->location;
+
+            $role = $this->request->user()->role_id;
+			$roleConfig = \App\RoleConfig::where('role_id', $role)->first();
+            $jurisdictionTypeId = $roleConfig->jurisdiction_type_id;
+
+			$userLocation = $this->getFullHierarchyUserLocation($this->request->user()->location, $jurisdictionTypeId);
+            $locationKeys = $this->getFormSchemaKeys($formId);
 
 			$structures = StructureTracking::where('userName', $userName)
 					->where('form_id', $formId)
-					->where(function($q) use ($userLocation) {
-						foreach ($userLocation as $level => $location) {
-							$q->whereIn('user_role_location.' . $level, $location);
-						}
+					->where(function($q) use ($userLocation, $locationKeys) {
+						if (!empty($locationKeys)) {
+                            foreach ($locationKeys as $locationKey) {
+                                if (isset($userLocation[$locationKey]) && !empty($userLocation[$locationKey])) {
+                                    $q->whereIn($locationKey . '_id', $userLocation[$locationKey]);
+                                }
+                            }
+                        } else {
+                            foreach ($this->request->user()->location as $level => $location) {
+                                $q->whereIn('user_role_location.' . $level, $location);
+                            }
+                        }
 					})
 					->where('status', $status)
 					->where('isDeleted','!=',true)

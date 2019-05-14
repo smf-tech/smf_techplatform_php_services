@@ -604,7 +604,7 @@ class MachineTrackingController extends Controller
 				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
 			}
             $userName = $this->request->user()->id;
-            $userLocation = $this->request->user()->location;
+
 			$limit = (int)$this->request->input('limit') ?:50;
 			$offset = $this->request->input('offset') ?:0;
 			$order = $this->request->input('order') ?:'desc';
@@ -613,13 +613,28 @@ class MachineTrackingController extends Controller
 			$startDate = $this->request->filled('start_date') ? $this->request->start_date : Carbon::now()->subMonth()->getTimestamp();
 			$endDate = $this->request->filled('end_date') ? $this->request->end_date : Carbon::now()->getTimestamp();
 
+            $role = $this->request->user()->role_id;
+			$roleConfig = \App\RoleConfig::where('role_id', $role)->first();
+            $jurisdictionTypeId = $roleConfig->jurisdiction_type_id;
+
+			$userLocation = $this->getFullHierarchyUserLocation($this->request->user()->location, $jurisdictionTypeId);
+            $locationKeys = $this->getFormSchemaKeys($formId);
+
             $shifted_machines = ShiftingRecord::where('userName', $userName)
                     ->where('form_id', $formId)
-                    ->where(function($q) use ($userLocation) {
-                        foreach ($userLocation as $level => $location) {
-                            $q->whereIn('user_role_location.' . $level, $location);
+                    ->where(function($q) use ($userLocation, $locationKeys) {
+						if (!empty($locationKeys)) {
+                            foreach ($locationKeys as $locationKey) {
+                                if (isset($userLocation[$locationKey]) && !empty($userLocation[$locationKey])) {
+                                    $q->whereIn($locationKey . '_id', $userLocation[$locationKey]);
+                                }
+                            }
+                        } else {
+                            foreach ($this->request->user()->location as $level => $location) {
+                                $q->whereIn('user_role_location.' . $level, $location);
+                            }
                         }
-                    })   
+					})
                     ->where('isDeleted','!=',true)
                     ->with('movedFromVillage','movedToVillage')
                     ->with('machineTrackings')
@@ -842,7 +857,7 @@ class MachineTrackingController extends Controller
 				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
 			}
             $userName = $this->request->user()->id;
-            $userLocation = $this->request->user()->location;
+
 			$limit = (int)$this->request->input('limit') ?:50;
 			$offset = $this->request->input('offset') ?:0;
 			$order = $this->request->input('order') ?:'desc';
@@ -851,13 +866,28 @@ class MachineTrackingController extends Controller
 			$startDate = $this->request->filled('start_date') ? $this->request->start_date : Carbon::now()->subMonth()->getTimestamp();
 			$endDate = $this->request->filled('end_date') ? $this->request->end_date : Carbon::now()->getTimestamp();
 
+            $role = $this->request->user()->role_id;
+			$roleConfig = \App\RoleConfig::where('role_id', $role)->first();
+            $jurisdictionTypeId = $roleConfig->jurisdiction_type_id;
+
+			$userLocation = $this->getFullHierarchyUserLocation($this->request->user()->location, $jurisdictionTypeId);
+            $locationKeys = $this->getFormSchemaKeys($formId);
+
 			$machine_mou = MachineMou::where('userName', $userName)
                     ->where('form_id', $formId)
-                    ->where(function($q) use ($userLocation) {
-                        foreach ($userLocation as $level => $location) {
-                            $q->whereIn('user_role_location.' . $level, $location);
+                    ->where(function($q) use ($userLocation, $locationKeys) {
+						if (!empty($locationKeys)) {
+                            foreach ($locationKeys as $locationKey) {
+                                if (isset($userLocation[$locationKey]) && !empty($userLocation[$locationKey])) {
+                                    $q->whereIn($locationKey . '_id', $userLocation[$locationKey]);
+                                }
+                            }
+                        } else {
+                            foreach ($this->request->user()->location as $level => $location) {
+                                $q->whereIn('user_role_location.' . $level, $location);
+                            }
                         }
-                    })                     
+					})
                     ->whereBetween('createdDateTime', [$startDate, $endDate])
                     ->where('isDeleted','!=',true)
                     ->with('state','district','taluka')
@@ -1242,10 +1272,17 @@ class MachineTrackingController extends Controller
         $endDate = $this->request->input('start_date') ?:Carbon::now('Asia/Calcutta')->getTimestamp();
         $startDate = $this->request->input('end_date') ?:Carbon::now('Asia/Calcutta')->subMonth()->getTimestamp();
 
+        $role = $this->request->user()->role_id;
+        $roleConfig = \App\RoleConfig::where('role_id', $role)->first();
+        $jurisdictionTypeId = $roleConfig->jurisdiction_type_id;
+
+        $userLocation = $this->getFullHierarchyUserLocation($this->request->user()->location, $jurisdictionTypeId);
+        $locationKeys = $this->getFormSchemaKeys($survey_id);
+
         $aggregateResults = DB::collection('aggregate_associations')
         ->where('form_id','=',$survey_id)
 		->where(function($q) use ($userLocation) {
-            foreach ($userLocation as $level => $location) {
+            foreach ($this->request->user()->location as $level => $location) {
                 $q->whereIn('user_role_location.' . $level, $location);
             }
         })
@@ -1272,7 +1309,7 @@ class MachineTrackingController extends Controller
         list($matrix_field_label, $matrix_fields) = $this->getMatrixdynamicFields($survey);
         foreach($aggregateResults as &$aggregateResult)
         {
-            $associated_results = $this->getAssociatedDocuments($aggregateResult['children'],$collection_name,$user->id);
+            $associated_results = $this->getAssociatedDocuments($aggregateResult['children'],$collection_name,$user->id, $userLocation, $locationKeys);
             $record_id = $aggregateResult['_id'];
             $first_iteration_flag = false;
             $matrix_fields_data =array();
@@ -1317,11 +1354,18 @@ class MachineTrackingController extends Controller
 
     }
 
-    public function getAssociatedDocuments($children,$collection_name,$user_id){
+    public function getAssociatedDocuments($children,$collection_name,$user_id, $userLocation, $locationKeys){
         $results = DB::collection($collection_name)
                                 ->where('userName','=',$user_id)
                                 ->where('isDeleted','!=',true)
                                 ->whereIn('_id',$children)
+                                ->where(function($q) use ($userLocation, $locationKeys) {
+                                    foreach ($locationKeys as $locationKey) {
+                                        if (isset($userLocation[$locationKey]) && !empty($userLocation[$locationKey])) {
+                                            $q->whereIn($locationKey . '_id', $userLocation[$locationKey]);
+                                        }
+                                    }
+                                })
                                 ->get();
         return $results;
     }

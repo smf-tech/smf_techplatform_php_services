@@ -321,4 +321,32 @@ class Controller extends BaseController
         return $userLocation;
     }
 
+    public function getFormSchemaKeys($formId)
+    {
+        $keys = [];
+        $locationKeys = [];
+        $levels = array_map('strtolower', $this->getLevels()->toArray());
+        $formSchema = Survey::find($formId)->json;
+
+        foreach(json_decode($formSchema, true)['pages'] as $page) {
+            // Accessing the value of key elements to obtain the names of the questions
+            foreach($page['elements'] as $element) {
+                if($element['type'] == 'matrixdynamic'){
+                    $columns = array_key_exists('columns',$element)? $element['columns']: [];
+                    foreach($columns as $column) {
+                        $keys[] = $column['name'];
+                    }
+                }else{
+                    $keys[] = $element['name'];
+                }
+            }
+        }
+        foreach ($keys as $key) {
+            if (in_array($key, $levels)) {
+                $locationKeys[] = $key;
+            }
+        }
+        return $locationKeys;
+    }
+
 }
