@@ -312,10 +312,11 @@ class Controller extends BaseController
         foreach ($userLocation as $levelName => $values) {
             $locations->whereIn($levelName . '_id', $values);
         }
+        $data = $locations->get();
         $getJurisdictionTypeLevels = \App\JurisdictionType::find($jurisdictionTypeId)->jurisdictions;
         foreach ($getJurisdictionTypeLevels as $level) {
             if (!isset($userLocation[strtolower($level)])) {
-                $userLocation[strtolower($level)] = $locations->pluck(strtolower($level) . '_id')->all();
+                $userLocation[strtolower($level)] = $data->pluck(strtolower($level) . '_id')->unique()->values()->all();
             }
         }
         return $userLocation;
