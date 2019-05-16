@@ -766,7 +766,7 @@ class MachineTrackingController extends Controller
 				return response()->json([
                 	'status' => 'error',
                 	'data' => '',
-                    'message' => 'Insertion Failure!!! Entry already exists with the same values.'
+                    'message' => 'Data already have been created for this machine, please change values and try again.'
                 ],400);
 			}
 
