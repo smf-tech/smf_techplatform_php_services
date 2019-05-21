@@ -24,6 +24,8 @@ use App\Images;
 class MachineTrackingController extends Controller
 {
 
+    const FORM_MACHINE_DEPLOYMENT_APPROVAL_NAME = 'Machine Deployment Approval';
+
     use Helpers;
 
     protected $request;
@@ -344,6 +346,8 @@ class MachineTrackingController extends Controller
         }
 
         try {
+            $machineDeploymentApprovalFormId = Survey::where(['name.default' => self::FORM_MACHINE_DEPLOYMENT_APPROVAL_NAME])->first()->id;
+
             $primaryKeys = \App\Survey::find($form_id)->form_keys;
             $data = $this->request->all();
             $userId = $this->request->user()->id;
@@ -415,18 +419,22 @@ class MachineTrackingController extends Controller
                 ],400);
 			}
             $machineAtSource = MachineTracking::firstOrCreate([
+                'taluka_id' => $this->request->from_taluka,
                 'village_id' => $this->request->moved_from_village,
                 'structure_code' => $this->request->old_structure_code,
                 'machine_code' => $this->request->machine_code,
-                'isDeleted' => false
+                'isDeleted' => false,
+                'form_id' => $machineDeploymentApprovalFormId
             ]);
 
             $machineAtDestination = MachineTracking::firstOrCreate([
+                'taluka_id' => $this->request->to_taluka,
                 'village_id' => $this->request->moved_to_village,
                 'structure_code' => $this->request->new_structure_code,
                 'machine_code' => $this->request->machine_code,
                 'deployed' => true,
-                'isDeleted' => false
+                'isDeleted' => false,
+                'form_id' => $machineDeploymentApprovalFormId
             ]);
 
             $role = $this->request->user()->role_id;

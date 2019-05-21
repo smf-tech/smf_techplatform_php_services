@@ -27,7 +27,7 @@ class MachineTracking extends BaseModel
         'form_id',
         'isDeleted',
         'deployed',
-        // 'taluka_id',
+        'taluka_id',
         'village_id'
     ];
 

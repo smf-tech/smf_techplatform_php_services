@@ -46,7 +46,7 @@ class MachineMasterController extends Controller
 					$userVillages = $userLocation['village'];
 				}
 				$deployedMachines = MachineTracking::where([
-					'userName' => $this->request->user()->id,
+//					'userName' => $this->request->user()->id,
 					'deployed' => true,
 					])
 					->where('isDeleted', '!=', true)

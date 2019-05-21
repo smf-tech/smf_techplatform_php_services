@@ -404,7 +404,7 @@ class StructureTrackingController extends Controller
 			$structureTracking->jurisdiction_type_id = $roleConfig->jurisdiction_type_id;
             
 			$primaryKeys = \App\Survey::find($formId)->form_keys;
-			$condition = ['userName' => $userId];
+			$condition = [];
 			$associatedFields = ['ffs', 'volunteers'];
 			$associatedFields = array_merge($associatedFields, array_map('strtolower', $this->getLevels()->toArray()));
 			foreach ($data as $field => $value) {
