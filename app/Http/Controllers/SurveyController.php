@@ -1226,8 +1226,7 @@ class SurveyController extends Controller
     public function checkMachineNonUtilized($user_id,$machine_code,$work_date,$reason=null){
         $entity = Entity::where('Name', '=', 'machinenonutilization')->first();
         $collection_name = 'entity_'.$entity->id;
-        $response = DB::collection($collection_name)->where('userName','=',$user_id)
-                                                  ->where('isDeleted','=',false)
+        $response = DB::collection($collection_name)->where('isDeleted','=',false)
                                                   ->where('machine_code','=',$machine_code)
                                                   ->where('reporting_date','=',$work_date)
                                                   ->get()->first();
