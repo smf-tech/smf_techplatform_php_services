@@ -139,16 +139,41 @@ class MachineMasterController extends Controller
             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
         }
 
-        /*$values = [
-            'TH' => ['Model -1' => [200, 'A'], 'Model -2' => [210, 'A'], 'Model -3' =>[220, 'B'] ],
-            'JB' => ['Model -1' => [205, 'A'], 'Model -2' => [215,'A'], 'Model -3' =>[220, 'B']],
-            'HY' => ['Model -1' => [210, 'A'], 'Model -2' => [215,'A'], 'Model -3' =>[]],
-            'SN' => ['Model -1' => [210,'A'], 'Model -2' => [220,'A'], 'Model -3' =>[] ],
-            'KB' => ['Model -1' => [210,'B'], 'Model -2' => [220,'B'], 'Model -3' =>[] ],
-            'KM' => ['Model -1' => [210,'B'], 'Model -2' =>[], 'Model -3' =>[]],
-            'VL' => ['Model -1' => [210,'B'], 'Model -2' =>[], 'Model -3' =>[]],
-            'CT' => ['Model -1' => [320,'B'], 'Model -2' =>[], 'Model -3' =>[]]
-        ];*/
+        $model_values = [
+            'TH' => [200,210,220],
+            'JB' => [205, 215,220],
+            'HY' => [210,215],
+            'SN' => [210,220],
+            'KB' => [210,220],
+            'KM' => [210],
+            'VL' => [210],
+            'CT' => [320]
+        ];
+
+        if (! array_key_exists($this->request->input('machine_make'),$model_values) )
+        {
+            return response()->json(
+                [
+                    'status' => 'error',
+                    'data' => '',
+                    'message' => 'Please select a valid machine make'
+                ],
+                400
+            );
+        }
+
+        if (! in_array($this->request->input('machine_model'),$model_values[$this->request->input('machine_make')]) )
+        {
+            return response()->json(
+                [
+                    'status' => 'error',
+                    'data' => '',
+                    'message' => 'The selected machine model is not available for this Machine Make'
+                ],
+                400
+            );
+        }
+
 
         $data = $this->request->all();
         $userId = $this->request->user()->id;
