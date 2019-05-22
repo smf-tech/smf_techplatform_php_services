@@ -394,6 +394,7 @@ class StructureTrackingController extends Controller
 
 			$structureTracking = new StructureTracking;
 			$data['status'] = self::COMPLETED;
+            $data['updatedDateTime'] = Carbon::now()->getTimestamp();
             $structureTracking->status = $data['status'];
             $structureTracking->userName = $data['userName'] = $userId;
 			$structureTracking->form_id = $data['form_id'] = $formId;
@@ -438,7 +439,7 @@ class StructureTrackingController extends Controller
 						],
 						'form_title' => $this->generateFormTitle($formId, $existingStructure->getIdAttribute(), $structureTracking->getTable()),
                     	'createdDateTime' => $existingStructure->createdDateTime,
-                    	'updatedDateTime' => $existingStructure->updatedDateTime
+                    	'updatedDateTime' => $data['updatedDateTime']
 						],
 						'message' => 'Structure ' . $structureTracking->status . ' successfully.'
             	]);

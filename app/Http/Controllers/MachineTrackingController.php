@@ -386,6 +386,23 @@ class MachineTrackingController extends Controller
                 	'message' => 'Machine already shifted please change parameters'
                 ],400);
             }
+            $sourceMachine = MachineTracking::where([
+                'taluka_id' => $this->request->from_taluka,
+                'village_id' => $this->request->moved_from_village,
+                'structure_code' => $this->request->old_structure_code,
+                'machine_code' => $this->request->machine_code,
+                'isDeleted' => false,
+                'deployed' => true
+            ])->first();
+
+            if ($sourceMachine === null) {
+				return response()->json([
+                	'status' => 'error',
+                	'data' => '',
+                	'message' => 'Machine not deployed yet.'
+                ],400);
+			}
+
 			if ($data['old_structure_code'] === $data['new_structure_code']) {
 				return response()->json([
                 	'status' => 'error',
@@ -418,45 +435,55 @@ class MachineTrackingController extends Controller
 					'message' => 'Machine can not be shifted to completed structure.'
                 ],400);
 			}
-            $machineAtSource = MachineTracking::firstOrCreate([
-                'taluka_id' => $this->request->from_taluka,
-                'village_id' => $this->request->moved_from_village,
-                'structure_code' => $this->request->old_structure_code,
-                'machine_code' => $this->request->machine_code,
-                'isDeleted' => false,
-                'form_id' => $machineDeploymentApprovalFormId
-            ]);
+//            $machineAtSource = MachineTracking::firstOrCreate([
+//                'taluka_id' => $this->request->from_taluka,
+//                'village_id' => $this->request->moved_from_village,
+//                'structure_code' => $this->request->old_structure_code,
+//                'machine_code' => $this->request->machine_code,
+//                'isDeleted' => false,
+//                'form_id' => $machineDeploymentApprovalFormId
+//            ]);
 
-            $machineAtDestination = MachineTracking::firstOrCreate([
-                'taluka_id' => $this->request->to_taluka,
-                'village_id' => $this->request->moved_to_village,
-                'structure_code' => $this->request->new_structure_code,
-                'machine_code' => $this->request->machine_code,
-                'deployed' => true,
-                'isDeleted' => false,
-                'form_id' => $machineDeploymentApprovalFormId
-            ]);
+//            $machineAtDestination = MachineTracking::firstOrCreate([
+//                'taluka_id' => $this->request->to_taluka,
+//                'village_id' => $this->request->moved_to_village,
+//                'structure_code' => $this->request->new_structure_code,
+//                'machine_code' => $this->request->machine_code,
+//                'deployed' => true,
+//                'isDeleted' => false,
+//                'form_id' => $machineDeploymentApprovalFormId
+//            ]);
 
             $role = $this->request->user()->role_id;
             $roleConfig = \App\RoleConfig::where('role_id', $role)->first();
             $userRoleLocation = $this->request->user()->location;
             $userRoleLocation['role_id'] = $role;
 
-            $shiftingRecord->machineTrackings()->attach([$machineAtSource->id, $machineAtDestination->id]);
+            $sourceMachine->taluka_id = $this->request->to_taluka;
+            $sourceMachine->village_id = $this->request->moved_to_village;
+            $sourceMachine->structure_code = $this->request->new_structure_code;
+            $sourceMachine->updatedDateTime = Carbon::now()->getTimestamp();
+            $sourceMachine->last_deployed = $sourceMachine->date_deployed;
+            $sourceMachine->date_deployed = Carbon::now()->getTimestamp();
+            $sourceMachine->user_role_location = $userRoleLocation;
+            $sourceMachine->jurisdiction_type_id = $roleConfig->jurisdiction_type_id;
+            $sourceMachine->save();
+
+            $shiftingRecord->machineTrackings()->attach([$sourceMachine->id]);
             $shiftingRecord->user_role_location = $userRoleLocation;
             $shiftingRecord->jurisdiction_type_id = $roleConfig->jurisdiction_type_id;
             $shiftingRecord->save();
 
-            $machineAtSource->shifting_record_ids = [$shiftingRecord->id];
-            $machineAtSource->user_role_location = $userRoleLocation;
-            $machineAtSource->jurisdiction_type_id = $roleConfig->jurisdiction_type_id;
-			$machineAtSource->deployed = false;
-            $machineAtSource->save();
-
-            $machineAtDestination->user_role_location = $userRoleLocation;
-            $machineAtDestination->jurisdiction_type_id = $roleConfig->jurisdiction_type_id;            
-            $machineAtDestination->shifting_record_ids = [$shiftingRecord->id];
-            $machineAtDestination->save();
+//            $machineAtSource->shifting_record_ids = [$shiftingRecord->id];
+//            $machineAtSource->user_role_location = $userRoleLocation;
+//            $machineAtSource->jurisdiction_type_id = $roleConfig->jurisdiction_type_id;
+//			$machineAtSource->deployed = false;
+//            $machineAtSource->save();
+//
+//            $machineAtDestination->user_role_location = $userRoleLocation;
+//            $machineAtDestination->jurisdiction_type_id = $roleConfig->jurisdiction_type_id;
+//            $machineAtDestination->shifting_record_ids = [$shiftingRecord->id];
+//            $machineAtDestination->save();
 
             // $machineAtSource->shiftingRecords()->sync([$shiftingRecord->id]);
             // $machineAtSource->save();
@@ -1351,7 +1378,7 @@ class MachineTrackingController extends Controller
             $aggregateResult[$matrix_field_label] = $matrix_fields_data;
             // Excludes values 'form_id','user_id','created_at','updated_at','group_id' from the $surveyResult array
             //  and stores it in values
-            $values[] = Arr::except($aggregateResult,['survey_id','userName','updated_at','created_at']);
+            $values[] = Arr::except($aggregateResult,['survey_id','userName','updated_at','created_at', 'jurisdiction_type_id', 'user_role_location']);
         }
 
         $result['Current page'] = 'Page '.$aggregateResults->currentPage().' of '.$aggregateResults->lastPage();
