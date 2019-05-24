@@ -182,7 +182,7 @@ class MachineMasterController extends Controller
         // $machines = MachineMaster::where('machine_code','LIKE',$district->abbr.'%')->max('machine_code');
         $machines = MachineMaster::where('machine_code','LIKE',$district->abbr.'%')->orderBy('createdDateTime','desc')->first();
         // $queueValue = substr($machines,2,3) + 1;
-        $queueValue = $machines !== null ? (int) (substr($machines->machine_code,2,-6)) + 1 : 100;
+        $queueValue = $machines !== null ? (int) (substr($machines->machine_code,2,-7)) + 1 : 100;
         /*$modelNumber = $values[$this->request->input('machine_make')][$this->request->input('machine_model')];
         if(empty($modelNumber)) {
             return response()->json(
@@ -243,7 +243,7 @@ class MachineMasterController extends Controller
                 $modelcode = 'B';
             }
         }
-        $finalCode = $district->abbr.$queueValue.$this->request->input('machine_make').$this->request->input('machine_model').$modelcode;
+        $finalCode = $district->abbr.$queueValue.$this->request->input('machine_make').$this->request->input('machine_model').$modelcode.$this->request->input('machine_type');
 
         $userLocation = $this->request->user()->location;
 			// $machines = [];
