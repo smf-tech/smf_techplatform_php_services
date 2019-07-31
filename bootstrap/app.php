@@ -112,6 +112,7 @@ $app->register(App\Providers\AppServiceProvider::class);
 $app->register(App\Providers\AuthServiceProvider::class);
 $app->register(App\Providers\EventServiceProvider::class);
 
+$app->register(Jcf\Geocode\GeocodeServiceProvider::class);
 
 $app->register(Laravel\Passport\PassportServiceProvider::class);
 $app->register(Dusterio\LumenPassport\PassportServiceProvider::class);
@@ -125,6 +126,9 @@ $app->register(App\Providers\RefreshTokenServiceProvider::class);
 $app->register(LaravelFCM\FCMServiceProvider::class);
 
 Dusterio\LumenPassport\LumenPassport::routes($app);
+
+
+
 
 /*
 |--------------------------------------------------------------------------

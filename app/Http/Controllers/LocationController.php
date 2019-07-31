@@ -150,7 +150,7 @@ class LocationController extends Controller
                 'message' => 'Getting a list of all Clusters'
             ],200);
     }
-    public function getLevelData(Request $request, $orgId, $jurisdictionTypeId, $jurisdictionLevel)
+   public function getLevelData(Request $request, $orgId, $jurisdictionTypeId, $jurisdictionLevel)
     {
         $database = $this->connectTenantDatabase($request, $orgId);
         if ($database === null) {

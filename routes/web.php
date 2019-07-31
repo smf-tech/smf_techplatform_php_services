@@ -10,7 +10,7 @@
 | and give it the Closure to call when that URI is requested.
 |
 */
-
+$router->get('/tests','EventTaskController@tests');
 $router->get('/', function () use ($router) {
     return $router->app->version();
 });
@@ -28,6 +28,7 @@ $router->group(['middleware' => 'auth:api'], function($router)
 });*/
 
 $api = app('Dingo\Api\Routing\Router');
+
 $api->version('v1',function($api){
     
     $api->group(['namespace'=>'App\Http\Controllers','middleware'=>['cors']],function($api){
@@ -39,8 +40,13 @@ $api->version('v1',function($api){
         $api->get('projects/{org_id}','OrganisationController@getorgprojects');
         $api->get('states','LocationController@getstates');
         $api->get('location/level/{orgId}/{jurisdictionTypeId}/{jurisdictionLevel}','LocationController@getLevelData');
+
+         //genrated for testing purpose only
+        //url for genrating access token
+        $api->post('testlogin','ProgramController@testOtpLogin');
+		
     });
-    
+   
     $api->group(['prefix'=>'oauth'],function($api){
         $api->post('token','\Laravel\Passport\Http\Controllers\AccessTokenController@issueToken');
     });
@@ -49,11 +55,91 @@ $api->version('v1',function($api){
         //$api->get('user/{phone}','UserController@show');
         $api->get('user','UserController@getUserDetails');
         $api->get('users','UserController@getUsers');
-		
+		$api->get('test/{id}','UserController@test');
         $api->get('tasks','TaskController@show');
         $api->get('tasksOfUser','TaskController@getTask');
+		
+		
+		//new apis for events
+		
+       $api->get('statuscount/{user_id}/{org_id}','EventTaskController@statuscount');
+       $api->post('addmember','EventTaskController@addmember');
+       $api->post('deletemember','EventTaskController@deletemember');
+       $api->post('addform/','EventTaskController@addform');
+       $api->post('submitAttendanceEvent','EventTaskController@submitAttendanceEvent');
+       $api->get('generateAttendanceCode/{eventId}','EventTaskController@generateAttendanceCode');
+       $api->post('event_task','EventTaskController@event_task');
+       $api->post('getEventByMonth','EventTaskController@getEventByMonth');
+       $api->post('getEventByDay','EventTaskController@getEventByDay');
+       $api->get('getEventMembers/{eventId}','EventTaskController@getEventMembers');
+      
+       $api->post('test','ProgramController@test');
 
-        $api->get('orgs','OrganisationController@show');
+		//new apis for tasks
+		
+		$api->get('addmembertask','EventTaskController@addmembertask');
+		$api->get('deleteTask/{taskId}','EventTaskController@deleteTask');
+		$api->get('taskMarkComplete/{taskId}','EventTaskController@taskMarkComplete');
+
+
+		 
+
+       //--------------------Planner API's start ------------------//
+       //api for getting planner dashboard data
+        $api->get('plannersummary','PlannerController@getDashBoardSummary');
+       //API for getting holiday list
+        $api->get('getHolidayList/{year}/{month}','PlannerController@getHolidayList');
+        //API for getting current year holiday list
+        $api->get('getYearHolidayList','PlannerController@getYearHolidayList');
+
+        //-----------Teammanagment API's start-----------------------------
+
+        //api for teammanagment dashboard
+        $api->get('teammanagmentsummary','TeamManagmentController@getallcount');
+        //api for teammanagment filter
+        $api->get('teammanagmentfilter','TeamManagmentController@getfilterbytype');
+        //api for teammanagment userlist according to filter 
+        $api->post('getlistbyfilter','TeamManagmentController@getListByFilter');
+        //api for user detail and formlist of single user
+        $api->post('getuserbyfilter','TeamManagmentController@getUserByFilter');
+        //api for teammanagment form detail 
+        $api->post('getformdetail','TeamManagmentController@getformdetail');
+        //api for approval
+        $api->post('applicationapproval','TeamManagmentController@applicationapproval');
+        //-----------Teammanagment API''s end-----------------------------
+	
+        //----------------Attendance API's start ---------------------//			
+        //api for getting user attendance for month
+        $api->get('getuserattendance/{year}/{month}','AttendanceController@getAttendanceByMonth');
+        //api for inserting attendance record like check in or check out
+        $api->post('insertAttendance','AttendanceController@insertAttendance');
+        //------------Attendance API's end -------------------------//
+
+        //------------Leaves API's start ------------------------//
+        //api for getting leave summarized  data for user
+        $api->get('getLeavesSummary/{year}/{month}','PlannerLeavesController@getLeavesSummary');
+		$api->post('createLeave','EventTaskController@createLeave');
+		$api->post('editLeave','EventTaskController@editLeave');
+		$api->get('deleteLeave/{leaveId}','EventTaskController@deleteLeave');
+		$api->post('applyCompoff','EventTaskController@applyCompoff');
+		
+		$api->get('formss/schemaa/{form_id}','EventTaskController@getSurveyDetail');
+		$api->get('formss/resultt/{form_id}','EventTaskController@showResponses');
+        //-----------Leaves API's end -------------------------//
+
+
+        //--------------------Content Management API's start ------------------//
+           $api->get('contentDashboard','ContentMgmtController@contentDashboard');
+        //--------------------Content Management API's end ----------------//   
+
+        //-------------------Testing API's ------------------------//   
+        $api->get('getAddress','getAddressController@getGeoCodes');  
+        $api->get('getDistance','getAddressController@getDistance');  
+        $api->get('clearRecord','clearRecordController@clearRecord');  
+        //---------------- Testing API's end ------------------//
+
+
+		$api->get('orgs','OrganisationController@show');
         $api->put('users/{phone}', ['uses' => 'UserController@update']);
         $api->get('modules/{org_id}/{role_id}','RoleController@getroleconfig');
         $api->put('users/approval/{approvalLogId}', ['uses' => 'UserController@approveuser']);
@@ -151,5 +237,8 @@ $api->version('v1',function($api){
         $api->put('farmersilttransportation/{form_id}/{record_id}','SurveyController@updateFarmerSiltTransportation');
         $api->get('farmersilttransportation/{form_id}','SurveyController@showResponse');
         $api->delete('farmersilttransportation/{form_id}/{record_id}','SurveyController@deleteFormResponse'); 
+		
+		
+		
     });
 });

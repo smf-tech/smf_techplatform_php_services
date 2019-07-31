@@ -16,6 +16,7 @@ use App\NotificationSchema;
 use App\NotificationLog;
 use App\Survey;
 use App\ApprovalLog;
+use App\ApprovalsPending;
 use App\Jurisdiction;
 
 class Controller extends BaseController
@@ -240,7 +241,7 @@ class Controller extends BaseController
 		$this->connectTenantDatabase($request, $orgId);
 		$approverLog = ApprovalLog::create([
 			'entity_id' => $entityId,
-			'entity_type' => $entityType,
+			'entity_type' => "userapproval",
 			'approver_ids' => $approverIds,
 			'status' => $status,
 			'userName' => $userName,
@@ -248,7 +249,23 @@ class Controller extends BaseController
 			'createdDateTime' => \Carbon\Carbon::now()->getTimestamp(),
 			'updatedDateTime' => \Carbon\Carbon::now()->getTimestamp()
 		]);
-		return $approverLog->id;
+		
+
+		$AApprovalsPending = ApprovalsPending::where('entity_id',$entityId)->where('entity_type',$entityType)->first();
+		if(!$AApprovalsPending){
+			$AApprovalsPending = new ApprovalsPending;
+		}
+			$AApprovalsPending->entity_id = $entityId;
+			$AApprovalsPending->entity_type = "userapproval";
+			$AApprovalsPending->approver_ids = $approverIds;
+			$AApprovalsPending->status = $status;
+			$AApprovalsPending->userName = $userName;
+			$AApprovalsPending->reason = $reason;  
+			$AApprovalsPending->createdDateTime = new \MongoDB\BSON\UTCDateTime(\Carbon\Carbon::now()->getTimestamp());
+			$AApprovalsPending->updatedDateTime = new \MongoDB\BSON\UTCDateTime(\Carbon\Carbon::now()->getTimestamp());
+			$AApprovalsPending->save();
+		
+			return $AApprovalsPending->id;
 	}
 
 	/**
@@ -264,23 +281,32 @@ class Controller extends BaseController
 	{
 		$this->connectTenantDatabase($request, $orgId);
 		$roleConfig = \App\RoleConfig::where('role_id', $roleId)->first();
+		
 		$approverRoleConfig = \App\RoleConfig::where('role_id', $roleConfig->approver_role)->first();
+		
 		if ($approverRoleConfig === null) {
+			/* $approvers = \App\User::where('org_id', $orgId)->where('is_admin',true)->where('approved',true)->first();
+			print_R($approvers);die();
+			return $approvers; */
 			return [];
 		}
-		$levelDetail = \App\Jurisdiction::find($approverRoleConfig->level);
+		
+		$levelDetail = \App\Jurisdiction::find($approverRoleConfig->level); 
 		$jurisdictions = \App\JurisdictionType::where('_id',$roleConfig->jurisdiction_type_id)->pluck('jurisdictions')[0];
+		 
 		DB::setDefaultConnection('mongodb');
 		$approvers = \App\User::where('role_id', $roleConfig->approver_role);
-		foreach ($jurisdictions as $singleLevel) {
+		 foreach ($jurisdictions as $singleLevel) {
+			
 			if (isset($userLocation[strtolower($singleLevel)])) {
 				$approvers->whereIn('location.' . strtolower($singleLevel), $userLocation[strtolower($singleLevel)]);
+				
 				if ($singleLevel == $levelDetail->levelName) {
 					break;
 				}
 			}
-		}
-
+		} 
+ 
 		return $approvers->get()->all();
 	}
 
