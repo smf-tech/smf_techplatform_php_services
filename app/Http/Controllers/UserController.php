@@ -140,19 +140,19 @@ public function test($id)
 			
 				$approvalLogId = $this->addApprovalLog($this->request, $userId, self::ENTITY_USER, $approverIds, self::STATUS_PENDING, $userId," ",$update_data['org_id']);
               
-			foreach ($firebaseIds as $firebaseId) {
+			foreach ($firebaseIds as $firebaseId) {  
 				$this->sendPushNotification(
                     $this->request,
 					self::NOTIFICATION_TYPE_APPROVAL,
 					$firebaseId,
-					[
+					[ 
 						'phone' => $phone,
 						'update_status' => self::STATUS_APPROVED,
 						'approval_log_id' => $approvalLogId
                     ],
                     $update_data['org_id']
 				);
-			}
+			} 
             $user['approvers'] = $approverUsers;
             $user = $this->getUserAssociatedData($user);
 

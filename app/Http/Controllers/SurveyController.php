@@ -155,7 +155,7 @@ class SurveyController extends Controller
         $data = Survey::select('_id','name','active','approve_required','editable','multiple_entry','category_id','microservice_id','project_id','entity_id','assigned_roles','created_at')
         ->with('microservice','project','category','entity')
         ->where('assigned_roles','=',$user->role_id)->orderBy('created_at')->get();
-
+   
         foreach($data as $row)
         {
             // unset() removes the element from the 'row' object
@@ -184,21 +184,21 @@ class SurveyController extends Controller
         if ($database === null) {
             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
         }
-
+ 
         // Obtaining '_id','name','json', active','editable','multiple_entry','category_id','microservice_id','project_id','entity_id','assigned_roles','form_keys' of a Survey
         // alongwith corresponding details of 'microservice','project','category','entity'
         $entity_id = Survey::where('_id',$survey_id)->select('entity_id')->get();
         $data = Survey::with('microservice')->with('project')
         ->with('category')->with('entity')        
         ->select('category_id','microservice_id','project_id','entity_id','assigned_roles','_id','name','json','active','approve_required','editable','multiple_entry','form_keys')
-        ->find($survey_id);
-
+        ->find($survey_id); 
         // unset() removes the element from the 'row' object
+		
         unset($data->category_id);
         unset($data->microservice_id);
         unset($data->project_id);
         unset($data->entity_id);
-
+		
         if (isset($data['microservice'])) {
             $data['microservice']->route = $data['microservice']->route . '/' . $survey_id;
         }
@@ -210,6 +210,7 @@ class SurveyController extends Controller
 
     public function createResponse($survey_id)
     {
+		
         $database = $this->connectTenantDatabase($this->request);
         if ($database === null) {
             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
@@ -255,8 +256,7 @@ class SurveyController extends Controller
         $fields['submit_count'] = 1;
         $fields['updatedDateTime'] = $date->getTimestamp();
         $fields['createdDateTime'] = $date->getTimestamp();
-
-
+ 
         if($survey['entity_id'] == null) {
             $collection_name = 'survey_results';
             $fields['form_id'] = $survey_id;
@@ -267,6 +267,7 @@ class SurveyController extends Controller
 
                  // If the set of values are present in the collection then an update occurs and 'submit_count' gets incremented
                 // else an insert occurs and 'submit_count' gets value 1
+				 
                 if(!empty($user_submitted)){
                     return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Data already have been created for this structure, please change values and try again.'],400);
                 } else {
@@ -318,10 +319,43 @@ class SurveyController extends Controller
                     $approval['default.project_id'] = $user->project_id;
                     $approval['createdDateTime'] = $date->getTimestamp();
                     $approval['updatedDateTime'] = $date->getTimestamp();
-                    $approval->save();
-					$data['_id'] = $form;
+                    $approval->save(); 
+						 
+					if(empty($approverList))
+					{
+					  $approverList = User::where('is_admin',true)->where('approved',true)->where('org_id',$user->org_id);
+					}
+					 
+					foreach($approverList as $approver) {
+						$approverIds[] = $approver['id'];
+						if (isset($approver['firebase_id']) && !empty($approver['firebase_id'])) {
+							$firebaseIds[] = $approver['firebase_id'];
+						}
+						
+					}
+				$this->connectTenantDatabase($this->request);
+			
+				$form = Entity::find($survey->entity_id);
+				 $data['_id'] = $form;
+					foreach ($firebaseIds as $firebaseId) {  
+						$this->sendPushNotification(
+							$this->request,
+							self::NOTIFICATION_TYPE_FORM_FILLED,
+							$firebaseId,
+							[ 
+								'phone' => "7972627597",
+								'update_status' => self::ENTITY_FORM,
+								'approval_log_id' => $form->display_name
+							],
+							$user->org_id
+						);
+					}
+					
+					
+					
                 }
         } else {
+  	
             $collection_name = 'entity_'.$survey->entity_id;
             $fields['survey_id'] = $survey_id;
 
@@ -336,7 +370,7 @@ class SurveyController extends Controller
 
             unset($fields['submit_count']);
             $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
-            
+			 
             if(!empty($user_submitted)){
                 return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Data already have been created for this structure, please change values and try again.'],400);
             } else {     
@@ -348,6 +382,7 @@ class SurveyController extends Controller
                     $approverIds = $approver['id'];  
                     array_push($approverUsers,$approverIds);
                     } 
+					
 				$database = $this->connectTenantDatabase($this->request);
 						if ($database === null) {
 							return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
@@ -395,7 +430,41 @@ class SurveyController extends Controller
                 $ApprovalLog['createdDateTime'] = new \MongoDB\BSON\UTCDateTime($date->getTimestamp());
                 $ApprovalLog['updatedDateTime'] = new \MongoDB\BSON\UTCDateTime($date->getTimestamp());
                 $approval->save();
-                $data['_id'] = $form;
+				
+
+				if(empty($approverList))
+					{
+					  $approverList = User::where('is_admin',true)->where('approved',true)->where('org_id',$user->org_id);
+					}
+					 
+					foreach($approverList as $approver) { 
+						 
+						if (isset($approver['firebase_id']) && !empty($approver['firebase_id'])) {
+							
+							$firebaseIds[] = $approver['firebase_id'];
+						}
+						
+					}
+				  $this->connectTenantDatabase($this->request);
+			 
+				 
+				$form = Entity::find($survey->entity_id);
+				$data['_id'] = $form;
+					foreach ($firebaseIds as $firebaseId) {  
+						$this->sendPushNotification(
+							$this->request,
+							self::NOTIFICATION_TYPE_FORM_FILLED,
+							$firebaseId,
+							[ 
+								'phone' =>"7972627597",
+								'update_status' => self::ENTITY_FORM,
+								'approval_log_id' => $form->display_name
+							],
+							$user->org_id
+						);
+					}
+				
+                
             }
 
         }    
@@ -483,6 +552,8 @@ class SurveyController extends Controller
         }
 
         $user = $this->request->user();
+        // echo json_encode($user);
+        //exit;
 
         $survey = Survey::find($survey_id);
 		
@@ -526,6 +597,7 @@ class SurveyController extends Controller
                                 ->orderBy($field,$order)
                                 ->paginate($limit);
         } else { 
+		 
             $collection_name = 'entity_'.$survey->entity_id;           
             $surveyResults = DB::collection('entity_'.$survey->entity_id)
                                 ->where('survey_id','=',$survey_id)
@@ -549,18 +621,18 @@ class SurveyController extends Controller
                                 ->paginate($limit);
 
         }      
- 
+	
         if ($surveyResults->count() === 0) {
             return response()->json(['status'=>'success','metadata'=>[],'values'=>[],'message'=>'']);
         }
-        
+        	
         $createdDateTime = $surveyResults[0]['createdDateTime'];
         $responseCount = $surveyResults->count();
        
         $result = ['form'=>['form_id'=>$survey_id,'userName'=>$surveyResults[0]['userName'],'createdDateTime'=>$createdDateTime, 'submit_count'=>$responseCount]];
 
         $values = [];
-
+		
         foreach($surveyResults as &$surveyResult)
         {
             if (!isset($surveyResult['form_id'])) {
@@ -569,7 +641,9 @@ class SurveyController extends Controller
             $form_title =$this->generateFormTitle($survey,$surveyResult['_id'],$collection_name);
             $surveyResult['form_title'] = $form_title;
             $status= ApprovalsPending::where('entity_id',$survey->entity_id)->where('userName',$user->id)->select('status')->where('entity_type','form')->get();
-            $surveyResult['status']= $status[0]->status;
+            if(count($status) > 0){ 
+			$surveyResult['status']= $status[0]->status;
+			}
             // Excludes values 'form_id','user_id','created_at','updated_at' from the $surveyResult array
             //  and stores it in values
             $values[] = Arr::except($surveyResult,['survey_id','userName','createdDateTime', 'user_role_location', 'jurisdiction_type_id']);
