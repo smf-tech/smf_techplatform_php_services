@@ -29,50 +29,52 @@ use App\ApprovalsPending;
 use App\PlannerClaimCompoffRequests; 
 use App\Entity;
 use App\PlannerHolidayMaster;
+use App\PlannerAttendanceTransaction;
+use App\PlannerUserLeaveBalance;
 
 
 use Illuminate\Support\Arr;
-date_default_timezone_set('Asia/Kolkata'); 
+
 class EventTaskController extends Controller
 {
-    use Helpers;
+	use Helpers;
 
 	protected $types = [
-            'profile' => 'BJS/Images/profile',
-            'form' => 'BJS/Images/forms',
-            'story' => 'BJS/Images/stories'
-        ];
+			'profile' => 'BJS/Images/profile',
+			'form' => 'BJS/Images/forms',
+			'story' => 'BJS/Images/stories'
+		];
 
 	/**
-     *
-     * @var Request
-     */
-    protected $request;
+	 *
+	 * @var Request
+	 */
+	protected $request;
 
-    public function __construct(Request $request) 
-    {
-        $this->request = $request;
-    }
+	public function __construct(Request $request) 
+	{
+		$this->request = $request;
+	}
 
 	
 	//fetch all the data from EventType collection
 	public function getEventType(Request $request,$org_id)
 	{
 		$database = $this->connectTenantDatabase($request,$org_id);
-            if ($database === null) {
-                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
-            }
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			}
 
-        $data=EventType::all();
+		$data=EventType::all();
 		if($data)
 		{
 			$response_data = array('status' =>'success','data' => $data);
-            return response()->json($response_data,200); 
+			return response()->json($response_data,200); 
 		}
 		else
 		{
 			$response_data = array('status' =>'success' );
-            return response()->json($response_data,200); 
+			return response()->json($response_data,200); 
 		}
 	}
 	
@@ -81,20 +83,20 @@ class EventTaskController extends Controller
 	public function getEventCategory(Request $request,$org_id)
 	{
 		$database = $this->connectTenantDatabase($request,$org_id);
-            if ($database === null) {
-                return response()->json(['status' => '403', 'message' => 'error', 'data' => 'User does not belong to any Organization.'], 403);
-            }
+			if ($database === null) {
+				return response()->json(['status' => '403', 'message' => 'error', 'data' => 'User does not belong to any Organization.'], 403);
+			}
 
-        $data=EventType::select('id','name')->get();
+		$data=EventType::select('id','name')->get();
 		if($data)
 		{
 			$response_data = array('status' =>'200','message'=>'success','data' => $data);
-            return response()->json($response_data,200); 
+			return response()->json($response_data,200); 
 		}
 		else
 		{
 			$response_data = array('status' =>'300','message'=>'No events categories found...' );
-            return response()->json($response_data,200); 
+			return response()->json($response_data,200); 
 		}
 	}
 	
@@ -103,13 +105,13 @@ class EventTaskController extends Controller
 	{
 		
 		$database = $this->connectTenantDatabase($request,$org_id);
-            if ($database === null) {
-                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
-            }
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			}
 
-        $datapending=ApprovalLog::where('status','pending')->where('userName',$user_id)->get();
-        $datarejected=ApprovalLog::where('status','rejected')->where('userName',$user_id)->get();
-        $datarapproved=ApprovalLog::where('status','approved')->where('userName',$user_id)->get();
+		$datapending=ApprovalLog::where('status','pending')->where('userName',$user_id)->get();
+		$datarejected=ApprovalLog::where('status','rejected')->where('userName',$user_id)->get();
+		$datarapproved=ApprovalLog::where('status','approved')->where('userName',$user_id)->get();
 		
 		$data = array(
 		"Pending" =>count($datapending),
@@ -130,12 +132,12 @@ class EventTaskController extends Controller
 		if($maindata)
 		{
 			$response_data = array('status' =>'success','data' => $maindata);
-            return response()->json($response_data,200); 
+			return response()->json($response_data,200); 
 		}
 		else
 		{
 			$response_data = array('status' =>'No rows found please check user id');
-            return response()->json($response_data,200); 
+			return response()->json($response_data,200); 
 		}
 		
 	}
@@ -143,7 +145,7 @@ class EventTaskController extends Controller
 	//fetch all the list of members according to filter
 	public function addmember(Request $request)
 	{
-    	$request = json_decode(file_get_contents('php://input'), true);
+		$request = json_decode(file_get_contents('php://input'), true);
 		$userdetails = $this->request->user();
 		 
 		$maindata = array(); 
@@ -151,34 +153,42 @@ class EventTaskController extends Controller
 		{	
 	
 			$org_id = explode(',',$request['org_id']);
-			$maindata=User::select('name','role_id')->whereIn('org_id',$org_id)->get();
+			$maindata=User::select('name','role_id')->whereIn('org_id',$org_id);
 			
 			if($request['role'] !='')
-			{    
-				$maindata = array(); 
-				$role = explode(',',$request['role']);  
-				$maindata=User::select('name','role_id')->whereIn('org_id',$org_id)->where('phone','!=',$userdetails['phone'])->whereIn('role_id',$role)->get();
-				
-				if($request['state']!='' || $request['district']!='' || $request['taluka']!='')
+			{     
+				$role = explode(',',$request['role']);
+				$maindata->whereIn('role_id',$role);
+				  if($request['state']!='')
 				{
-					$data = $maindata ; 
 					$state = explode(',',$request['state']);
+					$maindata->whereIn('location.state',$state);
+				}
+				if($request['district']!='')
+				{
 					$district = explode(',',$request['district']);
+					$maindata->whereIn('location.district',$district);
+				}
+				if($request['taluka']!='')
+				{
 					$taluka = explode(',',$request['taluka']);
-					$maindata = array(); 
-					foreach($data as $location)
-					{
-						$maindata=User::select('name','role_id')->where('_id',$location['_id'])->orWhere->whereIn('location.district',$district)->orWhere->whereIn('location.taluka',$taluka)->get();
-						
-					}
+					$maindata->whereIn('location.taluka',$taluka);
+				}
+				if($request['village']!='')
+				{
+					$village = explode(',',$request['village']);
+					$maindata->whereIn('location.village',$village); 
 				} 
+				
 				 
 			}else{
 				$response_data = array('status' =>'404','message'=>'No Roles are Selected');
 				return response()->json($response_data,200); 
 			}
+			$tempData = $maindata->get();
+			 
 			$main =array();
-			foreach($maindata as $row)
+			foreach($tempData as $row)
 			{
 				$role_name = Role::select('display_name')->where('_id',$row['role_id'])->get();
 				
@@ -207,12 +217,12 @@ class EventTaskController extends Controller
 		if($main)
 		{
 			$response_data = array('status' =>'200','message'=>'success','data' => $main);
-            return response()->json($response_data,200); 
+			return response()->json($response_data,200); 
 		}
 		else
 		{
-			$response_data = array('status' =>'404','message'=>'error');
-            return response()->json($response_data,200); 
+			$response_data = array('status' =>'404','message'=>'No Members Found..');
+			return response()->json($response_data,200); 
 		}
 		
 	} 
@@ -231,22 +241,22 @@ class EventTaskController extends Controller
 		$projects = explode(',',$projects);	
 		unset($projects[0]);
 		$database = $this->connectTenantDatabase($request,$org_id->org_id);
-            if ($database === null) {
-                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
-            } 
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			} 
 		 
-        $maindata=Survey::select('name','entity_id')->whereIn('project_id',$projects)->get();
+		$maindata=Survey::select('name','entity_id')->whereIn('project_id',$projects)->get();
 		
 		 
 		if($maindata)
 		{
 			$response_data = array('status' =>'200','message'=>'success','data' => $maindata);
-            return response()->json($response_data,200); 
+			return response()->json($response_data,200); 
 		}
 		else
 		{
 			$response_data = array('status' =>'404','message'=>'error');
-            return response()->json($response_data,200); 
+			return response()->json($response_data,200); 
 		}
 		
 	}
@@ -257,26 +267,26 @@ class EventTaskController extends Controller
 		$org_id = $this->request->user();
 		$timestamp = Date('Y-m-d H:i:s');
 		$database = $this->connectTenantDatabase($request,$org_id->org_id);
-            if ($database === null) {
-                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
-            } 
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			} 
 		  
-        $maindata=PlannerTransactions::where('_id',$eventId)->where('is_mark_attendance_required',true)->first(); 
+		$maindata=PlannerTransactions::where('_id',$eventId)->where('is_mark_attendance_required',true)->first(); 
 		 
 		if($maindata) 
 		{
 			 
 			$otp =  rand(100000,999999); 
 			
-  		 	$maindata['mark_attendance_attributes.otp'] = $otp;
-  		 	$maindata['mark_attendance_attributes.generated_on'] = $timestamp;
-  		 	$maindata['mark_attendance_attributes.otp_ttl'] = '3600000';
-  		 	$maindata['default.org_id'] = $org_id->org_id;
-  		 	$maindata['default.updated_by'] = $org_id->_id;
-  		 	$maindata['default.updated_on'] = $timestamp;
-  		 	$maindata['default.project_id'] = $org_id->project_id[0];
+			$maindata['mark_attendance_attributes.otp'] = $otp;
+			$maindata['mark_attendance_attributes.generated_on'] = $timestamp;
+			$maindata['mark_attendance_attributes.otp_ttl'] = '3600000';
+			$maindata['default.org_id'] = $org_id->org_id;
+			$maindata['default.updated_by'] = $org_id->_id;
+			$maindata['default.updated_on'] = $timestamp;
+			$maindata['default.project_id'] = $org_id->project_id[0];
 			
-  			 try{
+			 try{
 			 $maindata->save(); 
 			}catch(Exception $e)
 			{
@@ -284,17 +294,17 @@ class EventTaskController extends Controller
 			}  
 			
 			
- 		}
+		}
 		 
 		if($maindata)
 		{
 			$response_data = array('status' =>'200','message'=>'success','AttencdenceCode' => $otp);
-            return response()->json($response_data,200); 
+			return response()->json($response_data,200); 
 		}
 		else
 		{
 			$response_data = array('status' =>'404','message'=>'Records not found');
-            return response()->json($response_data,200); 
+			return response()->json($response_data,200); 
 		}
 		
 	} 			
@@ -304,9 +314,9 @@ class EventTaskController extends Controller
 		$org_id = $this->request->user();
 		$timestamp = Date('Y-m-d H:i:s');
 		 $database = $this->connectTenantDatabase($request,$org_id->org_id);
-            if ($database === null) {
-                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
-            } 
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			} 
 		
 		$request = json_decode(file_get_contents('php://input'), true);
 		
@@ -314,7 +324,7 @@ class EventTaskController extends Controller
 		$userId = $request['userId'];	
 		$AttendanceCode = $request['AttendanceCode'];	
 		 
-        $maindata=PlannerTransactions::where('_id',$eventId)->where('is_mark_attendance_required',true)->first();
+		$maindata=PlannerTransactions::where('_id',$eventId)->where('is_mark_attendance_required',true)->first();
 		  
 		if($maindata['mark_attendance_attributes']['otp'] == $AttendanceCode)
 		{
@@ -337,7 +347,7 @@ class EventTaskController extends Controller
 						$maindata['attended_completed'] = $maindata['attended_completed'] + 1 ; 
 						}
 						else{
-							$response_data = array('status' =>'200','message'=>'Attencdence is Already Marked');
+							$response_data = array('status' =>'200','message'=>'Attendance is Already Marked');
 							return response()->json($response_data,200);
 						}
 						$maindata['participants.'.$count.'.attended_completed'] = true;
@@ -376,7 +386,7 @@ class EventTaskController extends Controller
 		}
 		else{
 			$response_data = array('status' =>'200','message'=>'Invalid OTP','data' => 'Invalid OTP');
-            return response()->json($response_data,200);
+			return response()->json($response_data,200);
 		}
 		 
 	}
@@ -388,9 +398,9 @@ class EventTaskController extends Controller
  
 		$org_id = $this->request->user();
 		$database = $this->connectTenantDatabase($request,$org_id->org_id);
-            if ($database === null) {
-                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
-            } 
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			} 
 		$requestjson = json_decode(file_get_contents('php://input'), true);
 		
 		$timestamp = Date('Y-m-d H:i:s');
@@ -400,16 +410,18 @@ class EventTaskController extends Controller
 			$maindata = PlannerTransactions::find($requestjson['_id']) ;	
 			$maindata['default.updated_by'] = $org_id['_id'];
 			$maindata['default.updated_on'] = $timestamp;
+			$actionFlag = 'edit';
 			
 		}	
 		else{
-			
+					
 			  $maindata = new PlannerTransactions;	
 			  $maindata['default.updated_by'] = "";
 			  $maindata['default.created_by'] = $org_id['_id'];
 			  $maindata['default.created_on'] = $timestamp;    
-		      $maindata['default.updated_on'] = "";
+			  $maindata['default.updated_on'] = "";
 			  $maindata['mark_complete'] = false;
+			  $actionFlag = 'insert';
 		}
 		
 		$maindata['type'] = $requestjson['type'];
@@ -443,9 +455,9 @@ class EventTaskController extends Controller
 			$maindata['is_mark_attendance_required'] = $requestjson['is_mark_attendance_required'];
 			$otp =  rand(100000,999999); 
 			$timestamp = Date('Y-m-d H:i:s');
-  		 	$maindata['mark_attendance_attributes.otp'] = $otp;
-  		 	$maindata['mark_attendance_attributes.generated_on'] = $timestamp;     
-  		 	$maindata['mark_attendance_attributes.otp_ttl'] = '3600000'; 
+			$maindata['mark_attendance_attributes.otp'] = $otp;
+			$maindata['mark_attendance_attributes.generated_on'] = $timestamp;     
+			$maindata['mark_attendance_attributes.otp_ttl'] = '3600000'; 
 		}
 		  else{
 			$maindata['is_mark_attendance_required'] = $requestjson['is_mark_attendance_required'];
@@ -453,20 +465,29 @@ class EventTaskController extends Controller
 		
 		$maindata['default.org_id'] = $org_id['org_id']; 
 		$maindata['default.project_id'] = $org_id['project_id'][0]; 
+		
 		if(isset($requestjson['participants']))
 		{		
-		$count=0;
+		  $count=0;
+		 DB::setDefaultConnection('mongodb');
 		 foreach($requestjson['participants'] as $participant)
 		 {
 			$maindata['participants.'.$count] =  $participant;
-			$maindata['participants.'.$count.'.attended_completed'] =  false;
+			$maindata['participants.'.$count.'.attended_completed'] =  false; 
 			$count++;
 		 }
-		 $maindata['participants_count'] = $count;
-		 $maindata['attended_completed'] = 0;
+		 $database = $this->connectTenantDatabase($request,$org_id->org_id);
+			 if($actionFlag == 'insert')
+			 {	
+			 	$maindata['participants_count'] = $count;
+			 }	
+			 $maindata['attended_completed'] = 0;
+		
 		}
+		
 		else {$maindata['participants'] = [];}		
 		try{
+			 // echo json_encode($maindata);die();
 			$success = $maindata->save();
 			
 			foreach($requestjson['participants'] as $row)
@@ -483,6 +504,7 @@ class EventTaskController extends Controller
 					[
 						'phone' => "9881499768",
 						'update_status' => self::NOTIFICATION_TYPE_EVENT_CREATED,
+						'model' => "Planner",
 						'approval_log_id' => "Testing"
 					],
 					$firebase_id['org_id']
@@ -497,6 +519,7 @@ class EventTaskController extends Controller
 					[
 						'phone' => "9881499768",
 						'title' => $requestjson['title'],
+						'model' => "Planner",
 						'update_status' => self::NOTIFICATION_TYPE_TASK_ASSIGN,
 						'approval_log_id' => "Testing"
 					],
@@ -509,18 +532,18 @@ class EventTaskController extends Controller
 			}catch(Exception $e)
 			{
 			$response_data = array('status' =>'200','message'=>'error','data' => $e);
-            return response()->json($response_data,200); 
+			return response()->json($response_data,200); 
 			}  
 		
 		if($success)
 		{
 			$response_data = array('status' =>'200','message'=>'success');
-            return response()->json($response_data,200); 
+			return response()->json($response_data,200); 
 		}
 		else
 		{
 			$response_data = array('status' =>'404','message'=>'success');
-            return response()->json($response_data,200); 
+			return response()->json($response_data,200); 
 		}
 		
 		
@@ -531,61 +554,74 @@ class EventTaskController extends Controller
 	{
 		$org_id = $this->request->user();
 		$database = $this->connectTenantDatabase($request,$org_id->org_id);
-            if ($database === null) {
-                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
-            } 
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			} 
 		$requestjson = json_decode(file_get_contents('php://input'), true);
-		 
+		
 		$type = $requestjson['type'];
 		$month = $requestjson['month'];
 		$year = $requestjson['year'];
-		$userId = $org_id['_id'];
-		 
-		$maindata = PlannerTransactions::select('_id','schedule.startdatetime','schedule.enddatetime','ownerid','participants.id')
-										 ->whereBetween('schedule.starttiming',array(new \MongoDB\BSON\UTCDateTime(new DateTime($year."-".$month."-01")),new \MongoDB\BSON\UTCDateTime(new DateTime($year."-".$month."-31"))))
-										 ->where('type',$type)->whereOr('schedule.starttiming',new \MongoDB\BSON\UTCDateTime(new DateTime($year."-".$month."-01")))
-										 ->whereOr('schedule.starttiming',new \MongoDB\BSON\UTCDateTime(new DateTime($year."-".$month."-31")))
-										 ->where('participants.id',$userId) 
-										 ->get();
-		$maindata1 = PlannerTransactions::select('_id','schedule.startdatetime','schedule.enddatetime','ownerid','participants.id')
-										 ->whereBetween('schedule.starttiming',array(new \MongoDB\BSON\UTCDateTime(new DateTime($year."-".$month."-01")),new \MongoDB\BSON\UTCDateTime(new DateTime($year."-".$month."-31"))))
-										 ->where('type',$type)->whereOr('schedule.starttiming',new \MongoDB\BSON\UTCDateTime(new DateTime($year."-".$month."-01")))
-										 ->whereOr('schedule.starttiming',new \MongoDB\BSON\UTCDateTime(new DateTime($year."-".$month."-31")))
-										 ->where('ownerid',$userId)
-										 ->get();
-		  
-		$mainarray = array();
-		 
-		foreach($maindata as $row)
-		{
-				$startdatetime = $row['schedule']['startdatetime'] / 1000;
-				$enddatetime = $row['schedule']['enddatetime'] / 1000;
-				for ($i=$startdatetime; $i<=$enddatetime; $i+=86400) {  
-					array_push($mainarray, date("Y-m-d", $i)); 
-				}
-				array_push($mainarray, date("Y-m-d", $enddatetime));  
-			
-		} 
-		foreach($maindata1 as $row1)
-		{
-				$startdatetime = $row1['schedule']['startdatetime'] / 1000;
-				$enddatetime = $row1['schedule']['enddatetime'] / 1000;
-				for ($i=$startdatetime; $i<=$enddatetime; $i+=86400) {  
-					array_push($mainarray, date("Y-m-d", $i)); 
-				}
-				array_push($mainarray, date("Y-m-d", $enddatetime));  
-			
+		$userId = $requestjson['userId'];
+		$start = strtotime($year."-".$month."-01");
+		$end = strtotime($year."-".$month."-31");
+		
+		$start_date_str = Carbon::createFromTimestamp($start)->toDateTimeString();
+		$start_date_time = Carbon::parse($start_date_str)->startOfDay(); 
+		$end_date_str = Carbon::createFromTimestamp($end)->toDateTimeString();
+		$end_date_time = Carbon::parse($end_date_str)->endOfDay(); 	
+		// echo  $start_date_time."-".$end_date_time;die();
+		$maindata = PlannerTransactions::whereBetween('schedule.starttiming',array(new \MongoDB\BSON\UTCDateTime(new DateTime($year."-".$month."-01")),new \MongoDB\BSON\UTCDateTime(new DateTime($year."-".$month."-31"))))->where('type',$type)->whereOr('ownerid',$userId)->whereOr('participants.id',$userId)->whereOr('schedule.starttiming',new \MongoDB\BSON\UTCDateTime(new DateTime($year."-".$month."-01")))->whereOr('schedule.starttiming',new \MongoDB\BSON\UTCDateTime(new DateTime($year."-".$month."-31")))->get();
+		// $maindata = PlannerTransactions::select('_id','schedule.startdatetime','schedule.enddatetime')->where('schedule.starttiming','<=',$start_date_time)->where('schedule.endtiming','>=',$end_date_time)->where('type',$type)->get();
+		
+		$data = array();  
+		if($maindata){
+			foreach($maindata as $row)
+			{  
+				if($row['ownerid'] == $userId ) 
+				{
+				 array_push($data,$row);
+				} 
+				else
+				{
+					if($row['participants'])
+					{
+						foreach($row['participants'] as $participants )
+						{
+							if($participants['id'] == $userId){
+								 array_push($data,$row);
+							}
+						}
+					}
+					 
+				}  
+			}		
 		}
+		 
+		$mainarray = array();
+		
+		foreach($data as $row)
+		{
+			$startdatetime = $row['schedule']['startdatetime'] / 1000;
+			$enddatetime = $row['schedule']['enddatetime'] / 1000;
+			for ($i=$startdatetime; $i<=$enddatetime; $i+=86400) {  
+				array_push($mainarray, date("Y-m-d", $i)); 
+			}
+			array_push($mainarray, date("Y-m-d", $enddatetime));  
+		}
+			
+			
+			
 		
 		if($mainarray)
 		{
 			$response_data = array('status' =>'200','message'=>'success','data' =>array_values(array_unique($mainarray)));
-            return response()->json($response_data,200); 
+			return response()->json($response_data,200); 
 		}
 		else
 		{
 			$response_data = array('status' =>'300','message'=>'No Data Found..');
-            return response()->json($response_data,200); 
+			return response()->json($response_data,200); 
 		}
 		
 	}
@@ -597,26 +633,35 @@ class EventTaskController extends Controller
 	{
 		$org_id = $this->request->user();
 		$database = $this->connectTenantDatabase($request,$org_id->org_id);
-            if ($database === null) {
-                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
-            } 
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			} 
 		$requestjson = json_decode(file_get_contents('php://input'), true);
 		
 		$type = $requestjson['type'];
 		$month = $requestjson['month'];
 		$day = $requestjson['day'];
 		$year = $requestjson['year'];
-		// $userId = $requestjson['userId'];
-		$userId = $org_id['id'];
+		 
+		 $userId = $org_id['_id'];
+		//exit;
 		$timestamp = strtotime($year."-".$month."-".$day);
-		 // echo $userId;die();
+		 
 		$start_date_str = Carbon::createFromTimestamp($timestamp)->toDateTimeString();
 		$start_date_time = Carbon::parse($start_date_str)->startOfDay(); 
+		//$start_date_time1 = $start_date_time->subDays(1); 
+		 
 		$end_date_str = Carbon::createFromTimestamp($timestamp)->toDateTimeString();
-		$end_date_time = Carbon::parse($end_date_str)->endOfDay(); 	 
-		 
-		$maindata = PlannerTransactions::whereBetween('schedule.starttiming',array(new \MongoDB\BSON\UTCDateTime(new DateTime($start_date_time)),new \MongoDB\BSON\UTCDateTime(new DateTime($end_date_time))))->where('type',$type)->get();
-		 
+		$end_date_time = Carbon::parse($end_date_str)->endOfDay(); 			 
+		//$end_date_time1 = $end_date_time->addDays(1); 			 
+		// echo $start_date_time."-".$end_date_time;  
+		$maindata = PlannerTransactions:://select('type','title','thumbnail_image','address','description','schedule','ownerid','required_forms','event_status','registration_required','is_mark_attendance_required','participants_count','attended_completed','registration_schedule')
+										where('schedule.starttiming','<=',$end_date_time)
+										->where('schedule.endtiming','>=',$start_date_time)
+										->where('type',$type)
+										->get();
+
+	 
 		$data = array(); 
 		
 		if($maindata){
@@ -625,6 +670,7 @@ class EventTaskController extends Controller
 			if($row['ownerid'] == $userId ) 
 			{
 			 array_push($data,$row);
+			  unset($data["participants"]); 
 			} 
 			else
 			{
@@ -633,6 +679,7 @@ class EventTaskController extends Controller
 					foreach($row['participants'] as $participants )
 					{
 						if($participants['id'] == $userId){
+							unset($row["participants"]); 
 							 array_push($data,$row);
 						}
 					}
@@ -647,57 +694,71 @@ class EventTaskController extends Controller
 		if(count($data)>0)
 		{
 			$response_data = array('status' =>'200','message'=>'success','data' => $data);
-            return response()->json($response_data,200); 
+			return response()->json($response_data,200); 
 		}
 		else
 		{
 			$response_data = array('status' =>'300','message'=>'No Data Found..');
-            return response()->json($response_data,200); 
+			return response()->json($response_data,200); 
 		}
 		
 	}
 	
-	
+	 
 	//Fetch all the categories of tasks
 	public function addmembertask(Request $request)
 	{ 
 		$org_id = $this->request->user();
 		$userLocation = $org_id['location'];
 		$database = $this->connectTenantDatabase($request,$org_id->org_id);
-            if ($database === null) {
-                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
-            } 
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			} 
 			 
-			$approverRoleConfig = \App\RoleConfig::where('approver_role', $org_id->role_id)->first();
-			 
+			$approverRoleConfig = \App\RoleConfig::where('approver_role', $org_id->role_id)->get();
+			$levelIds = [];
+			$jurisdictionIds = [];
+			$roleIds = [];
+			
+			foreach($approverRoleConfig as $approverData)
+			{
+				array_push($levelIds,$approverData['level']);
+				array_push($jurisdictionIds,$approverData['jurisdiction_type_id']);
+				array_push($roleIds,$approverData['role_id']);
+				
+				
+			}
+			
 			if(!empty($approverRoleConfig))
-			{ 
-				$levelDetail = \App\Jurisdiction::find($approverRoleConfig->level); 
-				$jurisdictions = \App\JurisdictionType::where('_id',$approverRoleConfig->jurisdiction_type_id)->pluck('jurisdictions')[0];
-				 
+			{  
+				$levelDetail = \App\Jurisdiction::whereIn('_id',$levelIds)->get(); 
+				$levelname = $levelDetail[0]->levelName;
+				$jurisdictions = \App\JurisdictionType::whereIn('_id',$jurisdictionIds)->pluck('jurisdictions')[0];
+				
 				DB::setDefaultConnection('mongodb'); 
-				$userList =\App\User::where('role_id', $approverRoleConfig->role_id);
+				$userList =\App\User::whereIn('role_id', $roleIds);
 				 
 					 foreach ($jurisdictions as $singleLevel) { 
 						if (isset($userLocation[strtolower($singleLevel)])) {
 							$userList->whereIn('location.' . strtolower($singleLevel), $userLocation[strtolower($singleLevel)]); 
-							if ($singleLevel == $levelDetail->levelName) {
+							if ($singleLevel == $levelname) { 
 								break;
-							}
-						}
-					} 
+							} 
+						} 
+					}  
 			}
 		 
 			$users = $userList->get(); 
-	 
+		  
 		if($users !=null)
 		{	 
-			// $username = $users->pluck('userName'); 
+			$username = $users->pluck('_id'); 
+			 
 			DB::setDefaultConnection('mongodb');
-			// $maindata=User::select('name','role_id')->whereIn('role_id',$role_id)->get();
+			$maindata=User::select('name','role_id')->whereIn('_id',$username)->get();
 			
 			$main =array();
-			foreach($users as $row)
+			foreach($maindata as $row)
 			{
 				$role_name = Role::select('display_name')->where('_id',$row['role_id'])->get();
 				
@@ -724,12 +785,12 @@ class EventTaskController extends Controller
 		if($main)
 		{
 			$response_data = array('status' =>'200','message'=>'success','data' => $main);
-            return response()->json($response_data,200); 
+			return response()->json($response_data,200); 
 		}
 		else
 		{
 			$response_data = array('status' =>'404','message'=>'No members found');
-            return response()->json($response_data,200); 
+			return response()->json($response_data,200); 
 		}
 		
 	}
@@ -738,9 +799,9 @@ class EventTaskController extends Controller
 	{
 		$org_id = $this->request->user();
 		$database = $this->connectTenantDatabase($request,$org_id->org_id);
-            if ($database === null) {
-                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
-            } 
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			} 
 		$requestjson = json_decode(file_get_contents('php://input'), true);
 		$eventDetails = PlannerTransactions::find($requestjson['eventId']);
 		
@@ -803,39 +864,82 @@ class EventTaskController extends Controller
 		 
 		$timestamp = Date('Y-m-d H:i:s');
 		$database = $this->connectTenantDatabase($request,$org_id->org_id);
-            if ($database === null) {
-                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
-            } 
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			} 
 		$requestjson = json_decode(file_get_contents('php://input'), true);
 		$start_date_str = new \MongoDB\BSON\UTCDateTime($requestjson['startdate']);
 		
-		/* $start_date_str = Carbon::createFromTimestamp($requestjson['startdate'] );
-		$startdate = new Carbon($start_date_str);
-        $startdate->timezone = 'Asia/Kolkata';
-		$startdate = $startdate->toDateTimeString(); */
 		
 		$enddate_date_str = new \MongoDB\BSON\UTCDateTime($requestjson['enddate']);
-		/* $enddate_date_str = Carbon::createFromTimestamp($requestjson['enddate'] );
-		$enddate = new Carbon($enddate_date_str);
-        $enddate->timezone = 'Asia/Kolkata';
-		$enddate = $enddate->toDateTimeString(); */
+		
 		$start_date_str1 = Carbon::createFromTimestamp($requestjson['startdate'] / 1000)->toDateTimeString();
 		$end_date_str1 = Carbon::createFromTimestamp($requestjson['enddate'] / 1000)->toDateTimeString();
 		$start_date_time1 = Carbon::parse($start_date_str1)->startOfDay();  
 		$end_date_time1 = Carbon::parse($end_date_str1)->endOfDay();
-		
+	   
+		//code to check user leave balance start here
+		$days = $start_date_time1->diffInDays($end_date_time1)+1;
+					
+		$userLeaveData = PlannerUserLeaveBalance::select('leave_balance')->where('user_id',$org_id->_id)->get();
+	   
+	   $userLeaveTypeData = $userLeaveData[0]['leave_balance'];
+	   foreach ($userLeaveTypeData as $leaveData) {
+			if($leaveData['type'] == $requestjson['leave_type'])
+			{
+				 $userLeaveBalance = $leaveData['balance'];
+
+				if(($userLeaveBalance-$days < 0))
+				{
+					$leaveBalancecResponse = array('status' =>'200','message'=>'You do not have sufficient leave balance.');
+					return response()->json($leaveBalancecResponse,200); 
+
+				}
+			}
+	   }
+
+	   //code to check user leave balance ends here
+
+
+
+		$attendanceInfo = PlannerAttendanceTransaction:://select('created_at')
+						  whereBetween('created_at',array($start_date_time1,$end_date_time1))
+						  ->where('user_id',$org_id->_id)->get();
+	   
+
+		if(count($attendanceInfo) > 0)
+		  {
+			  $response_data = array('status' =>'300','message'=>"You have marked attendance in selected date range");
+			  return response()->json($response_data,200); 
+		  }                              
+				  
+
+
 		$holidayInfo = PlannerHolidayMaster::select('holiday_date','type')
-                           ->where('Date',">=",$start_date_time1)
-                           ->where('Date',"<=",$end_date_time1)
-                           ->where('type', 'holiday')
-                           ->get();
+						   ->where('Date',">=",$start_date_time1)
+						   ->where('Date',"<=",$end_date_time1)
+						   ->where('type', 'holiday')
+						   ->get();
+
+		//echo json_encode($holidayInfo);
+		//exit;				   
 		
 		if(count($holidayInfo) == 0){
 		 
-		$PlannerLeaveApp = PlannerLeaveApplications::where('user_id',$org_id->user_id)->orWhereBetween('startdates',array($start_date_time1,$end_date_time1))->whereOr('startdates',$end_date_time1)->whereOr('enddates',$start_date_time1)->get(); 
-		 // echo json_encode($PlannerLeaveApp);die();
+		$PlannerLeaveApp = PlannerLeaveApplications::
+						  select('user_id','startdate','enddate')
+						  ->where('user_id',$org_id->_id)
+						  ->where('status.status','!=','rejected')
+						->WhereBetween('startdates',array($start_date_time1,$end_date_time1))
+						//->whereOr('startdate',">=",$start_date_time1)
+						//->whereOr('enddate',"<=",$end_date_time1)
+						->whereOr('startdates',$end_date_time1)
+						->whereOr('enddates',$start_date_time1)
+						->get(); 
+
+		 //echo json_encode($PlannerLeaveApp);die();
 		if(count($PlannerLeaveApp) > 0){
-			$response_data1 = array('status' =>'200','message'=>'Date Range is Already Applied Please Change Your Date Range');
+			$response_data1 = array('status' =>'200','message'=>'You have already applied leave on this date.Please Change Your Date.');
 			return response()->json($response_data1,200); 
 		}
 		 else{
@@ -844,8 +948,8 @@ class EventTaskController extends Controller
 		$maindata['full_half_day'] = $requestjson['full_half_day'];
 		$maindata['startdate'] = (int)$requestjson['startdate'] ;
 		$maindata['enddate'] = (int)$requestjson['enddate'];
-		$maindata['startdates'] = $start_date_str;
-		$maindata['enddates'] = $enddate_date_str;
+		$maindata['startdates'] = new \MongoDB\BSON\UTCDateTime($requestjson['startdate']);
+		$maindata['enddates'] =new \MongoDB\BSON\UTCDateTime($requestjson['enddate']);
 		$maindata['user_id'] = $requestjson['user_id'];
 		$maindata['reason'] = $requestjson['reason'];
 		$maindata['paid_leave'] = true;
@@ -857,7 +961,7 @@ class EventTaskController extends Controller
 		$maindata['default.org_id'] = $org_id['org_id'];
 		$maindata['default.updated_by'] = "";
 		$maindata['default.created_by'] = $org_id['_id'];
-	    $maindata['default.created_on'] = $timestamp;    
+		$maindata['default.created_on'] = $timestamp;    
 		$maindata['default.updated_on'] = "";
 		$maindata['default.project_id'] = $org_id['project_id'][0];
 		 // echo json_encode($maindata);die();
@@ -877,7 +981,7 @@ class EventTaskController extends Controller
 				foreach($approverList as $approver) { 
 				$approverIds = $approver['id'];  
 				
-			    array_push($approverUsers,$approverIds);
+				array_push($approverUsers,$approverIds);
 				} 
 				 
 				$ApprovalLogs = new ApprovalLog;
@@ -967,7 +1071,8 @@ class EventTaskController extends Controller
 				$response_data = array('status' =>'200','message'=>'success','data' => "Leave is not applied");
 				return response()->json($response_data,200); 
 			}
-		}
+			}
+		
 			catch(exception $e)
 			{
 				$response_data = array('status' =>'200','message'=>'success','data' => $e);
@@ -976,18 +1081,18 @@ class EventTaskController extends Controller
 		
 		if($ApprovalsPending)
 		{
-			$response_data = array('status' =>'200','message'=>'success');
-            return response()->json($response_data,200); 
+			$response_data = array('status' =>'200','message'=>'Your leave application submitted successfully');
+			return response()->json($response_data,200); 
 		}
 		else
 		{
 			$response_data = array('status' =>'404','message'=>'error');
-            return response()->json($response_data,200); 
+			return response()->json($response_data,200); 
 		}
 	}
 	}else{
 			$response_data = array('status' =>'404','message'=>'Leave Cannot be Applied, Date Range consist of Holiday.');
-            return response()->json($response_data,200); 
+			return response()->json($response_data,200); 
 	}
 	
 		
@@ -1001,9 +1106,9 @@ class EventTaskController extends Controller
 		 
 		$timestamp = Date('Y-m-d H:i:s');
 		$database = $this->connectTenantDatabase($request,$org_id->org_id);
-            if ($database === null) {
-                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
-            } 
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			} 
 		$requestjson = json_decode(file_get_contents('php://input'), true);
 		 
 		$maindata = PlannerLeaveApplications::where('_id',$requestjson['_id'])->first();
@@ -1017,9 +1122,9 @@ class EventTaskController extends Controller
 		$maindata['reason'] = $requestjson['reason']; 
 		  
 		$maindata['default.updated_by'] = $org_id['_id'];
-	    $maindata['default.updated_on'] = $timestamp;    
+		$maindata['default.updated_on'] = $timestamp;    
 		 try{
-			    $maindata->save(); 
+				$maindata->save(); 
 				$response_data = array('status' =>'200','message'=>'success');
 				return response()->json($response_data,200); 			   
 			}
@@ -1038,15 +1143,15 @@ class EventTaskController extends Controller
 		 
 		$timestamp = Date('Y-m-d H:i:s');
 		$database = $this->connectTenantDatabase($request,$org_id->org_id);
-            if ($database === null) {
-                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
-            }
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			}
 		try{
-			    $leave=PlannerLeaveApplications::find($leaveId);  
+				$leave=PlannerLeaveApplications::find($leaveId);  
 				$leave->delete();
 				
 				$ApprovalsPending=ApprovalsPending::where('entity_id',$leaveId)->first();
-			    $ApprovalsPending->delete();
+				$ApprovalsPending->delete();
 				
 				$response_data = array('status' =>'200','message'=>'success');
 				return response()->json($response_data,200); 			   
@@ -1067,12 +1172,12 @@ class EventTaskController extends Controller
 		 
 		$timestamp = Date('Y-m-d H:i:s');
 		$database = $this->connectTenantDatabase($request,$org_id->org_id);
-            if ($database === null) {
-                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
-            }
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			}
 		try{
-			    $task=PlannerTransactions::find($taskId);
-			    $task->delete($task->id);
+				$task=PlannerTransactions::find($taskId);
+				$task->delete($task->id);
 				$response_data = array('status' =>'200','message'=>'success');
 				return response()->json($response_data,200); 			   
 			}
@@ -1090,13 +1195,13 @@ class EventTaskController extends Controller
 		 
 		$timestamp = Date('Y-m-d H:i:s');
 		$database = $this->connectTenantDatabase($request,$org_id->org_id);
-            if ($database === null) {
-                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
-            }
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			}
 			
 		try{
-			    $memberlist = PlannerTransactions::select('participants')->where('_id',$eventId)->get();
-			    
+				$memberlist = PlannerTransactions::select('participants')->where('_id',$eventId)->get();
+				
 				if(count($memberlist) > 0){ 
 					$data = $memberlist[0]['participants'];
 					$response_data = array('status' =>'200','message'=>'success','data'=>$data);
@@ -1120,9 +1225,9 @@ class EventTaskController extends Controller
 		$org_id = $this->request->user();
 		$timestamp = Date('Y-m-d H:i:s'); 
 		$database = $this->connectTenantDatabase($request,$org_id->org_id);
-            if ($database === null) {
-                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
-            }	
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			}	
 			
 		$requestjson = json_decode(file_get_contents('php://input'), true);	
 		$userId = $org_id->_id;
@@ -1151,7 +1256,7 @@ class EventTaskController extends Controller
 						
 						try{
 						$maindata->save();	
-						$response_data = array('status' =>'200','message'=>'success');
+						$response_data = array('status' =>'200','message'=>'Task completed successfully');
 						return response()->json($response_data,200);
 						}catch(Exception $e)
 						{
@@ -1173,10 +1278,11 @@ class EventTaskController extends Controller
 							$maindata['default.updated_on'] = $timestamp;
 							$maindata['default.project_id'] = $org_id->project_id[0]; 
 							$maindata['mark_complete'] = true; 
+							$maindata['event_status']='Completed';
 							$maindata['attended_completed'] = count($maindata['participants']); 
 							try{
 							$maindata->save();	
-							$response_data = array('status' =>'200','message'=>'success');
+							$response_data = array('status' =>'200','message'=>'Task completed successfully');
 							return response()->json($response_data,200);
 							}catch(Exception $e)
 							{
@@ -1198,13 +1304,14 @@ class EventTaskController extends Controller
 			}
 			else{
 				$maindata['mark_complete'] = true; 
+				$maindata['event_status']='Completed';
 				$maindata['default.org_id'] = $org_id->org_id;
 				$maindata['default.updated_by'] = $org_id->_id;
 				$maindata['default.updated_on'] = $timestamp;
 				$maindata['default.project_id'] = $org_id->project_id[0]; 
 				try{
 						$maindata->save();	
-						$response_data = array('status' =>'200','message'=>'success');
+						$response_data = array('status' =>'200','message'=>'Task completed successfully');
 						return response()->json($response_data,200);
 						}catch(Exception $e)
 						{
@@ -1215,19 +1322,22 @@ class EventTaskController extends Controller
 		} else{
 					$response_data = array('status' =>'300','message'=>'error','data' =>'No Event Found..');
 					return response()->json($response_data,200);
-		     	}
+				}
 	}
 	
 	public function applyCompoff(Request $request)
 	{
 		$org_id = $this->request->user();
 		$database = $this->connectTenantDatabase($request,$org_id->org_id);
-            if ($database === null) {
-                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
-            }	
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			}	
 		$timestamp = Date('Y-m-d H:i:s');	
 		$requestjson = json_decode(file_get_contents('php://input'), true);	 
-		
+		$start_date_str = Carbon::createFromTimestamp(($requestjson['startdate'] / 1000))->toDateTimeString();
+		$end_date_str = Carbon::createFromTimestamp(($requestjson['enddate'] / 1000))->toDateTimeString();
+		$start_date_time = Carbon::parse($start_date_str)->startOfDay();  
+		$end_date_time = Carbon::parse($end_date_str)->endOfDay();  
 		$PlannerClaimCompoffRequests = PlannerClaimCompoffRequests::where('user_id',$requestjson['user_id'])
 															  ->where('startdates','>=',$start_date_time)
 															  ->where('enddates','<=',$end_date_time)
@@ -1257,10 +1367,12 @@ class EventTaskController extends Controller
 		$PlannerClaimCompoffRequests['default.created_by'] = $org_id['_id'];
 		$PlannerClaimCompoffRequests['default.created_on'] = $timestamp;    
 		$PlannerClaimCompoffRequests['default.updated_on'] = "";
-		$PlannerClaimCompoffRequests['default.project_id'] = $org_id['project_id'][0];	
-		try{
+		$PlannerClaimCompoffRequests['default.project_id'] = $org_id['project_id'][0];
+
+		try{ 
 			$PlannerClaimCompoffRequests->save();
-			$last_inserted_id = $PlannerClaimCompoffRequests->id;			
+			
+			$last_inserted_id =  $PlannerClaimCompoffRequests->id;			
 		   }
 		catch(Exception $e)
 		{
@@ -1268,13 +1380,25 @@ class EventTaskController extends Controller
 			return response()->json($response_data,200);
 		}
 		$start_date_str = Carbon::createFromTimestamp(($requestjson['startdate'] / 1000))->toDateTimeString();
-	    $end_date_str = Carbon::createFromTimestamp(($requestjson['enddate'] / 1000))->toDateTimeString();
-	    $start_date_time = Carbon::parse($start_date_str)->startOfDay();  
-	    $end_date_time = Carbon::parse($end_date_str)->endOfDay();  
+		$end_date_str = Carbon::createFromTimestamp(($requestjson['enddate'] / 1000))->toDateTimeString();
+		$start_date_time = Carbon::parse($start_date_str)->startOfDay();  
+		$end_date_time = Carbon::parse($end_date_str)->endOfDay();  
 		 
+		$approverUsers = array();
+		$approverList = $this->getApprovers($this->request, $org_id['role_id'], $org_id['location'], $org_id['org_id']);
+		  
+		$approverIds =array();
+		foreach($approverList as $approver) { 
+		$approverIds = $approver['id'];  
+		
+		array_push($approverUsers,$approverIds);
+		} 
+		$database = $this->connectTenantDatabase($request,$org_id->org_id);
+		
 		$ApprovalLogs = new ApprovalLog;
 		$ApprovalLogs['leave_type'] = "earn compoff";
 		$ApprovalLogs['entity_id'] = $last_inserted_id;
+		$ApprovalLogs['approver_ids'] = $approverUsers;
 		$ApprovalLogs['full_half_day'] = $requestjson['full_half_day'];
 		$ApprovalLogs['startdate'] = $requestjson['startdate'] ;
 		$ApprovalLogs['enddate'] = $requestjson['enddate'];
@@ -1292,8 +1416,9 @@ class EventTaskController extends Controller
 		$ApprovalLogs['default.project_id'] = $org_id['project_id'][0];	 
 		
 		try{
-			$ApprovalLogs->save();	
-		   }
+			$ApprovalLogs->save();
+			 
+			}
 		catch(Exception $e)
 		{
 			$response_data = array('status' =>'300','message'=>'error','data' => $e);
@@ -1307,6 +1432,7 @@ class EventTaskController extends Controller
 	
 		$ApprovalsPending['leave_type'] = "earn compoff";
 		$ApprovalsPending['entity_id'] = $last_inserted_id;
+		$ApprovalsPending['approver_ids'] = $approverUsers;
 		$ApprovalsPending['full_half_day'] = $requestjson['full_half_day'];
 		$ApprovalsPending['startdate'] = $requestjson['startdate'] ;
 		$ApprovalsPending['enddate'] = $requestjson['enddate'];
@@ -1324,8 +1450,8 @@ class EventTaskController extends Controller
 		$ApprovalsPending['default.updated_on'] = "";
 		$ApprovalsPending['default.project_id'] = $org_id['project_id'][0];	
 		try{
-			$ApprovalsPending->save();
-			$response_data = array('status' =>'200','message'=>'sucess','data'=>'CompOff Applied Successfully');
+			 $ApprovalsPending->save();
+			$response_data = array('status' =>'200','message'=>'Your request for CompOff is submitted Successfully','data'=>'CompOff Applied Successfully');
 			return response()->json($response_data,200);			
 		   }
 		catch(Exception $e)
@@ -1337,151 +1463,205 @@ class EventTaskController extends Controller
 	}
 	
 	 public function getSurveyDetail($survey_id)
-    {
-         $user = $this->request->user();
-        $database = $this->connectTenantDatabase($this->request);
-        if ($database === null) {
-            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
-        }
+	{
+		 $user = $this->request->user();
+		$database = $this->connectTenantDatabase($this->request);
+		if ($database === null) {
+			return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+		}
 
-        // Obtaining '_id','name','json', active','editable','multiple_entry','category_id','microservice_id','project_id','entity_id','assigned_roles','form_keys' of a Survey
-        // alongwith corresponding details of 'microservice','project','category','entity'
-        $entity_id = Survey::where('_id',$survey_id)->select('entity_id')->get();
-        $data = Survey::with('microservice')->with('project')
-        ->with('category')->with('entity')        
-        ->select('category_id','microservice_id','project_id','entity_id','assigned_roles','_id','name','json','active','approve_required','editable','multiple_entry','form_keys')
-        ->find($survey_id);
+		// Obtaining '_id','name','json', active','editable','multiple_entry','category_id','microservice_id','project_id','entity_id','assigned_roles','form_keys' of a Survey
+		// alongwith corresponding details of 'microservice','project','category','entity'
+		$entity_id = Survey::where('_id',$survey_id)->select('entity_id')->get();
+		$data = Survey::with('microservice')->with('project')
+		->with('category')->with('entity')        
+		->select('category_id','microservice_id','project_id','entity_id','assigned_roles','_id','name','json','active','approve_required','editable','multiple_entry','form_keys')
+		->find($survey_id);
 
-        // unset() removes the element from the 'row' object
-        unset($data->category_id);
-        unset($data->microservice_id);
-        unset($data->project_id);
-        unset($data->entity_id);
+		// unset() removes the element from the 'row' object
+		unset($data->category_id);
+		unset($data->microservice_id);
+		unset($data->project_id);
+		unset($data->entity_id);
 
-        if (isset($data['microservice'])) {
-            $data['microservice']->route = $data['microservice']->route . '/' . $survey_id;
-        }
-        
-        // json_decode function takes a JSON string and converts it into a PHP variable
-        $data->json = json_decode($data->json,true);
-        return response()->json(['status'=>'success','data' => $data,'message'=>'']);
-    }
+		if (isset($data['microservice'])) {
+			$data['microservice']->route = $data['microservice']->route . '/' . $survey_id;
+		}
+		
+		// json_decode function takes a JSON string and converts it into a PHP variable
+		$data->json = json_decode($data->json,true);
+		return response()->json(['status'=>'success','data' => $data,'message'=>'']);
+	}
 	
 	public function showResponses($survey_id)
-    {
-        $database = $this->connectTenantDatabase($this->request);
-        if ($database === null) {
-            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
-        }
+	{
+		$database = $this->connectTenantDatabase($this->request);
+		if ($database === null) {
+			return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+		}
 
-        $user = $this->request->user();
+		$user = $this->request->user();
 
-        $survey = Survey::find($survey_id);
+		$survey = Survey::find($survey_id);
 		
-        $limit = (int)$this->request->input('limit') ?:50;
-        $offset = $this->request->input('offset') ?:0;
-        $order = $this->request->input('order') ?:'desc';
-        $field = $this->request->input('field') ?:'createdDateTime';
-        $page = $this->request->input('page') ?:1;
-        $endDate = $this->request->input('start_date') ?:Carbon::now('Asia/Calcutta')->getTimestamp();
-        $startDate = $this->request->input('end_date') ?:Carbon::now('Asia/Calcutta')->subMonth()->getTimestamp();
+		$limit = (int)$this->request->input('limit') ?:50;
+		$offset = $this->request->input('offset') ?:0;
+		$order = $this->request->input('order') ?:'desc';
+		$field = $this->request->input('field') ?:'createdDateTime';
+		$page = $this->request->input('page') ?:1;
+		$endDate = $this->request->input('start_date') ?:Carbon::now('Asia/Calcutta')->getTimestamp();
+		$startDate = $this->request->input('end_date') ?:Carbon::now('Asia/Calcutta')->subMonth()->getTimestamp();
 	
-        $role = $this->request->user()->role_id;
-        $roleConfig = \App\RoleConfig::where('role_id', $role)->first();
-        $jurisdictionTypeId = $roleConfig->jurisdiction_type_id;
+		$role = $this->request->user()->role_id;
+		$roleConfig = \App\RoleConfig::where('role_id', $role)->first();
+		$jurisdictionTypeId = $roleConfig->jurisdiction_type_id;
 
-        $userLocation = $this->getFullHierarchyUserLocation($this->request->user()->location, $jurisdictionTypeId);
-        $locationKeys = $this->getFormSchemaKeys($survey_id);
+		$userLocation = $this->getFullHierarchyUserLocation($this->request->user()->location, $jurisdictionTypeId);
+		$locationKeys = $this->getFormSchemaKeys($survey_id);
 
 
 			
-        if(!isset($survey->entity_id)) {
-            $collection_name = 'survey_results';
-            $surveyResults = DB::collection('survey_results')
-                                ->where('form_id','=',$survey_id)
-                                ->where('userName','=',$user->id)
-                                ->where('isDeleted','!=',true)
-                                ->whereBetween('createdDateTime',array($startDate,$endDate))
-                                ->where(function($q) use ($userLocation, $locationKeys) {
-                                    if (!empty($locationKeys)) {
-                                        foreach ($locationKeys as $locationKey) {
-                                            if (isset($userLocation[$locationKey]) && !empty($userLocation[$locationKey])) {
-                                                $q->whereIn($locationKey, $userLocation[$locationKey]);
-                                            }
-                                        }
-                                    } else {
-                                        foreach ($this->request->user()->location as $level => $location) {
-                                            $q->whereIn('user_role_location.' . $level, $location);
-                                        }
-                                    }
-                                })
-                                ->orderBy($field,$order)
-                                ->paginate($limit);
-        } else { 
-            $collection_name = 'entity_'.$survey->entity_id;           
-            $surveyResults = DB::collection('entity_'.$survey->entity_id)
-                                ->where('survey_id','=',$survey_id)
-                                ->where('userName','=',$user->id)
-                                ->where('isDeleted','!=',true)
-                                ->whereBetween('createdDateTime',array($startDate,$endDate))
-                                ->where(function($q) use ($userLocation, $locationKeys) {
-                                    if (!empty($locationKeys)) {
-                                        foreach ($locationKeys as $locationKey) {
-                                            if (isset($userLocation[$locationKey]) && !empty($userLocation[$locationKey])) {
-                                                $q->whereIn($locationKey, $userLocation[$locationKey]);
-                                            }
-                                        }
-                                    } else {
-                                        foreach ($this->request->user()->location as $level => $location) {
-                                            $q->whereIn('user_role_location.' . $level, $location);
-                                        }
-                                    }
-                                })
-                                ->orderBy($field,$order)
-                                ->paginate($limit);
+		if(!isset($survey->entity_id)) {
+			$collection_name = 'survey_results';
+			$surveyResults = DB::collection('survey_results')
+								->where('form_id','=',$survey_id)
+								->where('userName','=',$user->id)
+								->where('isDeleted','!=',true)
+								->whereBetween('createdDateTime',array($startDate,$endDate))
+								->where(function($q) use ($userLocation, $locationKeys) {
+									if (!empty($locationKeys)) {
+										foreach ($locationKeys as $locationKey) {
+											if (isset($userLocation[$locationKey]) && !empty($userLocation[$locationKey])) {
+												$q->whereIn($locationKey, $userLocation[$locationKey]);
+											}
+										}
+									} else {
+										foreach ($this->request->user()->location as $level => $location) {
+											$q->whereIn('user_role_location.' . $level, $location);
+										}
+									}
+								})
+								->orderBy($field,$order)
+								->paginate($limit);
+		} else { 
+			$collection_name = 'entity_'.$survey->entity_id;           
+			$surveyResults = DB::collection('entity_'.$survey->entity_id)
+								->where('survey_id','=',$survey_id)
+								->where('userName','=',$user->id)
+								->where('isDeleted','!=',true)
+								->whereBetween('createdDateTime',array($startDate,$endDate))
+								->where(function($q) use ($userLocation, $locationKeys) {
+									if (!empty($locationKeys)) {
+										foreach ($locationKeys as $locationKey) {
+											if (isset($userLocation[$locationKey]) && !empty($userLocation[$locationKey])) {
+												$q->whereIn($locationKey, $userLocation[$locationKey]);
+											}
+										}
+									} else {
+										foreach ($this->request->user()->location as $level => $location) {
+											$q->whereIn('user_role_location.' . $level, $location);
+										}
+									}
+								})
+								->orderBy($field,$order)
+								->paginate($limit);
 
-        }      
+		}      
  
-        if ($surveyResults->count() === 0) {
-            return response()->json(['status'=>'success','metadata'=>[],'values'=>[],'message'=>'']);
-        }
-        
-        $createdDateTime = $surveyResults[0]['createdDateTime'];
-        $responseCount = $surveyResults->count();
-       
-        $result = ['form'=>['form_id'=>$survey_id,'userName'=>$surveyResults[0]['userName'],'createdDateTime'=>$createdDateTime, 'submit_count'=>$responseCount]];
+		if ($surveyResults->count() === 0) {
+			return response()->json(['status'=>'success','metadata'=>[],'values'=>[],'message'=>'']);
+		}
+		
+		$createdDateTime = $surveyResults[0]['createdDateTime'];
+		$responseCount = $surveyResults->count();
+	   
+		$result = ['form'=>['form_id'=>$survey_id,'userName'=>$surveyResults[0]['userName'],'createdDateTime'=>$createdDateTime, 'submit_count'=>$responseCount]];
 
-        $values = [];
+		$values = [];
 
-        foreach($surveyResults as &$surveyResult)
-        {
-            if (!isset($surveyResult['form_id'])) {
-                $surveyResult['form_id'] = $survey_id;
-            }
-            $form_title =$this->generateFormTitle($survey,$surveyResult['_id'],$collection_name);
-            $surveyResult['form_title'] = $form_title;
-            $status= ApprovalsPending::where('entity_id',$survey->entity_id)->where('userName',$user->id)->select('status')->where('entity_type','form')->get();
-            $surveyResult['status']= $status[0]->status;
-            // Excludes values 'form_id','user_id','created_at','updated_at' from the $surveyResult array
-            //  and stores it in values
-            $values[] = Arr::except($surveyResult,['survey_id','userName','createdDateTime', 'user_role_location', 'jurisdiction_type_id']);
-        }
+		foreach($surveyResults as &$surveyResult)
+		{
+			if (!isset($surveyResult['form_id'])) {
+				$surveyResult['form_id'] = $survey_id;
+			}
+			$form_title =$this->generateFormTitle($survey,$surveyResult['_id'],$collection_name);
+			$surveyResult['form_title'] = $form_title;
+			$status= ApprovalsPending::where('entity_id',$survey->entity_id)->where('userName',$user->id)->select('status')->where('entity_type','form')->get();
+			$surveyResult['status']= $status[0]->status;
+			// Excludes values 'form_id','user_id','created_at','updated_at' from the $surveyResult array
+			//  and stores it in values
+			$values[] = Arr::except($surveyResult,['survey_id','userName','createdDateTime', 'user_role_location', 'jurisdiction_type_id']);
+		}
 
 
-        $result['Current page'] = 'Page '.$surveyResults->currentPage().' of '.$surveyResults->lastPage();
-        $result['Total number of records'] = $surveyResults->total();
-        
-        return response()->json(['status'=>'success','metadata'=>[$result],'values'=>$values,'message'=>'']);
+		$result['Current page'] = 'Page '.$surveyResults->currentPage().' of '.$surveyResults->lastPage();
+		$result['Total number of records'] = $surveyResults->total();
+		
+		return response()->json(['status'=>'success','metadata'=>[$result],'values'=>$values,'message'=>'']);
 
-    }
+	}
 	
+
+
+	public function roleEvent(Request $request)
+	{
+		$user = $this->request->user();
+		$database = $this->connectTenantDatabase($request,$user->org_id);
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			}	
+			$approverRoleConfig = \App\RoleConfig::where('role_id', $user->role_id)->where('projects', $user->project_id[0])->get();
+			 
+			if(!empty($approverRoleConfig))
+			{ 
+				$levelDetail = \App\Jurisdiction::find($approverRoleConfig[0]->level);   
+				$jurisdictions = \App\JurisdictionType::where('_id',$approverRoleConfig[0]->jurisdiction_type_id)->pluck('jurisdictions')[0];
+				 
+				if($key = array_search($levelDetail->levelName,$jurisdictions))
+				{  
+					$levelarray = array();
+					for($i= $key;$i<=count($jurisdictions)-1;$i++)
+					{  
+						$levelId = \App\Jurisdiction::where('levelName',$jurisdictions[$i])->pluck('_id')[0]; 
+						array_push($levelarray,$levelId);
+					}
+					
+					$role = \App\RoleConfig::whereIn('level', $levelarray)->get();
+					$count = 0;
+					 
+					$roles = array();
+					DB::setDefaultConnection('mongodb');
+					foreach($role as $row)
+					{  
+						$rolename = Role::where('_id', $row['role_id'])->get();
+						// echo json_encode($rolename);
+						 if(count($rolename) > 0)
+						 {
+							 array_push($roles,$rolename);
+						 }
+						 $count++;
+					}
+					if($roles)
+					{
+						$response_data = array('status' =>'300','message'=>'sucess','data' => $roles);
+						return response()->json($response_data,200);
+					}else{
+						$response_data = array('status' =>'300','message'=>'No Roles Found..');
+						return response()->json($response_data,200);
+					}
+					
+				}					
+				
+			}
+		 
+	} 
 	public function addmembertoevent(Request $request)
 	{
 		$org_id = $this->request->user();
 		$database = $this->connectTenantDatabase($request,$org_id->org_id);
-            if ($database === null) {
-                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
-            }	
+			if ($database === null) {
+				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+			}	
 		$timestamp = Date('Y-m-d H:i:s');	
 		$requestjson = json_decode(file_get_contents('php://input'), true);	
 
@@ -1537,80 +1717,21 @@ class EventTaskController extends Controller
 			
 	}
 	
-	public function roleEvent(Request $request)
-	{
-		$user = $this->request->user();
-		$database = $this->connectTenantDatabase($request,$user->org_id);
-            if ($database === null) {
-                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
-            }	
-		    $approverRoleConfig = \App\RoleConfig::where('approver_role', $user->role_id)->first();
-			 echo json_encode($approverRoleConfig);die();
-			if(!empty($approverRoleConfig))
-			{ 
-				$levelDetail = \App\Jurisdiction::find($approverRoleConfig->level); 
-				$jurisdictions = \App\JurisdictionType::where('_id',$approverRoleConfig->jurisdiction_type_id)->pluck('jurisdictions')[0];
-				 
-				DB::setDefaultConnection('mongodb'); 
-				$userList =\App\User::where('role_id', $approverRoleConfig->role_id);
-				 
-					 foreach ($jurisdictions as $singleLevel) { 
-						if (isset($userLocation[strtolower($singleLevel)])) {
-							$userList->whereIn('location.' . strtolower($singleLevel), $userLocation[strtolower($singleLevel)]); 
-							if ($singleLevel == $levelDetail->levelName) {
-								break;
-							}
-						}
-					} 
-			}
-		 
-			$users = $userList->get(); 
-	 
-		if($users !=null)
-		{ 
-			DB::setDefaultConnection('mongodb');
-			 
-			$main =array();
-			foreach($users as $row)
-			{
-				$role_name = Role::select('display_name')->where('_id',$row['role_id'])->get();
-				
-				 if(count($role_name)==0){
-					
-				$temp_arr = array(
-				'id'=>$row['_id'],
-				'name'=>$row['name'],
-				'role_name'=>''
-				);
-				}
-				else{ 
-				$temp_arr = array(
-				'id'=>$row['_id'],
-				'name'=>$row['name'],
-				'role_name'=>$role_name[0]['display_name']
-				);
-				array_push($main,$temp_arr);  
-				}
-			}
-		
-		} 
-			
-	}
 	
 	public function push()
 	{
 		$firebaseId = "cWlN-pghHqg:APA91bEQDfyepmI68A4nwmQ6-BuwLwakRHvt0NbY9oC7ijn-BUsLfyQTE3uP-uvRcVvEv7j49TLE0Yx-9j3WVhuimEhTfSzcjZyzEVRIPE8KRJzhkYl4tnLtczZgj84rFL-qEzy4JVzN";
 		$orgId = "5c1b940ad503a31f360e1252";
-	 	$this->sendPushNotification(
-                    $this->request,
+		$this->sendPushNotification(
+					$this->request,
 					self::NOTIFICATION_TYPE_APPROVAL,
 					$firebaseId,
 					[
 						'phone' => "9881499768",
 						'update_status' => self::STATUS_APPROVED,
 						'approval_log_id' => 'title'
-                    ],
-                    $orgId
+					],
+					$orgId
 				);
 	}
 }

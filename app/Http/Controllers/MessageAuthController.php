@@ -133,7 +133,7 @@ class MessageAuthController extends Controller
         $sec=(  strtotime(date("Y/m/d H:i:s",time())) -  strtotime(date( $obj['time'] )))  ;
         
         if($otpFromServer!=$otp){
-            $response_data = array('status' =>'failed','message'=>'InCorrect OTP');
+            $response_data = array('status' =>'failed','message'=>'Incorrect OTP');
             return response()->json($response_data );
         }else if(($sec/60)>=30){
         DB::collection('user_otp_verify')->where('ph_no',$ph_no)->update(['otp'=>'', 'time'=>false]);

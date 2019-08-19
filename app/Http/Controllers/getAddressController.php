@@ -70,9 +70,10 @@ class getAddressController extends Controller
          //echo '<br/>new'. $carbonDate->toDateTimeString();
          //echo '<br/>new'. $carbonDate->toDateString();
 
-          $start_date_str = Carbon::createFromTimestamp(1562145806000/1000);
+          $start_date_str = Carbon::createFromTimestamp(1563425000000/1000);
+          
 
-          $end_date_str = Carbon::createFromTimestamp(1564824206000 /1000)->toDateTimeString();
+          $end_date_str = Carbon::createFromTimestamp(1564425000000 /1000);//->toDateTimeString();
 
           $carbonStartDate = new Carbon($start_date_str);
           $carbonStartDate->timezone = 'Asia/Kolkata';
@@ -81,10 +82,14 @@ class getAddressController extends Controller
 
           $carbonEndDate = new Carbon($end_date_str);
           $carbonEndDate->timezone = 'Asia/Kolkata';
-          $end_date = $carbonEndDate->toDateTimeString();
+         echo  $end_date = $carbonEndDate->toDateTimeString();
 
-          echo $start_date_time = Carbon::parse($start_date)->startOfDay();  
+          echo '----'.$start_date_time = Carbon::parse($start_date)->startOfDay();  
           echo '<br/>End Date'.$end_date_time = Carbon::parse($end_date)->endOfDay();
+
+         echo "<br/>Carbon difference".$diff = $start_date_str->diffInDays($end_date_str)+1;
+
+         //echo "<br/>S date function".$days =  unixtojd($start_date_str)-unixtojd($end_date_str);
 
 
 

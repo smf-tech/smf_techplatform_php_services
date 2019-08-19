@@ -80,9 +80,11 @@ class PlannerController extends Controller
 
             //select('title','thumbnail_image','default.created_by')->
             $taskData = PlannerTransactions::where('type','Task')
-                            //->where('schedule.starttiming','>=',$currentDateTime)
+                            ->where('schedule.starttiming','>=',$currentDateTime)
                             ->where('ownerid',$user->_id)    
-                            ->whereOr('participants.id',$user->_id)->where('event_status','Active')->get();
+                            ->whereOr('participants.id',$user->_id)->where('event_status','Active')
+                            ->offset(0)->limit(2)
+                            ->get();
 
                 
           
@@ -118,7 +120,7 @@ class PlannerController extends Controller
                 ]
                 ];
             
-        if($data)
+            if($data)
         {
             $response_data = array('status' =>'200', 'message' => 'success', 'data' => $data);
             return response()->json($response_data,200); 
@@ -128,31 +130,6 @@ class PlannerController extends Controller
             $response_data = array('status' =>'error','data' => 'No rows found please check user id');
             return response()->json($response_data,300); 
         }
-    }
-
-
-    public function getUserLeaveBalance(Request $request)
-    {
-            $user = $this->request->user();
-            // $all_user=User::select('role_id')->where('approve_status','pending')->get();
-            $database = $this->connectTenantDatabase($request,$user->org_id);
-            if ($database === null) {
-                return response()->json(['status' => '403', 'message' => 'error', 'data' => 'User does not belong to any Organization.'], 403);
-            }
-
-            $leaveData = PlannerUserLeaveBalance::select('leave_balance')->where('user_id',$user->_id)->get();
-
-             if($leaveData)
-            {
-                $response_data = array('status' =>'200', 'message' => 'success', 'data' => $leaveData);
-                return response()->json($response_data,200); 
-            }
-            else
-            {
-                $response_data = array('status' =>'error','data' => 'No rows found please check user id');
-                return response()->json($response_data,300); 
-            }
-
     }
 
      public function getmodules($module_ids){
@@ -231,6 +208,34 @@ class PlannerController extends Controller
             {
                 $response_data = array('status' =>300,'data' => 'No rows found','message'=>"error");
                 return response()->json($response_data,200); 
+            }
+
+    }
+
+    public function getUserLeaveBalance(Request $request)
+    {
+        $user = $this->request->user();
+        // $all_user=User::select('role_id')->where('approve_status','pending')->get();
+        $database = $this->connectTenantDatabase($request,$user->org_id);
+        if ($database === null) {
+            return response()->json(['status' => '403', 'message' => 'error', 'data' => 'User does not belong to any Organization.'], 403);
+        }
+
+        $leaveData = PlannerUserLeaveBalance::select('leave_balance')->where('user_id',$user->_id)->get();
+
+        //echo json_encode($leaveData[0]['leave_balance']);
+        //die();
+
+
+         if($leaveData)
+            {
+                $response_data = array('status' =>'200', 'message' => 'success', 'data' => $leaveData[0]['leave_balance']);
+                return response()->json($response_data,200); 
+            }
+            else
+            {
+                $response_data = array('status' =>'error','data' => 'No rows found please check user id');
+                return response()->json($response_data,300); 
             }
 
     }

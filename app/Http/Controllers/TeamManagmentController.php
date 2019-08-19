@@ -80,7 +80,7 @@ class TeamManagmentController extends Controller
             ],
             [
                 "id"=>124,
-                "approvalType"=>"Form Approval ",
+                "approvalType"=>"Form Approval",
                  "type"=>"forms",
                 "pendingCount"=>$form_count
             ],
@@ -125,6 +125,7 @@ class TeamManagmentController extends Controller
           $data = [
             [
                 "id"=>123,
+                "approvalType"=>"User Approval",
                 "type"=>"userapproval",
                 "filterSet"=>[
                     [
@@ -140,6 +141,7 @@ class TeamManagmentController extends Controller
             ],
             [
                 "id"=>123,
+                "approvalType"=>"Form Approval",
                 "type"=>"forms",
                 "filterSet"=>[
                   [ 
@@ -160,6 +162,7 @@ class TeamManagmentController extends Controller
             ],
             [
                "id"=>123,
+                "approvalType"=>"Attendance Approval",
                 "type"=>"attendance",
                 "filterSet"=>[[
                     "id"=>123,
@@ -173,6 +176,7 @@ class TeamManagmentController extends Controller
             ],
             [
                 "id"=>123,
+                "approvalType"=>"Leave Approval",
                 "type"=>"leave",
                 "filterSet"=>[[
                     "id"=>123,
@@ -589,10 +593,10 @@ class TeamManagmentController extends Controller
                                         
                     $user_id = ApprovalsPending::select('userName')
                                 ->where('entity_type','leave')
-                                //->where('approver_ids',$user->_id)
-                                //->where('created_at','>=',$start_date_time)
-                                //->where('created_at','<=',$end_date_time) 
-                                //->where('status',$approval_type)
+                                ->where('approver_ids',$user->_id)
+                                ->where('created_at','>=',$start_date_time)
+                                ->where('created_at','<=',$end_date_time) 
+                                ->where('status',$approval_type)
                                 ->get();
                            
 
@@ -622,6 +626,100 @@ class TeamManagmentController extends Controller
                     $uid = $user_id->pluck('userName');
                       //echo json_encode($uid);
                       //exit;
+                    DB::setDefaultConnection('mongodb');
+                    $usernew = User::whereIn('_id',$uid)->get();
+                    $roleData = Role::get();
+                        $i=0;
+                        foreach ($usernew as $userValues) {
+                            
+                            foreach ($roleData as $roleValue) {
+                                if($userValues['role_id'] == $roleValue['_id'])
+                                {
+                                    //echo $userValues['role_id'];
+                                   $usernew[$i]['role_id'] = $roleValue['display_name'];
+
+                                }
+                                
+                            }
+                           $i= $i+1;
+                        }
+                        //exit;
+                     if($usernew)
+                        {
+                            $response_data = array('status' =>200,'data' => $usernew,'message'=>"success");
+                            return response()->json($response_data,200); 
+                        }
+                        else
+                        {
+                            $response_data = array('status' =>300,'data' => 'No rows found please check user id','message'=>"error");
+                            return response()->json($response_data,300); 
+                        }
+
+                } 
+        }
+		 if($data['type']=='earn compoff')
+        { 
+             $database = $this->connectTenantDatabase($request,$user->org_id);
+            if ($database === null) {
+                return response()->json(['status' => '403', 'message' => 'error', 'data' => 'User does not belong to any Organization.'], 403);
+            }
+
+                $filtertype = $data['filterSet']['filterType'];
+                if(empty($filtertype)) 
+                { 
+                 
+                    $start_date_str = Carbon::createFromTimestamp((int)$data['filterSet']['start_date']/1000);
+
+                    $end_date_str = Carbon::createFromTimestamp((int)$data['filterSet']['end_date'] /1000);
+
+                    $carbonStartDate = new Carbon($start_date_str);
+                    $carbonStartDate->timezone = 'Asia/Kolkata';
+                    $start_date = $carbonStartDate->toDateTimeString();
+
+
+                    $carbonEndDate = new Carbon($end_date_str);
+                    $carbonEndDate->timezone = 'Asia/Kolkata';
+                    $end_date = $carbonEndDate->toDateTimeString();
+
+                    $start_date_time = Carbon::parse($start_date)->startOfDay();  
+                    $end_date_time = Carbon::parse($end_date)->endOfDay();
+                   
+                    if($approval_type == 'pending'){
+                                        
+                    $user_id = ApprovalsPending::select('user_id')
+                                ->where('leave_type','earn compoff')
+                                ->where('approver_ids',$user->_id)
+                                ->where('created_at','>=',$start_date_time)
+                                ->where('created_at','<=',$end_date_time) 
+                                ->where('status',$approval_type)
+                                ->get();
+                           
+
+                    }
+                    if($approval_type == 'approved') //approved
+                    {
+                        
+                        $user_id = ApprovalLog::select('user_id','status')
+                                    ->where('leave_type','earn compoff')
+                                     ->where('approver_ids',$user->_id)
+                                    ->where('status',$approval_type)
+                                    ->where('created_at','>=',$start_date_time)
+                                    ->where('created_at','<=',$end_date_time) 
+                                    ->get();
+                                     
+                                   
+                    }
+                    if($approval_type == 'rejected') 
+                    {
+                        $user_id = ApprovalLog::select('user_id')
+                                    ->where('entity_type','leave')
+                                    ->where('approver_ids',$user->_id)
+                                    ->where('created_at','>=',$start_date_time)
+                                    ->where('created_at','<=',$end_date_time)
+                                    ->where('status',$approval_type)->get();
+                    }
+                    $uid = $user_id->pluck('user_id');
+                       
                     DB::setDefaultConnection('mongodb');
                     $usernew = User::whereIn('_id',$uid)->get();
                     $roleData = Role::get();
@@ -1397,25 +1495,48 @@ class TeamManagmentController extends Controller
                 $ApprovalsPending['action_by'] = $user['_id'];
                 $ApprovalsPending['userName'] = $user['username'];
                 $Approval sPending['action_on'] = new \MongoDB\BSON\UTCDateTime(new DateTime(date('y-m-d H:i:s')));*/
-			   
-                $days =  unixtojd($data['enddate'])-unixtojd($data['startdate']);
-				if($days == 0)
+
+
+                $start_date_str = Carbon::createFromTimestamp($data['startdate']/1000);
+          
+
+                $end_date_str = Carbon::createFromTimestamp($data['enddate'] /1000);//->toDateTimeString();
+
+                $carbonStartDate = new Carbon($start_date_str);
+                $carbonStartDate->timezone = 'Asia/Kolkata';
+                $start_date = $carbonStartDate->toDateTimeString();
+
+
+                $carbonEndDate = new Carbon($end_date_str);
+                $carbonEndDate->timezone = 'Asia/Kolkata';
+                $end_date = $carbonEndDate->toDateTimeString();
+
+                $start_date_time = Carbon::parse($start_date)->startOfDay();  
+                $end_date_time = Carbon::parse($end_date)->endOfDay();
+
+                $days = $start_date_str->diffInDays($end_date_str)+1;
+
+                $leaveTypeFlag = $leave->full_half_day; 
+	 		   
+               // $days =  unixtojd()-unixtojd();
+				if($leaveTypeFlag == 'half day')
 				{
-					$days = 1;
+					$days = 0.5;
 				}
                 $leave_balance = PlannerUserLeaveBalance::where('user_id',$leave->user_id)->first();
                 $leaves = $leave_balance['leave_balance'];
 				 
                 $count = 0;
 				if($leaves){
+
                 foreach($leaves as $key=>$leaveData){
-                    if($leaveData['type'] == $data['leave_type']){
-                       $leave_balance['leave_balance.'.$count.'.balance']=$leaveData['balance'] - $days;
+                    if($leaveData['type'] == $data['leave_type'] && ($data['approve_type'] == 'approved') ){
+                        $leave_balance['leave_balance.'.$count.'.balance']=$leaveData['balance'] - $days;
                       
                     }
                 $count++;
                 } 
-				 
+				// die();
 				$leave_balance->save();
 				 
 				if($data['approve_type'] == 'approved')
@@ -1454,21 +1575,22 @@ class TeamManagmentController extends Controller
 				}
 				 
                 
-				}
+				}  
                 if($data['approve_type']=='rejected')
                 {
-                    if($data['reason']=""){
-                        $response_data = array('status' =>300,'message'=>"Please enter rejection result");
+                    if($data['reason']==""){
+                        $response_data = array('status' =>300,'message'=>"Please enter rejection Reason");
                     return response()->json($response_data,200);
                     }
-                    // $ApprovalsPending['reason'] = $data['reason'];
+                     
                 }
-				// print_R($ApprovalsPending);die();
+				 
 				if($ApprovalsPending)
                 {     $ApprovalsPending->delete();
                     }
                  $leave['status.status'] = $data['approve_type'];
-
+                 $leave['status.rejection_reason'] = $data['reason'];
+					
                 $leave->save();
 
                 if($approval_log)
@@ -1513,7 +1635,9 @@ class TeamManagmentController extends Controller
                 $ApprovalsPending->delete();
                 $attendance = PlannerAttendanceTransaction::where('_id',$id)->first();
                 $attendance['status'] = $data['approve_type'];
+                $attendance['reason'] = $data['reason'];
                 $attendanceid = $attendance['user_id'];
+
                 $attendance->save();
 				
 				$approval_log = new ApprovalLog;

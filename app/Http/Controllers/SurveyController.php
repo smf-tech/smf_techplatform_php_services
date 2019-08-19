@@ -208,9 +208,8 @@ class SurveyController extends Controller
         return response()->json(['status'=>'success','data' => $data,'message'=>'']);
     }
 
-    public function createResponse($survey_id)
+     public function createResponse($survey_id)
     {
-		
         $database = $this->connectTenantDatabase($this->request);
         if ($database === null) {
             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
@@ -222,7 +221,6 @@ class SurveyController extends Controller
         $userRole = $this->request->user()->role_id;  
         $userRoleLocation = ['role_id' => $userRole];
         $userRoleLocation = array_merge($userRoleLocation,$userLocation);
-		 
 
         $roleConfig = RoleConfig::where('role_id',$userRole)->first();
 
@@ -256,8 +254,9 @@ class SurveyController extends Controller
         $fields['submit_count'] = 1;
         $fields['updatedDateTime'] = $date->getTimestamp();
         $fields['createdDateTime'] = $date->getTimestamp();
- 
-        if($survey['entity_id'] == null) {
+
+
+        if($survey->entity_id == null) {
             $collection_name = 'survey_results';
             $fields['form_id'] = $survey_id;
 
@@ -267,95 +266,13 @@ class SurveyController extends Controller
 
                  // If the set of values are present in the collection then an update occurs and 'submit_count' gets incremented
                 // else an insert occurs and 'submit_count' gets value 1
-				 
                 if(!empty($user_submitted)){
                     return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Data already have been created for this structure, please change values and try again.'],400);
                 } else {
-
-                    $approverUsers = array();
-                    $timestamp = Date('Y-m-d H:i:s');
-                    $approverList = $this->getApprovers($this->request, $user['role_id'], $user['location'], $user['org_id']);
-                    $approverIds =array();
-                    foreach($approverList as $approver) { 
-                    $approverIds = $approver['id'];  
-                    array_push($approverUsers,$approverIds);
-                    }
-					$database = $this->connectTenantDatabase($this->request);
-					if ($database === null) {
-						return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
-					}
                     $form = DB::collection('survey_results')->insertGetId($fields);
-                    $ApprovalLog = new ApprovalLog;
-                    $ApprovalLog['entity_id']=$survey->entity_id;
-                    $ApprovalLog['entity_type']='form';
-                    $ApprovalLog['approver_ids']= $approverUsers;
-                    $ApprovalLog['status'] = 'pending';
-                    $ApprovalLog['userName']= $user->_id;
-                    $ApprovalLog['reason'] = " ";
-                    $ApprovalLog['form_id'] = (string)$form;
-                    $ApprovalLog['default.org_id'] = $user->org_id;
-                    $ApprovalLog['default.updated_by'] = "";
-                    $ApprovalLog['default.created_by'] = $user->_id;
-                    $ApprovalLog['default.created_on'] = $timestamp;    
-                    $ApprovalLog['default.updated_on'] = "";
-                    $ApprovalLog['default.project_id'] = $user->project_id;
-                    $ApprovalLog['createdDateTime'] = $date->getTimestamp();
-                    $ApprovalLog['updatedDateTime'] = $date->getTimestamp();
-                    $ApprovalLog->save();
-					
-					$approval = new ApprovalsPending;
-                    $approval['entity_id']=$survey->entity_id;
-                    $approval['entity_type']='form';
-                    $approval['approver_ids']= $approverUsers;
-                    $approval['status'] = 'pending';
-                    $approval['userName']= $user->_id;
-                    $approval['reason'] = " ";
-                    $approval['form_id'] = (string)$form;
-                    $approval['default.org_id'] = $user->org_id;
-                    $approval['default.updated_by'] = "";
-                    $approval['default.created_by'] = $user->_id;
-                    $approval['default.created_on'] = $timestamp;    
-                    $approval['default.updated_on'] = "";
-                    $approval['default.project_id'] = $user->project_id;
-                    $approval['createdDateTime'] = $date->getTimestamp();
-                    $approval['updatedDateTime'] = $date->getTimestamp();
-                    $approval->save(); 
-						 
-					if(empty($approverList))
-					{
-					  $approverList = User::where('is_admin',true)->where('approved',true)->where('org_id',$user->org_id);
-					}
-					 
-					foreach($approverList as $approver) {
-						$approverIds[] = $approver['id'];
-						if (isset($approver['firebase_id']) && !empty($approver['firebase_id'])) {
-							$firebaseIds[] = $approver['firebase_id'];
-						}
-						
-					}
-				$this->connectTenantDatabase($this->request);
-			
-				$form = Entity::find($survey->entity_id);
-				 $data['_id'] = $form;
-					foreach ($firebaseIds as $firebaseId) {  
-						$this->sendPushNotification(
-							$this->request,
-							self::NOTIFICATION_TYPE_FORM_FILLED,
-							$firebaseId,
-							[ 
-								'phone' => "7972627597",
-								'update_status' => self::ENTITY_FORM,
-								'approval_log_id' => $form->display_name
-							],
-							$user->org_id
-						);
-					}
-					
-					
-					
+                    $data['_id'] = $form;
                 }
         } else {
-  	
             $collection_name = 'entity_'.$survey->entity_id;
             $fields['survey_id'] = $survey_id;
 
@@ -370,101 +287,12 @@ class SurveyController extends Controller
 
             unset($fields['submit_count']);
             $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
-			 
+            
             if(!empty($user_submitted)){
                 return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Data already have been created for this structure, please change values and try again.'],400);
-            } else {     
-                $approverUsers = array();
-                 $timestamp = Date('Y-m-d H:i:s');
-                    $approverList = $this->getApprovers($this->request, $user['role_id'], $user['location'], $user['org_id']);
-                    $approverIds =array();
-                    foreach($approverList as $approver) { 
-                    $approverIds = $approver['id'];  
-                    array_push($approverUsers,$approverIds);
-                    } 
-					
-				$database = $this->connectTenantDatabase($this->request);
-						if ($database === null) {
-							return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
-						}					
+            } else {                    
                 $form = DB::collection('entity_'.$survey->entity_id)->insertGetId($fields);
-				
-				$ApprovalLog = new ApprovalLog;
-				$ApprovalLog['entity_id']=$survey->entity_id;
-				$ApprovalLog['entity_type']='form';
-				$ApprovalLog['approver_ids']= $approverUsers;
-				$ApprovalLog['status'] = 'pending';
-				$ApprovalLog['userName']= $user->_id;
-				$ApprovalLog['reason'] = "";
-				$ApprovalLog['form_id'] = (string)$form;
-				$ApprovalLog['default.org_id'] = $user->org_id;
-				$ApprovalLog['default.updated_by'] = "";
-				$ApprovalLog['default.created_by'] = $user->_id;
-				$ApprovalLog['default.created_on'] = $timestamp;    
-				$ApprovalLog['default.updated_on'] = "";
-				$ApprovalLog['default.project_id'] = $user->project_id;
-				$ApprovalLog['createdDateTimeing'] = $date->getTimestamp();
-				$ApprovalLog['updatedDateTimeing'] = $date->getTimestamp();
-                $ApprovalLog['createdDateTime'] = new \MongoDB\BSON\UTCDateTime($date->getTimestamp());
-                $ApprovalLog['updatedDateTime'] = new \MongoDB\BSON\UTCDateTime($date->getTimestamp());
-				$ApprovalLog->save();
-				
-				
-				
-                $approval = new ApprovalsPending;
-                $approval['entity_id']=$survey->entity_id;
-                $approval['entity_type']='form';
-                $approval['approver_ids']= $approverUsers;
-                $approval['status'] = 'pending';
-                $approval['userName']= $user->_id;
-                $approval['reason'] = "";
-                $approval['form_id'] = (string)$form;
-                $approval['default.org_id'] = $user->org_id;
-                $approval['default.updated_by'] = "";
-                $approval['default.created_by'] = $user->_id;
-                $approval['default.created_on'] = $timestamp;    
-                $approval['default.updated_on'] = "";
-                $approval['default.project_id'] = $user->project_id;
-                $ApprovalLog['createdDateTimeing'] = $date->getTimestamp();
-                $ApprovalLog['updatedDateTimeing'] = $date->getTimestamp();
-                $ApprovalLog['createdDateTime'] = new \MongoDB\BSON\UTCDateTime($date->getTimestamp());
-                $ApprovalLog['updatedDateTime'] = new \MongoDB\BSON\UTCDateTime($date->getTimestamp());
-                $approval->save();
-				
-
-				if(empty($approverList))
-					{
-					  $approverList = User::where('is_admin',true)->where('approved',true)->where('org_id',$user->org_id);
-					}
-					 
-					foreach($approverList as $approver) { 
-						 
-						if (isset($approver['firebase_id']) && !empty($approver['firebase_id'])) {
-							
-							$firebaseIds[] = $approver['firebase_id'];
-						}
-						
-					}
-				  $this->connectTenantDatabase($this->request);
-			 
-				 
-				$form = Entity::find($survey->entity_id);
-				$data['_id'] = $form;
-					foreach ($firebaseIds as $firebaseId) {  
-						$this->sendPushNotification(
-							$this->request,
-							self::NOTIFICATION_TYPE_FORM_FILLED,
-							$firebaseId,
-							[ 
-								'phone' =>"7972627597",
-								'update_status' => self::ENTITY_FORM,
-								'approval_log_id' => $form->display_name
-							],
-							$user->org_id
-						);
-					}
-				
-                
+                $data['_id'] = $form;
             }
 
         }    

@@ -196,7 +196,26 @@ class AttendanceController extends Controller
                     $attendanceData['project_id'] = $user->project_id[0];
 
                     try{
+						
+						
                        $attendanceData->save(); 
+					   
+					    DB::setDefaultConnection('mongodb');
+						$firebase_id = User::where('_id',$user->_id)->first(); 
+						 
+						$this->sendPushNotification(
+						$this->request,
+						self::NOTIFICATION_TYPE_CHECKIN,
+						$firebase_id['firebase_id'],
+						[
+							'phone' => "9881499768",
+							'update_status' => self::STATUS_PENDING,
+							'approval_log_id' => "Testing"
+						],
+						$firebase_id['org_id']
+						);
+					   
+					   
                         $attendanceData->id=$attendanceData->_id;
                        $data = [
                        "attendanceId" => $attendanceData->id
@@ -256,29 +275,30 @@ class AttendanceController extends Controller
                           $ApprovalLogs->save(); 
                           $PendingApprovers->save(); 
 						  
-							foreach($approverUsers as $row){  
+							//foreach($approverUsers as $row){  
 							
-								DB::setDefaultConnection('mongodb');
-								$firebase_id = User::where('_id',$row)->first(); 
-								$this->sendPushNotification(
-								$this->request,
-								self::NOTIFICATION_TYPE_ATTENDANCE_APPROVAL,
-								$firebase_id['firebase_id'],
-								[
-									'phone' => "9881499768",
-									'update_status' => self::STATUS_PENDING,
-									'approval_log_id' => "Testing"
-								],
-								$firebase_id['org_id']
-								); 
+								// DB::setDefaultConnection('mongodb');
+								// $firebase_id = User::where('_id',$row)->first(); 
+								// $this->sendPushNotification(
+								// $this->request,
+								// self::NOTIFICATION_TYPE_ATTENDANCE_APPROVAL,
+								// $firebase_id['firebase_id'],
+								// [
+								// 	'phone' => "9881499768",
+								// 	'update_status' => self::STATUS_PENDING,
+								// 	'approval_log_id' => "Testing"
+								// ],
+								// $firebase_id['org_id']
+								// ); 
 								  
-							}
+							//}
+							 
 						}
-                        catch(exception $e)
-                          {
-                            $response_data = array('status' =>'200','message'=>'success','data' => $e);
-                            return response()->json($response_data,200); 
-                          }
+            catch(exception $e)
+              {
+                $response_data = array('status' =>'200','message'=>'success','data' => $e);
+                return response()->json($response_data,200); 
+              }
 
 
                     }catch(Exception $e)
@@ -328,15 +348,23 @@ class AttendanceController extends Controller
                       ->get();
                       
             
-            if(count($taskData) > 0)
-             {
-                $response_data = array('status' =>'300','data' => $taskData,'message'=>"Please complete your today's task");
-                return response()->json($response_data,200); 
+            // if(count($taskData) > 0)
+            //  {
+            //     $response_data = array('status' =>'300','data' => $taskData,'message'=>"Please complete your today's task");
+            //     return response()->json($response_data,200); 
                 
-             }                            
+            //  }                            
 
             
           $attendanceData=PlannerAttendanceTransaction::where('_id',$data['attendanceId'])->where('user_id',$user->_id)->first(); 
+
+          if(isset($attendanceData['check_out.time']) && ($attendanceData['check_out.time']!='' ))
+          {
+
+             $response_data = array('status' =>300, 'data'=>$attendanceData ,'message' => 'Record is present for the date','message'=>"error");
+              return response()->json($response_data,200); 
+
+          }
 
           $response = Geocode::make()->latLng($data['lattitude'],$data['longitude']);
            
@@ -366,7 +394,7 @@ class AttendanceController extends Controller
             }  
           if($attendanceData)
           {
-            $response_data = array('status'=>200,'message'=>"success");
+            $response_data = array('status'=>200,'data'=>$attendanceData,'message'=>"success");
             return response()->json($response_data,200);
           } else
           {

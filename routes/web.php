@@ -28,7 +28,7 @@ $router->group(['middleware' => 'auth:api'], function($router)
 });*/
 
 $api = app('Dingo\Api\Routing\Router');
-
+// date_default_timezone_set('Asia/Kolkata'); 
 $api->version('v1',function($api){
     
     $api->group(['namespace'=>'App\Http\Controllers','middleware'=>['cors']],function($api){
@@ -71,9 +71,12 @@ $api->version('v1',function($api){
        $api->post('event_task','EventTaskController@event_task');
        $api->post('getEventByMonth','EventTaskController@getEventByMonth');
        $api->post('getEventByDay','EventTaskController@getEventByDay');
+       $api->post('addmembertoevent','EventTaskController@addmembertoevent');
+       $api->get('roleEvent','EventTaskController@roleEvent');
        $api->get('getEventMembers/{eventId}','EventTaskController@getEventMembers');
       
        $api->post('test','ProgramController@test');
+       $api->get('push','EventTaskController@push');
 
 		//new apis for tasks
 		
@@ -82,7 +85,10 @@ $api->version('v1',function($api){
 		$api->get('taskMarkComplete/{taskId}','EventTaskController@taskMarkComplete');
 
 
+		 //---------------------Meet API's Start-------------------
+		 $api->post('insertMeet','MeetController@insertMeet');
 		 
+		 //---------------------Meet API's End-------------------
 
        //--------------------Planner API's start ------------------//
        //api for getting planner dashboard data
@@ -91,7 +97,8 @@ $api->version('v1',function($api){
         $api->get('getHolidayList/{year}/{month}','PlannerController@getHolidayList');
         //API for getting current year holiday list
         $api->get('getYearHolidayList','PlannerController@getYearHolidayList');
-
+        //API to get user leave balance 
+        $api->get('getUserLeaveBalance','PlannerController@getUserLeaveBalance');
         //-----------Teammanagment API's start-----------------------------
 
         //api for teammanagment dashboard
@@ -113,6 +120,9 @@ $api->version('v1',function($api){
         $api->get('getuserattendance/{year}/{month}','AttendanceController@getAttendanceByMonth');
         //api for inserting attendance record like check in or check out
         $api->post('insertAttendance','AttendanceController@insertAttendance');
+        //api for getting specific date attendance record
+        $api->get('attendanceOfDate/{date}/','AttendanceController@attendanceOfDate');
+
         //------------Attendance API's end -------------------------//
 
         //------------Leaves API's start ------------------------//
