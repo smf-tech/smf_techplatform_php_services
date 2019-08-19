@@ -38,7 +38,8 @@ class MessageAuthController extends Controller
         $sendsmscall = $http->get('http://www.smsjust.com/sms/user/urlsms.php?username=avmabd&pass=avmabd@123&senderid=MVMSMF&dest_mobileno='.$ph_no.'&message=%3C%23%3E%20The%20password%20is:'.$six_digit_random_number.' '.urlencode($autoreadcode).'&response=Y');
 
         //$content = array('otp'=>$six_digit_random_number);
-        $content = array('otp'=>'');
+        //$content = array('otp'=>''); 
+        $content = array('otp'=>$encryptedOtp);
         $response_data = array('status' =>'success','data' => $content,'message'=>'Otp Sent successfully');
 	    return response()->json($response_data);      
     }
@@ -54,7 +55,7 @@ class MessageAuthController extends Controller
         $sec=(  strtotime(date("Y/m/d H:i:s",time())) -  strtotime(date( $obj['time'] )))  ;
         
         if($otpFromServer!=$otp){
-            $response_data = array('status' =>'failed','data' => '','message'=>'InCorrect OTP');
+            $response_data = array('status' =>'failed','data' => '','message'=>'Incorrect OTP');
             return response()->json($response_data );
         }else if(($sec/60)>=30){
         DB::collection('user_otp_verify')->where('ph_no',$ph_no)->update(['otp'=>'', 'time'=>false]);
@@ -132,12 +133,12 @@ class MessageAuthController extends Controller
         $sec=(  strtotime(date("Y/m/d H:i:s",time())) -  strtotime(date( $obj['time'] )))  ;
         
         if($otpFromServer!=$otp){
-            $response_data = array('status' =>'failed','data' => '','message'=>'InCorrect OTP');
+            $response_data = array('status' =>'failed','message'=>'Incorrect OTP');
             return response()->json($response_data );
         }else if(($sec/60)>=30){
         DB::collection('user_otp_verify')->where('ph_no',$ph_no)->update(['otp'=>'', 'time'=>false]);
 
-            $response_data = array('status' =>'failed','data' => '','message'=>'OTP Expired');
+            $response_data = array('status' =>'failed','message'=>'OTP Expired');
             return response()->json($response_data );
 
         }else{

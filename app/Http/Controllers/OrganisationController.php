@@ -62,7 +62,7 @@ class OrganisationController extends Controller
                 }
             }
         }
-        $response_data = array('status' =>'success','data' => $organisations,'message'=>'');
+        $response_data = array('status' =>200,'data' => $organisations,'message'=>'success');
         return response()->json($response_data);
     }
 

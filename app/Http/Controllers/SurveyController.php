@@ -21,6 +21,8 @@ use Validator;
 use Illuminate\Support\Facades\Input;
 use \DateTime;
 use App\RoleConfig;
+use App\ApprovalLog;
+use App\ApprovalsPending;
 
 class SurveyController extends Controller
 {
@@ -150,10 +152,10 @@ class SurveyController extends Controller
 
         // Obtaining '_id','name','active','editable','multiple_entry','category_id','microservice_id','project_id','entity_id','assigned_roles' of Surveys
         // alongwith corresponding details of 'microservice','project','category','entity'
-        $data = Survey::select('_id','name','active','editable','multiple_entry','category_id','microservice_id','project_id','entity_id','assigned_roles','created_at')
+        $data = Survey::select('_id','name','active','approve_required','editable','multiple_entry','category_id','microservice_id','project_id','entity_id','assigned_roles','created_at')
         ->with('microservice','project','category','entity')
         ->where('assigned_roles','=',$user->role_id)->orderBy('created_at')->get();
-
+   
         foreach($data as $row)
         {
             // unset() removes the element from the 'row' object
@@ -177,24 +179,26 @@ class SurveyController extends Controller
 
     public function getSurveyDetails($survey_id)
     {
+         $user = $this->request->user();
         $database = $this->connectTenantDatabase($this->request);
         if ($database === null) {
             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
         }
-
+ 
         // Obtaining '_id','name','json', active','editable','multiple_entry','category_id','microservice_id','project_id','entity_id','assigned_roles','form_keys' of a Survey
         // alongwith corresponding details of 'microservice','project','category','entity'
+        $entity_id = Survey::where('_id',$survey_id)->select('entity_id')->get();
         $data = Survey::with('microservice')->with('project')
         ->with('category')->with('entity')        
-        ->select('category_id','microservice_id','project_id','entity_id','assigned_roles','_id','name','json','active','editable','multiple_entry','form_keys')
-        ->find($survey_id);
-
+        ->select('category_id','microservice_id','project_id','entity_id','assigned_roles','_id','name','json','active','approve_required','editable','multiple_entry','form_keys')
+        ->find($survey_id); 
         // unset() removes the element from the 'row' object
+		
         unset($data->category_id);
         unset($data->microservice_id);
         unset($data->project_id);
         unset($data->entity_id);
-
+		
         if (isset($data['microservice'])) {
             $data['microservice']->route = $data['microservice']->route . '/' . $survey_id;
         }
@@ -204,7 +208,7 @@ class SurveyController extends Controller
         return response()->json(['status'=>'success','data' => $data,'message'=>'']);
     }
 
-    public function createResponse($survey_id)
+     public function createResponse($survey_id)
     {
         $database = $this->connectTenantDatabase($this->request);
         if ($database === null) {
@@ -266,7 +270,7 @@ class SurveyController extends Controller
                     return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Data already have been created for this structure, please change values and try again.'],400);
                 } else {
                     $form = DB::collection('survey_results')->insertGetId($fields);
-					$data['_id'] = $form;
+                    $data['_id'] = $form;
                 }
         } else {
             $collection_name = 'entity_'.$survey->entity_id;
@@ -376,9 +380,11 @@ class SurveyController extends Controller
         }
 
         $user = $this->request->user();
+        // echo json_encode($user);
+        //exit;
 
         $survey = Survey::find($survey_id);
-
+		
         $limit = (int)$this->request->input('limit') ?:50;
         $offset = $this->request->input('offset') ?:0;
         $order = $this->request->input('order') ?:'desc';
@@ -386,7 +392,7 @@ class SurveyController extends Controller
         $page = $this->request->input('page') ?:1;
         $endDate = $this->request->input('start_date') ?:Carbon::now('Asia/Calcutta')->getTimestamp();
         $startDate = $this->request->input('end_date') ?:Carbon::now('Asia/Calcutta')->subMonth()->getTimestamp();
-
+	
         $role = $this->request->user()->role_id;
         $roleConfig = \App\RoleConfig::where('role_id', $role)->first();
         $jurisdictionTypeId = $roleConfig->jurisdiction_type_id;
@@ -394,6 +400,8 @@ class SurveyController extends Controller
         $userLocation = $this->getFullHierarchyUserLocation($this->request->user()->location, $jurisdictionTypeId);
         $locationKeys = $this->getFormSchemaKeys($survey_id);
 
+
+			
         if(!isset($survey->entity_id)) {
             $collection_name = 'survey_results';
             $surveyResults = DB::collection('survey_results')
@@ -416,7 +424,8 @@ class SurveyController extends Controller
                                 })
                                 ->orderBy($field,$order)
                                 ->paginate($limit);
-        } else {    
+        } else { 
+		 
             $collection_name = 'entity_'.$survey->entity_id;           
             $surveyResults = DB::collection('entity_'.$survey->entity_id)
                                 ->where('survey_id','=',$survey_id)
@@ -438,18 +447,20 @@ class SurveyController extends Controller
                                 })
                                 ->orderBy($field,$order)
                                 ->paginate($limit);
-        }           
 
+        }      
+	
         if ($surveyResults->count() === 0) {
             return response()->json(['status'=>'success','metadata'=>[],'values'=>[],'message'=>'']);
         }
-        
+        	
         $createdDateTime = $surveyResults[0]['createdDateTime'];
         $responseCount = $surveyResults->count();
+       
         $result = ['form'=>['form_id'=>$survey_id,'userName'=>$surveyResults[0]['userName'],'createdDateTime'=>$createdDateTime, 'submit_count'=>$responseCount]];
 
         $values = [];
-
+		
         foreach($surveyResults as &$surveyResult)
         {
             if (!isset($surveyResult['form_id'])) {
@@ -457,13 +468,19 @@ class SurveyController extends Controller
             }
             $form_title =$this->generateFormTitle($survey,$surveyResult['_id'],$collection_name);
             $surveyResult['form_title'] = $form_title;
+            $status= ApprovalsPending::where('entity_id',$survey->entity_id)->where('userName',$user->id)->select('status')->where('entity_type','form')->get();
+            if(count($status) > 0){ 
+			$surveyResult['status']= $status[0]->status;
+			}
             // Excludes values 'form_id','user_id','created_at','updated_at' from the $surveyResult array
             //  and stores it in values
             $values[] = Arr::except($surveyResult,['survey_id','userName','createdDateTime', 'user_role_location', 'jurisdiction_type_id']);
         }
 
+
         $result['Current page'] = 'Page '.$surveyResults->currentPage().' of '.$surveyResults->lastPage();
         $result['Total number of records'] = $surveyResults->total();
+        
         return response()->json(['status'=>'success','metadata'=>[$result],'values'=>$values,'message'=>'']);
 
     }
@@ -754,6 +771,7 @@ class SurveyController extends Controller
 
         $values = [];
         list($matrix_field_label, $matrix_fields) = $this->getMatrixdynamicFields($survey);
+		print_R($aggregateResults);die();
         foreach($aggregateResults as &$aggregateResult)
         {
             $associated_results = $this->getAssociatedDocuments($aggregateResult['children'],$collection_name,$user->id, $userLocation, $locationKeys);

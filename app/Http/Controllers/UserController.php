@@ -1,5 +1,5 @@
 <?php
-
+ 
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 use App\ApprovalLog;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
-
+ 
 class UserController extends Controller
 {
     use Helpers;
@@ -45,7 +45,11 @@ class UserController extends Controller
             return response()->json(['status'=>'error', 'data'=>$user, 'message'=>'User Not Found'],404);
         }
     }
-
+public function test($id)
+{
+	$module = Permission::where('id',$id)->first();
+	return $module;
+}
     public function show($phone)
     {
         $user = User::where('phone', $phone)->first();
@@ -60,12 +64,14 @@ class UserController extends Controller
 
     public function update($phone)
     {
-        $user = User::where('phone', $phone)->first();
-		$userId = $user->id;
-		$userLocation = $user->location;
-        if($user) {
-            $update_data = $this->request->all();
 
+        $user = User::where('phone', $phone)->first();
+		$userId = $user['id'];
+		
+		$userLocation = $user['location'];
+        if($user) {
+            $update_data = json_decode(file_get_contents('php://input'), true);
+			 
             if (isset($update_data['type']) && !empty($update_data['type'])) {
                 if ($update_data['type'] !== 'organisation') {
                     $update_data['associate_id'] = $update_data['org_id'];
@@ -73,19 +79,20 @@ class UserController extends Controller
                     $update_data['org_id'] = $orgId;
                 }
             }
+			  // return response()->json(['status'=>'success', 'data'=>$update_data, 'message'=>''],200);
             $update_project_id = (isset($update_data['project_id']) && is_array($update_data['project_id']))?$update_data['project_id'][0]:$update_data['project_id'];
             if (
-                (isset($update_data['org_id']) && $update_data['org_id'] != $user->org_id)
+                (isset($update_data['org_id']) && $update_data['org_id'] != $user['org_id'])
                 ||
-                (isset($update_data['project_id']) && !is_array($user->project_id))
+                (isset($update_data['project_id']) && !is_array($user['project_id']))
                 ||
-                (!in_array($update_project_id,$user->project_id))
+                (!in_array($update_project_id,$user['project_id']))
                 ||
                 (isset($update_data['role_id']) && $update_data['role_id'] != $user->role_id)
 				||
-				(isset($update_data['location']) && $user->location == null)
+				(isset($update_data['location']) && $user['location'] == null)
 				||
-				(isset($update_data['location']) && $user->location != null && $this->compareLocation($update_data['location'], $user->location))
+				(isset($update_data['location']) && $user['location'] != null && $this->compareLocation($update_data['location'], $user['location']))
                 ) {
                     $update_data['approve_status'] = 'pending';
             }
@@ -95,12 +102,16 @@ class UserController extends Controller
             if (isset($update_data['password'])) {
                 unset($update_data['password']);
             }
-            if(isset($update_data['role_id']) && $update_data['role_id'] != $user->role_id){
-                 $user->location = [];  
+            if(isset($update_data['role_id']) && $update_data['role_id'] != $user['role_id']){
+                 $user['location'] = [];
+
+
                  $user->save(); 
             }
-//var_dump($update_data);exit;
+				//var_dump($user);
+                // exit;  
             $user->update($update_data);
+
 			$approverList = [];
 			$approverIds = [];
             $firebaseIds = [];
@@ -108,7 +119,13 @@ class UserController extends Controller
 			$approvalLogId = '';
 			if (isset($update_data['role_id'])) {
                 $approverList = $this->getApprovers($this->request, $update_data['role_id'], $userLocation, $update_data['org_id']);
-                
+               
+				if(empty($approverList))
+				{
+				  $approverList = User::where('is_admin',true)->where('approved',true)->where('org_id',$update_data['org_id']);
+				}
+				
+				
 				foreach($approverList as $approver) {
 					$approverIds[] = $approver['id'];
 					if (isset($approver['firebase_id']) && !empty($approver['firebase_id'])) {
@@ -118,23 +135,24 @@ class UserController extends Controller
                     array_push($approverUsers,$approver);
 				}
             }
+
             $this->connectTenantDatabase($this->request);
-			if (isset($update_data['approve_status']) && $update_data['approve_status'] === self::STATUS_PENDING) {
-				$approvalLogId = $this->addApprovalLog($this->request, $userId, self::ENTITY_USER, $approverIds, self::STATUS_PENDING, $userId,null,$update_data['org_id']);
-			}
-			foreach ($firebaseIds as $firebaseId) {
+			
+				$approvalLogId = $this->addApprovalLog($this->request, $userId, self::ENTITY_USER, $approverIds, self::STATUS_PENDING, $userId," ",$update_data['org_id']);
+              
+			foreach ($firebaseIds as $firebaseId) {  
 				$this->sendPushNotification(
                     $this->request,
 					self::NOTIFICATION_TYPE_APPROVAL,
 					$firebaseId,
-					[
+					[ 
 						'phone' => $phone,
 						'update_status' => self::STATUS_APPROVED,
 						'approval_log_id' => $approvalLogId
                     ],
                     $update_data['org_id']
 				);
-			}
+			} 
             $user['approvers'] = $approverUsers;
             $user = $this->getUserAssociatedData($user);
 
@@ -265,6 +283,7 @@ class UserController extends Controller
         $types = [
             'profile' => 'BJS/Images/profile',
             'form' => 'BJS/Images/forms',
+            'event' => 'BJS/Images/events',
             'story' => 'BJS/Images/stories'
         ];
         if (!isset($types[$this->request->type])) {
@@ -491,4 +510,26 @@ class UserController extends Controller
                                     'message '=> ''],
                                     200);
     }
+	
+	public function addmember1(Request $request,$org_id)
+	{
+		  /* $database = $this->connectTenantDatabase($request,$org_id);
+            if ($database === null) {
+                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+            }  */
+
+        $data=User::all();
+        
+		if($data)
+		{
+			$response_data = array('status' =>'success','data' => $data);
+            return response()->json($response_data,200); 
+		}
+		else
+		{
+			$response_data = array('status' =>'error','data' => 'No rows found please check user id');
+            return response()->json($response_data,300); 
+		}
+		
+	}
 }

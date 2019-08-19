@@ -16,15 +16,35 @@ use App\NotificationSchema;
 use App\NotificationLog;
 use App\Survey;
 use App\ApprovalLog;
+use App\ApprovalsPending;
 use App\Jurisdiction;
 
 class Controller extends BaseController
 {
 
     const NOTIFICATION_TYPE_APPROVAL = 'user_approval';
+    const NOTIFICATION_TYPE_APPROVED = 'user approved';
+    const NOTIFICATION_TYPE_REJECTED = 'user rejected';   
+	
+	const NOTIFICATION_TYPE_LEAVE_APPROVAL = 'leave approval';
+    const NOTIFICATION_TYPE_LEAVE_APPROVED = 'leave approved';
+    const NOTIFICATION_TYPE_LEAVE_REJECTED = 'leave rejected';
+	
+	const NOTIFICATION_TYPE_ATTENDANCE_APPROVAL = 'attendance approval';
+    const NOTIFICATION_TYPE_ATTENDANCE_APPROVED = 'attendance approved';
+    const NOTIFICATION_TYPE_ATTENDANCE_REJECTED = 'attendance rejected';
+	
+	const NOTIFICATION_TYPE_EVENT_CREATED = 'Event created';
+	const NOTIFICATION_TYPE_MEMBER_DELETED = 'Member deleted';
+	const NOTIFICATION_TYPE_TASK_ASSIGN = 'Task assigned';
+	const NOTIFICATION_TYPE_FORM_FILLED = 'Form filled';
+	const NOTIFICATION_TYPE_CHECKIN= 'check in';
 
-	const ENTITY_USER = 'user';
+	const ENTITY_USER = 'userapproval';
 	const ENTITY_LEAVE = 'leave';
+	const ENTITY_ATTENDANCE = 'leave';
+	const ENTITY_FORM = 'form';
+	const ENTITY_EVENT = 'Event';
 
 	const STATUS_PENDING = 'pending';
 	const STATUS_APPROVED = 'approved';
@@ -74,60 +94,166 @@ class Controller extends BaseController
      */
     public function sendPushNotification(Request $request ,$type, $firebaseId, $params = [],$orgId)
     {
+		$userdetails = $this->request->user();
+		$model = "Planner"; 
         $this->connectTenantDatabase($request, $orgId);
         $notificationSchema = null;
 		$service = '';
 		$parameters = [];
+
         switch ($type) {
             case self::NOTIFICATION_TYPE_APPROVAL:
                 $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_APPROVAL)->first();
+				$notificationSchema['message.en'] = $notificationSchema['message.en'] ."".$userdetails->name;
+				$model = "Approval";
 				$service = $notificationSchema->service . '/' . $params['phone'];
 				$parameters = ['update_status' => $params['update_status'], 'approval_log_id' => $params['approval_log_id']];
+                break; 
+				
+                case self::NOTIFICATION_TYPE_APPROVED:
+                $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_APPROVED)->first();
+				$notificationSchema['message.en'] = $notificationSchema['message.en'] ."".$userdetails->name;
+				$service = $notificationSchema->service . '/' . $params['phone'];
+				$model = "Approval";
+				$parameters = ['update_status' => $params['update_status'], 'approval_log_id' => $params['approval_log_id']];
+                break;
+				
+                case self::NOTIFICATION_TYPE_REJECTED:
+                $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_REJECTED)->first();
+				$notificationSchema['message.en'] = $notificationSchema['message.en'] ."".$userdetails->name;
+				$service = $notificationSchema->service . '/' . $params['phone'];
+				$model = "Approval";
+				$parameters = ['update_status' => $params['update_status'], 'approval_log_id' => $params['approval_log_id']];
+                break;
+
+				case self::NOTIFICATION_TYPE_LEAVE_APPROVAL:
+                $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_LEAVE_APPROVAL)->first();
+				$notificationSchema['message.en'] = $notificationSchema['message.en'] ."".$userdetails->name;	
+				$service = $notificationSchema->service . '/' . $params['phone'];
+				$model = "Approval";
+				$parameters = ['update_status' => $params['update_status'], 'approval_log_id' => $params['approval_log_id']];
+                break;
+				
+				case self::NOTIFICATION_TYPE_LEAVE_APPROVED:
+                $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_LEAVE_APPROVED)->first();
+				$notificationSchema['message.en'] = $notificationSchema['message.en'] ."".$userdetails->name;
+				$service = $notificationSchema->service . '/' . $params['phone'];
+				$model = "Approval";
+				$parameters = ['update_status' => $params['update_status'], 'approval_log_id' => $params['approval_log_id']];
+                break;
+				
+				case self::NOTIFICATION_TYPE_LEAVE_REJECTED:
+                $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_LEAVE_REJECTED)->first();
+				$notificationSchema['message.en'] = $notificationSchema['message.en'] ."".$userdetails->name;
+				$service = $notificationSchema->service . '/' . $params['phone'];
+				$model = "Approval";
+				$parameters = ['update_status' => $params['update_status'], 'approval_log_id' => $params['approval_log_id']];
+                break;
+				
+				case self::NOTIFICATION_TYPE_ATTENDANCE_APPROVAL:
+                $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_ATTENDANCE_APPROVAL)->first(); 
+				$notificationSchema['message.en'] = $notificationSchema['message.en'] ."".$userdetails->name;
+				$service = $notificationSchema->service . '/' . $params['phone'];
+				$model = "Approval"; 
+				$parameters = ['update_status' => $params['update_status'], 'approval_log_id' => $params['approval_log_id']];
+                break;
+				
+				case self::NOTIFICATION_TYPE_ATTENDANCE_APPROVED:
+                $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_ATTENDANCE_APPROVED)->first(); 
+				$notificationSchema['message.en'] = $notificationSchema['message.en'] ."".$userdetails->name;
+				$service = $notificationSchema->service . '/' . $params['phone'];
+				$model = "Approval";
+				$parameters = ['update_status' => $params['update_status'], 'approval_log_id' => $params['approval_log_id']];
+                break;
+				
+				
+				case self::NOTIFICATION_TYPE_ATTENDANCE_REJECTED:
+                $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_ATTENDANCE_REJECTED)->first(); 
+				$notificationSchema['message.en'] = $notificationSchema['message.en'] ."".$userdetails->name;
+				$service = $notificationSchema->service . '/' . $params['phone'];
+				$model = "Approval";
+				$parameters = ['update_status' => $params['update_status'], 'approval_log_id' => $params['approval_log_id']];
+                break;
+				
+				case self::NOTIFICATION_TYPE_EVENT_CREATED:
+                $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_EVENT_CREATED)->first(); 
+				$notificationSchema['message.en'] = $notificationSchema['message.en'] ."".$userdetails->name;
+				$model = $params['model'];
+				$service = $notificationSchema->service . '/' . $params['phone'];
+				$parameters = ['update_status' => $params['approval_log_id'], 'approval_log_id' => $params['approval_log_id']];
+                break;
+				
+				case self::NOTIFICATION_TYPE_TASK_ASSIGN:
+                $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_TASK_ASSIGN)->first(); 
+				
+				$notificationSchema['message.en'] = $notificationSchema['message.en']."".$userdetails->name ." in ".$params['update_status'];
+				$model = $params['model'];
+				$service = $notificationSchema->service . '/' . $params['phone'];
+				$parameters = ['update_status' => $params['approval_log_id'], 'approval_log_id' => $params['approval_log_id']];
+                break;
+				
+				case self::NOTIFICATION_TYPE_FORM_FILLED:
+                $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_FORM_FILLED)->first(); 
+				$model = 'Form';
+				$notificationSchema['message.en'] =$params['approval_log_id'] ." ".$notificationSchema['message.en']."".$userdetails->name;
+				
+				$service = $notificationSchema->service . '/' . $params['phone'];
+				$parameters = ['update_status' => $params['approval_log_id'], 'approval_log_id' => $params['approval_log_id']];
+                break;
+				
+				case self::NOTIFICATION_TYPE_CHECKIN:
+                $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_CHECKIN)->first(); 
+				$model = 'Planner';
+				$notificationSchema['message.en'] = $notificationSchema['message.en'];
+				
+				$service = $notificationSchema->service . '/' . $params['phone'];
+				$parameters = ['update_status' => $params['approval_log_id'], 'approval_log_id' => $params['approval_log_id']];
                 break;
         }
-
+    
         $optionBuilder = new OptionsBuilder();
         $optionBuilder->setTimeToLive(60*20);
+			 
+		$notificationBuilder = new PayloadNotificationBuilder($notificationSchema['title']['en']);
+		$notificationBuilder->setBody($notificationSchema['message.en'])->setSound('default');
 
-		$notificationBuilder = new PayloadNotificationBuilder($notificationSchema->title['en']);
-		$notificationBuilder->setBody($notificationSchema->message['en'])->setSound('default');
-
-		$dataBuilder = new PayloadDataBuilder();
+		$dataBuilder = new PayloadDataBuilder();	 	 
 		$dataBuilder->addData([
 			'notification' => [
-				'text' => $notificationSchema->message,
-				'click_action' => $notificationSchema->type
+				'text' => $notificationSchema['message'],
+				'click_action' => $notificationSchema['type']	
 			],
 			'to' => $firebaseId,
+			'toOpen' => $model,
 			'data' => [
 				'action' => [
 					'service' => $service,
-					'params' => $parameters,
-					'method' => $notificationSchema->method
-				]
+					'params' => $parameters, 
+					'method' => $notificationSchema['method']
+				] 
 			]
 		]);
-
+  
 		$option = $optionBuilder->build();
 		$notification = $notificationBuilder->build();
 		$data = $dataBuilder->build();
 
 		$token = $firebaseId;
-
+ 
 		$downstreamResponse = FCM::sendTo($token, $option, $notification, $data);
 		$fcmResponse = [
 			'number of success' => $downstreamResponse->numberSuccess(),
 			'number of failure' => $downstreamResponse->numberFailure(),
 			'number of modification' => $downstreamResponse->numberModification()
 		];
-
+ 
 		$notificationLog = NotificationLog::create([
 			'firebase_id' => $firebaseId,
 			'firebase_response' => $fcmResponse
 		]);
 		$notificationLog->notificationSchema()->associate($notificationSchema);
 		$notificationLog->save();
-
+ 
 		return true;
     }
 
@@ -240,7 +366,7 @@ class Controller extends BaseController
 		$this->connectTenantDatabase($request, $orgId);
 		$approverLog = ApprovalLog::create([
 			'entity_id' => $entityId,
-			'entity_type' => $entityType,
+			'entity_type' => "userapproval",
 			'approver_ids' => $approverIds,
 			'status' => $status,
 			'userName' => $userName,
@@ -248,7 +374,24 @@ class Controller extends BaseController
 			'createdDateTime' => \Carbon\Carbon::now()->getTimestamp(),
 			'updatedDateTime' => \Carbon\Carbon::now()->getTimestamp()
 		]);
-		return $approverLog->id;
+		
+
+		$AApprovalsPending = ApprovalsPending::where('entity_id',$entityId)->where('entity_type',$entityType)->first(); 
+		 
+		if(empty($AApprovalsPending)){
+			$AApprovalsPending = new ApprovalsPending;
+		}
+			$AApprovalsPending->entity_id = $entityId;
+			$AApprovalsPending->entity_type = "userapproval";
+			$AApprovalsPending->approver_ids = $approverIds;
+			$AApprovalsPending->status = $status;
+			$AApprovalsPending->userName = $userName;
+			$AApprovalsPending->reason = $reason;  
+			$AApprovalsPending->createdDateTime = new \MongoDB\BSON\UTCDateTime(\Carbon\Carbon::now()->getTimestamp());
+			$AApprovalsPending->updatedDateTime = new \MongoDB\BSON\UTCDateTime(\Carbon\Carbon::now()->getTimestamp());
+			$AApprovalsPending->save();
+		
+			return $AApprovalsPending->id;
 	}
 
 	/**
@@ -264,23 +407,32 @@ class Controller extends BaseController
 	{
 		$this->connectTenantDatabase($request, $orgId);
 		$roleConfig = \App\RoleConfig::where('role_id', $roleId)->first();
+		
 		$approverRoleConfig = \App\RoleConfig::where('role_id', $roleConfig->approver_role)->first();
+		
 		if ($approverRoleConfig === null) {
+			/* $approvers = \App\User::where('org_id', $orgId)->where('is_admin',true)->where('approved',true)->first();
+			print_R($approvers);die();
+			return $approvers; */
 			return [];
 		}
-		$levelDetail = \App\Jurisdiction::find($approverRoleConfig->level);
+		
+		$levelDetail = \App\Jurisdiction::find($approverRoleConfig->level); 
 		$jurisdictions = \App\JurisdictionType::where('_id',$roleConfig->jurisdiction_type_id)->pluck('jurisdictions')[0];
+		 
 		DB::setDefaultConnection('mongodb');
 		$approvers = \App\User::where('role_id', $roleConfig->approver_role);
-		foreach ($jurisdictions as $singleLevel) {
+		 foreach ($jurisdictions as $singleLevel) {
+			
 			if (isset($userLocation[strtolower($singleLevel)])) {
 				$approvers->whereIn('location.' . strtolower($singleLevel), $userLocation[strtolower($singleLevel)]);
+				
 				if ($singleLevel == $levelDetail->levelName) {
 					break;
 				}
 			}
-		}
-
+		} 
+ 
 		return $approvers->get()->all();
 	}
 
