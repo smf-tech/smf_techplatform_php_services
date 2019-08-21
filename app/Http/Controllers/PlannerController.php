@@ -74,15 +74,16 @@ class PlannerController extends Controller
             $currentDateTime = Carbon::now();
             $eventData = PlannerTransactions::where('type','Event')
                                         ->where('schedule.starttiming','>=',$currentDateTime)
-                                        ->where('ownerid',$user->_id)
-                                        ->whereOr('participants.id',$user->_id)
+                                        ->orWhere('ownerid',$user->_id)
+                                        ->orWhere('participants.id',$user->_id)
                                         ->where('event_status','Active')->offset(0)->limit(2)->get();
 
             //select('title','thumbnail_image','default.created_by')->
             $taskData = PlannerTransactions::where('type','Task')
                             ->where('schedule.starttiming','>=',$currentDateTime)
-                            ->where('ownerid',$user->_id)    
-                            ->whereOr('participants.id',$user->_id)->where('event_status','Active')
+                            ->orWhere('ownerid',$user->_id)    
+                            ->orWhere('participants.id',$user->_id)
+                            ->where('event_status','Active')
                             ->offset(0)->limit(2)
                             ->get();
 

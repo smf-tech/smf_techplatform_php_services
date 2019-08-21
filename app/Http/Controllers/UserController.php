@@ -532,4 +532,23 @@ public function test($id)
 		}
 		
 	}
+
+
+    public function updateFirebaseId(Request $request)
+    {
+
+        $user = $this->request->user();
+        $requestjson = json_decode(file_get_contents('php://input'), true);
+       // echo json_encode($user->_id);
+        //echo '--FIREBASEID--'.json_encode($requestjson['firebase_id']);
+       if($user){
+          $user_data = User::where('_id',$user->_id)->first();  
+          $user_data['firebase_id'] = $requestjson['firebase_id'];   
+          $user_data->save(); 
+          return response()->json(['status'=>'success', 'data'=>$user, 'message'=>'success'],200);
+        }else{
+            return response()->json(['status'=>'error', 'data'=>$user, 'message'=>'Invalid Mobile Number'],404);
+        }
+
+    }
 }

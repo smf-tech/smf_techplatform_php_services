@@ -58,11 +58,11 @@ class clearRecordController extends Controller
             return response()->json(['status' => '403', 'message' => 'error', 'data' => 'User does not belong to any Organization.'], 403);
         }
 
-        $approvalLogData = PlannerAttendanceTransaction::select('_id')->get();
+        $approvalLogData = PlannerClaimCompoffRequests::select('_id')->get();
         foreach($approvalLogData as $data)
         {
             // echo $data->id;die();
-                $logid = PlannerAttendanceTransaction::find($data->id);
+                $logid = PlannerClaimCompoffRequests::find($data->id);
                 // var_dump( $Testid);die();
                 $logid->delete();
         }

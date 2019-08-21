@@ -53,7 +53,8 @@ class AttendanceController extends Controller
                 return response()->json(['status' => '403', 'message' => 'error', 'data' => 'User does not belong to any Organization.'], 403);
             }
              //echo $dt = Carbon::createFromFormat('m', 10); 
-
+            //echo "dsadsa";
+            //die();
             $dt = Carbon::createFromDate($year, $month);
 
             $startDateMonth = new \MongoDB\BSON\UTCDateTime($dt->startOfMonth());

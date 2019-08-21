@@ -270,31 +270,44 @@ class EventTaskController extends Controller
 			if ($database === null) {
 				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
 			} 
-		  
-		$maindata=PlannerTransactions::where('_id',$eventId)->where('is_mark_attendance_required',true)->first(); 
+		$currentTime = Carbon::now();  
+		$maindata=PlannerTransactions::where('_id',$eventId)->where('is_mark_attendance_required',true)->where('schedule.starttiming','<=',$currentTime)->where('schedule.endtiming','>=',$currentTime)->first(); 
 		 
 		if($maindata) 
-		{
-			 
-			$otp =  rand(100000,999999); 
-			
-			$maindata['mark_attendance_attributes.otp'] = $otp;
-			$maindata['mark_attendance_attributes.generated_on'] = $timestamp;
-			$maindata['mark_attendance_attributes.otp_ttl'] = '3600000';
-			$maindata['default.org_id'] = $org_id->org_id;
-			$maindata['default.updated_by'] = $org_id->_id;
-			$maindata['default.updated_on'] = $timestamp;
-			$maindata['default.project_id'] = $org_id->project_id[0];
-			
-			 try{
-			 $maindata->save(); 
-			}catch(Exception $e)
+		{ 
+			$dateInterval=date_diff(date_create($maindata['mark_attendance_attributes']['generated_on']),date_create($timestamp));
+			$reference = new DateTimeImmutable;
+			$endTime = $reference->add($dateInterval);
+			$sec = $endTime->getTimestamp() - $reference->getTimestamp();
+			$milisecond = $sec * 1000;
+			  
+			if($maindata['mark_attendance_attributes']['otp_ttl'] <= $milisecond)
 			{
-				return $e;
-			}  
+				$otp =  rand(100000,999999);  
+				$maindata['mark_attendance_attributes.otp'] = $otp;
+				$maindata['mark_attendance_attributes.generated_on'] = $timestamp;
+				$maindata['mark_attendance_attributes.otp_ttl'] = '432000';
+				$maindata['default.org_id'] = $org_id->org_id;
+				$maindata['default.updated_by'] = $org_id->_id;
+				$maindata['default.updated_on'] = $timestamp;
+				$maindata['default.project_id'] = $org_id->project_id[0];
+				
+				 try{
+				 $maindata->save(); 
+				}catch(Exception $e)
+				{
+					return $e;
+				}  
+			}
+			else{
+				$response_data = array('status' =>'200','AttencdenceCode' =>$maindata['mark_attendance_attributes.otp']);
+				return response()->json($response_data,200); 
+			}
 			
-			
-		}
+		}else{
+				$response_data = array('status' =>'200','message'=>'Code can be generated only when Event starts');
+				return response()->json($response_data,200); 
+			}
 		 
 		if($maindata)
 		{
@@ -307,7 +320,7 @@ class EventTaskController extends Controller
 			return response()->json($response_data,200); 
 		}
 		
-	} 			
+	}  			
 	//submit the attendance for the event(if required)
 	public function submitAttendanceEvent(Request $request)
 	{
@@ -455,9 +468,9 @@ class EventTaskController extends Controller
 			$maindata['is_mark_attendance_required'] = $requestjson['is_mark_attendance_required'];
 			$otp =  rand(100000,999999); 
 			$timestamp = Date('Y-m-d H:i:s');
-			$maindata['mark_attendance_attributes.otp'] = $otp;
-			$maindata['mark_attendance_attributes.generated_on'] = $timestamp;     
-			$maindata['mark_attendance_attributes.otp_ttl'] = '3600000'; 
+			$maindata['mark_attendance_attributes.otp'] = "";//$otp;
+			$maindata['mark_attendance_attributes.generated_on'] = "";//$timestamp;     
+			$maindata['mark_attendance_attributes.otp_ttl'] = "";//'3600000'; 
 		}
 		  else{
 			$maindata['is_mark_attendance_required'] = $requestjson['is_mark_attendance_required'];
@@ -467,7 +480,7 @@ class EventTaskController extends Controller
 		$maindata['default.project_id'] = $org_id['project_id'][0]; 
 		
 		if(isset($requestjson['participants']))
-		{		
+		{	 
 		  $count=0;
 		 DB::setDefaultConnection('mongodb');
 		 foreach($requestjson['participants'] as $participant)
@@ -481,15 +494,55 @@ class EventTaskController extends Controller
 			 {	
 			 	$maindata['participants_count'] = $count;
 			 }	
-			 $maindata['attended_completed'] = 0;
-		
+			$maindata['attended_completed'] = 0;
+			$temp = $maindata;
 		}
 		
 		else {$maindata['participants'] = [];}		
-		try{
-			 // echo json_encode($maindata);die();
+		try{  
 			$success = $maindata->save();
-			
+			if($actionFlag == 'edit')
+			 {	
+				 foreach($temp['participants'] as $row)
+					{   
+						DB::setDefaultConnection('mongodb');
+						$firebase_id = User::where('_id',$row['id'])->first(); 
+						 
+						if($temp['type'] == 'Event')
+						{				
+							$this->sendPushNotification(
+							$this->request,
+							self::NOTIFICATION_TYPE_EVENT_CHANGES,
+							$firebase_id['firebase_id'],
+							[
+								'phone' => "9881499768",
+								'update_status' => self::NOTIFICATION_TYPE_EVENT_CHANGES,
+								'model' => "Planner",
+								'approval_log_id' => "Testing"
+							],
+							$firebase_id['org_id']
+							); 
+						}
+						if($temp['type'] == 'Task')
+						{				
+							$this->sendPushNotification(
+							$this->request,
+							self::NOTIFICATION_TYPE_TASK_CHANGES,
+							$firebase_id['firebase_id'],
+							[
+								'phone' => "9881499768",
+								'title' => $requestjson['title'],
+								'model' => "Planner",
+								'update_status' => self::NOTIFICATION_TYPE_TASK_CHANGES,
+								'approval_log_id' => "Testing"
+							],
+							$firebase_id['org_id']
+							); 
+						}
+							
+					}
+			 	//echo json_encode($temp); die();
+			 }	
 			foreach($requestjson['participants'] as $row)
 			{   
 				DB::setDefaultConnection('mongodb');
@@ -1353,14 +1406,19 @@ class EventTaskController extends Controller
 			return response()->json($response_data,200);
 		}
 	
-		$PlannerClaimCompoffRequests['leave_type'] = "earn compoff";
+		$PlannerClaimCompoffRequests['entity_type'] = "compoff";
 		$PlannerClaimCompoffRequests['full_half_day'] = $requestjson['full_half_day'];
 		$PlannerClaimCompoffRequests['startdate'] = $requestjson['startdate'] ;
 		$PlannerClaimCompoffRequests['enddate'] = $requestjson['enddate'];
 		$PlannerClaimCompoffRequests['startdates'] = new \MongoDB\BSON\UTCDateTime($requestjson['startdate']);
 		$PlannerClaimCompoffRequests['enddates'] = new \MongoDB\BSON\UTCDateTime($requestjson['enddate']);
 		$PlannerClaimCompoffRequests['user_id'] = $requestjson['user_id'];
-		$PlannerClaimCompoffRequests['reason'] = $requestjson['reason']; 
+		$PlannerClaimCompoffRequests['reason'] = $requestjson['reason'];
+
+		$PlannerClaimCompoffRequests['status.status'] = "pending";
+		$PlannerClaimCompoffRequests['status.action_by'] = "";
+		$PlannerClaimCompoffRequests['status.action_on'] = "";
+		$PlannerClaimCompoffRequests['status.rejection_reason'] = ""; 
 		  
 		$PlannerClaimCompoffRequests['default.org_id'] = $org_id['org_id'];
 		$PlannerClaimCompoffRequests['default.updated_by'] = "";
@@ -1371,7 +1429,7 @@ class EventTaskController extends Controller
 
 		try{ 
 			$PlannerClaimCompoffRequests->save();
-			
+			 
 			$last_inserted_id =  $PlannerClaimCompoffRequests->id;			
 		   }
 		catch(Exception $e)
@@ -1396,7 +1454,7 @@ class EventTaskController extends Controller
 		$database = $this->connectTenantDatabase($request,$org_id->org_id);
 		
 		$ApprovalLogs = new ApprovalLog;
-		$ApprovalLogs['leave_type'] = "earn compoff";
+		$ApprovalLogs['entity_type'] = "compoff";
 		$ApprovalLogs['entity_id'] = $last_inserted_id;
 		$ApprovalLogs['approver_ids'] = $approverUsers;
 		$ApprovalLogs['full_half_day'] = $requestjson['full_half_day'];
@@ -1404,7 +1462,7 @@ class EventTaskController extends Controller
 		$ApprovalLogs['enddate'] = $requestjson['enddate'];
 		$ApprovalLogs['startdates'] = new \MongoDB\BSON\UTCDateTime($requestjson['startdate']);
 		$ApprovalLogs['enddates'] = new \MongoDB\BSON\UTCDateTime($requestjson['enddate']);
-		$ApprovalLogs['user_id'] = $requestjson['user_id'];
+		$ApprovalLogs['userName'] = $requestjson['user_id'];
 		$ApprovalLogs['reason'] = $requestjson['reason']; 
 		$ApprovalLogs['status'] = "pending";  
 		  
@@ -1416,8 +1474,8 @@ class EventTaskController extends Controller
 		$ApprovalLogs['default.project_id'] = $org_id['project_id'][0];	 
 		
 		try{
-			$ApprovalLogs->save();
-			 
+			$ApprovalLogs->save(); 
+			  
 			}
 		catch(Exception $e)
 		{
@@ -1430,7 +1488,7 @@ class EventTaskController extends Controller
 		if(!$ApprovalsPending)
 		$ApprovalsPending = new ApprovalsPending;
 	
-		$ApprovalsPending['leave_type'] = "earn compoff";
+		$ApprovalsPending['entity_type'] = "compoff";
 		$ApprovalsPending['entity_id'] = $last_inserted_id;
 		$ApprovalsPending['approver_ids'] = $approverUsers;
 		$ApprovalsPending['full_half_day'] = $requestjson['full_half_day'];
@@ -1438,7 +1496,7 @@ class EventTaskController extends Controller
 		$ApprovalsPending['enddate'] = $requestjson['enddate'];
 		$ApprovalsPending['startdates'] = new \MongoDB\BSON\UTCDateTime($requestjson['startdate']);
 		$ApprovalsPending['enddates'] = new \MongoDB\BSON\UTCDateTime($requestjson['enddate']);
-		$ApprovalsPending['user_id'] = $requestjson['user_id'];
+		$ApprovalsPending['userName'] = $requestjson['user_id'];
 		$ApprovalsPending['reason'] = $requestjson['reason']; 
 		$ApprovalsPending['status'] = "pending"; 
 		
@@ -1451,6 +1509,22 @@ class EventTaskController extends Controller
 		$ApprovalsPending['default.project_id'] = $org_id['project_id'][0];	
 		try{
 			 $ApprovalsPending->save();
+			 foreach($approverUsers as $row)
+					{  
+						DB::setDefaultConnection('mongodb');
+						$firebase_id = User::where('_id',$row)->first(); 
+						$this->sendPushNotification(
+						$this->request,
+						self::NOTIFICATION_TYPE_COMOFF_APPROVAL,
+						$firebase_id['firebase_id'],
+						[
+							'phone' => "9881499768",
+							'update_status' => self::STATUS_PENDING,
+							'approval_log_id' => "Testing"
+						],
+						$firebase_id['org_id']
+						);
+					}
 			$response_data = array('status' =>'200','message'=>'Your request for CompOff is submitted Successfully','data'=>'CompOff Applied Successfully');
 			return response()->json($response_data,200);			
 		   }
@@ -1461,7 +1535,7 @@ class EventTaskController extends Controller
 		}
 		
 	}
-	
+	 
 	 public function getSurveyDetail($survey_id)
 	{
 		 $user = $this->request->user();
@@ -1673,25 +1747,47 @@ class EventTaskController extends Controller
 			$maindata['default.updated_on'] = $timestamp;
 			if(isset($requestjson['participants']))
 			{		
-				/* $count=0;
-				
+				  $count=0;
+				  $attendance_count =0;
 				 foreach($requestjson['participants'] as $participant)
-				 {
-					 echo json_encode($participant);die();
+				 { 
 					$maindata['participants.'.$count] =  $participant;
-					$maindata['participants.'.$count.'.attended_completed'] =  false;
+					if($maindata['participants.'.$count.'.attended_completed'] ==  true)
+					{
+						$attendance_count ++;
+					}
 					$count++;
-				 } */
+					 
+				 }  
 				 
 				 $maindata['participants'] = $requestjson['participants'];
 				 $maindata['participants_count'] = count($requestjson['participants']);
-				 $maindata['attended_completed'] = 0; 
-			}
+				 $maindata['attended_completed'] = $attendance_count; 
+			} 
 			else{
 					$maindata['participants'] = [];
 				}
 				try{  
+				 
 							$success = $maindata->save();
+							foreach($requestjson['participants'] as $row)
+							{   
+								DB::setDefaultConnection('mongodb');
+								$firebase_id = User::where('_id',$row['id'])->first(); 
+								 				
+									$this->sendPushNotification(
+									$this->request,
+									self::NOTIFICATION_TYPE_EVENT_CREATED,
+									$firebase_id['firebase_id'],
+									[
+										'phone' => "9881499768",
+										'update_status' => self::NOTIFICATION_TYPE_EVENT_CREATED,
+										'model' => "Planner",
+										'approval_log_id' => "Testing"
+									],
+									$firebase_id['org_id']
+									);  
+							}
 							}catch(Exception $e)
 							{
 							$response_data = array('status' =>'200','message'=>'error','data' => $e);

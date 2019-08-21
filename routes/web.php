@@ -58,6 +58,8 @@ $api->version('v1',function($api){
 		$api->get('test/{id}','UserController@test');
         $api->get('tasks','TaskController@show');
         $api->get('tasksOfUser','TaskController@getTask');
+        //API to update user firebase Id
+        $api->put('updateFirebaseId', 'UserController@updateFirebaseId');
 		
 		
 		//new apis for events
@@ -87,6 +89,7 @@ $api->version('v1',function($api){
 
 		 //---------------------Meet API's Start-------------------
 		 $api->post('insertMeet','MeetController@insertMeet');
+		 $api->get('meet_types','MeetController@meet_types');
 		 
 		 //---------------------Meet API's End-------------------
 
@@ -99,6 +102,8 @@ $api->version('v1',function($api){
         $api->get('getYearHolidayList','PlannerController@getYearHolidayList');
         //API to get user leave balance 
         $api->get('getUserLeaveBalance','PlannerController@getUserLeaveBalance');
+        //API to get user Leave data for total,used, balance
+        $api->get('getUserLeaveSummery','PlannerController@getUserLeaveSummery');
         //-----------Teammanagment API's start-----------------------------
 
         //api for teammanagment dashboard

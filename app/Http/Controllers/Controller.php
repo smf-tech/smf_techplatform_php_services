@@ -34,9 +34,14 @@ class Controller extends BaseController
     const NOTIFICATION_TYPE_ATTENDANCE_APPROVED = 'attendance approved';
     const NOTIFICATION_TYPE_ATTENDANCE_REJECTED = 'attendance rejected';
 	
+	const NOTIFICATION_TYPE_COMOFF_APPROVAL = 'Comoff Approval';
+	const NOTIFICATION_TYPE_COMOFF_APPROVED = 'Comoff Approved';
+	const NOTIFICATION_TYPE_COMOFF_REJECTED = 'Comoff Rejected';
 	const NOTIFICATION_TYPE_EVENT_CREATED = 'Event created';
+	const NOTIFICATION_TYPE_EVENT_CHANGES = 'Event changes';
 	const NOTIFICATION_TYPE_MEMBER_DELETED = 'Member deleted';
 	const NOTIFICATION_TYPE_TASK_ASSIGN = 'Task assigned';
+	const NOTIFICATION_TYPE_TASK_CHANGES = 'Task changes';
 	const NOTIFICATION_TYPE_FORM_FILLED = 'Form filled';
 	const NOTIFICATION_TYPE_CHECKIN= 'check in';
 
@@ -120,7 +125,7 @@ class Controller extends BaseController
 				
                 case self::NOTIFICATION_TYPE_REJECTED:
                 $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_REJECTED)->first();
-				$notificationSchema['message.en'] = $notificationSchema['message.en'] ."".$userdetails->name;
+				$notificationSchema['message.en'] = $notificationSchema['message.en'] ."".$userdetails->name .". \nReason: ".$params['reason'];
 				$service = $notificationSchema->service . '/' . $params['phone'];
 				$model = "Approval";
 				$parameters = ['update_status' => $params['update_status'], 'approval_log_id' => $params['approval_log_id']];
@@ -136,6 +141,23 @@ class Controller extends BaseController
 				
 				case self::NOTIFICATION_TYPE_LEAVE_APPROVED:
                 $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_LEAVE_APPROVED)->first();
+				$notificationSchema['message.en'] = $notificationSchema['message.en'] ."".$userdetails->name;
+				$service = $notificationSchema->service . '/' . $params['phone'];
+				$model = "Approval";
+				$parameters = ['update_status' => $params['update_status'], 'approval_log_id' => $params['approval_log_id']];
+                break;
+				
+				
+				case self::NOTIFICATION_TYPE_COMOFF_APPROVED:
+                $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_COMOFF_APPROVED)->first();
+				$notificationSchema['message.en'] = $notificationSchema['message.en'] ."".$userdetails->name;
+				$service = $notificationSchema->service . '/' . $params['phone'];
+				$model = "Approval";
+				$parameters = ['update_status' => $params['update_status'], 'approval_log_id' => $params['approval_log_id']];
+                break;
+				
+				case self::NOTIFICATION_TYPE_COMOFF_REJECTED:
+                $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_COMOFF_REJECTED)->first();
 				$notificationSchema['message.en'] = $notificationSchema['message.en'] ."".$userdetails->name;
 				$service = $notificationSchema->service . '/' . $params['phone'];
 				$model = "Approval";
@@ -183,11 +205,40 @@ class Controller extends BaseController
 				$parameters = ['update_status' => $params['approval_log_id'], 'approval_log_id' => $params['approval_log_id']];
                 break;
 				
+				
+				case self::NOTIFICATION_TYPE_EVENT_CHANGES:
+                $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_EVENT_CHANGES)->first(); 
+				$notificationSchema['message.en'] = $userdetails->name .$notificationSchema['message.en'] ;
+				$model = "Planner";
+				$service = $notificationSchema->service . '/' . $params['phone'];
+				$parameters = ['update_status' => $params['approval_log_id'], 'approval_log_id' => $params['approval_log_id']];
+                break;
+				
 				case self::NOTIFICATION_TYPE_TASK_ASSIGN:
                 $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_TASK_ASSIGN)->first(); 
 				
 				$notificationSchema['message.en'] = $notificationSchema['message.en']."".$userdetails->name ." in ".$params['update_status'];
 				$model = $params['model'];
+				$service = $notificationSchema->service . '/' . $params['phone'];
+				$parameters = ['update_status' => $params['approval_log_id'], 'approval_log_id' => $params['approval_log_id']];
+                break;
+				
+				
+				case self::NOTIFICATION_TYPE_TASK_CHANGES:
+                $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_TASK_CHANGES)->first(); 
+				
+				$notificationSchema['message.en'] = $userdetails->name ." ".$notificationSchema['message.en'];
+				$model = 'Planner';
+				$service = $notificationSchema->service . '/' . $params['phone'];
+				$parameters = ['update_status' => $params['approval_log_id'], 'approval_log_id' => $params['approval_log_id']];
+                break;
+				
+				
+				case self::NOTIFICATION_TYPE_COMOFF_APPROVAL:
+                $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_COMOFF_APPROVAL)->first(); 
+				
+				$notificationSchema['message.en'] = $notificationSchema['message.en']." ".$userdetails->name ;
+				$model = 'Planner';
 				$service = $notificationSchema->service . '/' . $params['phone'];
 				$parameters = ['update_status' => $params['approval_log_id'], 'approval_log_id' => $params['approval_log_id']];
                 break;
@@ -205,6 +256,15 @@ class Controller extends BaseController
                 $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_CHECKIN)->first(); 
 				$model = 'Planner';
 				$notificationSchema['message.en'] = $notificationSchema['message.en'];
+				
+				$service = $notificationSchema->service . '/' . $params['phone'];
+				$parameters = ['update_status' => $params['approval_log_id'], 'approval_log_id' => $params['approval_log_id']];
+                break;
+				
+				case self::NOTIFICATION_TYPE_MEMBER_DELETED:
+                $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_MEMBER_DELETED)->first(); 
+				$model = 'Planner';
+				$notificationSchema['message.en'] = $notificationSchema['message.en'].$params['title'];
 				
 				$service = $notificationSchema->service . '/' . $params['phone'];
 				$parameters = ['update_status' => $params['approval_log_id'], 'approval_log_id' => $params['approval_log_id']];
