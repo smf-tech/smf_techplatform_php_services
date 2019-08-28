@@ -34,4 +34,14 @@ class Location extends \Jenssegers\Mongodb\Eloquent\Model
     {
         return $this->belongsTo(Village::class);
     }
+	
+    public function city()
+    {
+        return $this->belongsTo(City::class);
+    }
+	
+    public function chapter()
+    {
+        return $this->belongsTo(Chapter::class);
+    }
 }

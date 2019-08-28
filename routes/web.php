@@ -40,7 +40,7 @@ $api->version('v1',function($api){
         $api->get('projects/{org_id}','OrganisationController@getorgprojects');
         $api->get('states','LocationController@getstates');
         $api->get('location/level/{orgId}/{jurisdictionTypeId}/{jurisdictionLevel}','LocationController@getLevelData');
-
+ 
          //genrated for testing purpose only
         //url for genrating access token
         $api->post('testlogin','ProgramController@testOtpLogin');
@@ -104,8 +104,10 @@ $api->version('v1',function($api){
         $api->get('getUserLeaveBalance','PlannerController@getUserLeaveBalance');
         //API to get user Leave data for total,used, balance
         $api->get('getUserLeaveSummery','PlannerController@getUserLeaveSummery');
+        $api->get('getTeamAttendance/{date}','PlannerController@getTeamAttendance');
+        // $api->get('getUserRole/{userId}','PlannerController@getUserRole'); 
         //-----------Teammanagment API's start-----------------------------
-
+ 
         //api for teammanagment dashboard
         $api->get('teammanagmentsummary','TeamManagmentController@getallcount');
         //api for teammanagment filter
@@ -174,6 +176,8 @@ $api->version('v1',function($api){
         $api->get('talukas', 'LocationController@getTalukas');
         $api->get('villages', 'LocationController@getVillages');
         $api->get('clusters', 'LocationController@getClusters');
+        $api->get('getCity', 'LocationController@getCity');
+        $api->get('getChapter', 'LocationController@getChapter');
 
         $api->get('jurisdiction-types[/{id}]', 'JurisdictionTypeController@index');
         $api->get('reports[/{id}]', 'ReportController@index');

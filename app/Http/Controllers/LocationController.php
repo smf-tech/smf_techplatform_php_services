@@ -12,6 +12,8 @@ use App\JurisdictionType;
 use App\District;
 use App\Taluka;
 use App\Cluster;
+use App\City;
+use App\Chapter;
 use App\Village;
 use App\Project;
 use App\Location;
@@ -148,6 +150,52 @@ class LocationController extends Controller
                 'status' => 'success',
                 'data' => $clusters,
                 'message' => 'Getting a list of all Clusters'
+            ],200);
+    }
+    public function getCity()
+    {
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
+
+        $city = City::all();
+
+        if($city->count() === 0) {
+            return response()->json([
+            'status' => 'success',
+            'data' => '',
+            'message' => 'No city present'
+            ],200);
+        }
+
+        return response()->json([
+                'status' => 'success',
+                'data' => $city,
+                'message' => 'Getting a list of all city'
+            ],200);
+    }
+    public function getChapter()
+    {
+        $database = $this->connectTenantDatabase($this->request);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
+
+        $Chapter = Chapter::all();
+
+        if($Chapter->count() === 0) {
+            return response()->json([
+            'status' => 'success',
+            'data' => '',
+            'message' => 'No Chapter present'
+            ],200);
+        }
+
+        return response()->json([
+                'status' => 'success',
+                'data' => $Chapter,
+                'message' => 'Getting a list of all Chapter'
             ],200);
     }
    public function getLevelData(Request $request, $orgId, $jurisdictionTypeId, $jurisdictionLevel)

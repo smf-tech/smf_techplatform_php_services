@@ -38,12 +38,13 @@ class Controller extends BaseController
 	const NOTIFICATION_TYPE_COMOFF_APPROVED = 'Comoff Approved';
 	const NOTIFICATION_TYPE_COMOFF_REJECTED = 'Comoff Rejected';
 	const NOTIFICATION_TYPE_EVENT_CREATED = 'Event created';
-	const NOTIFICATION_TYPE_EVENT_CHANGES = 'Event changes';
+	const NOTIFICATION_TYPE_EVENT_CHANGES = 'Event Updated';
 	const NOTIFICATION_TYPE_MEMBER_DELETED = 'Member deleted';
-	const NOTIFICATION_TYPE_TASK_ASSIGN = 'Task assigned';
-	const NOTIFICATION_TYPE_TASK_CHANGES = 'Task changes';
+	const NOTIFICATION_TYPE_TASK_ASSIGN = 'Task Creation';
+	const NOTIFICATION_TYPE_TASK_CHANGES = 'Task Updated';
 	const NOTIFICATION_TYPE_FORM_FILLED = 'Form filled';
 	const NOTIFICATION_TYPE_CHECKIN= 'check in';
+	const NOTIFICATION_TYPE_EVENT_DELETED= 'Event Deleted';
 
 	const ENTITY_USER = 'userapproval';
 	const ENTITY_LEAVE = 'leave';
@@ -105,45 +106,45 @@ class Controller extends BaseController
         $notificationSchema = null;
 		$service = '';
 		$parameters = [];
-
+		try{
         switch ($type) {
             case self::NOTIFICATION_TYPE_APPROVAL:
                 $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_APPROVAL)->first();
-				$notificationSchema['message.en'] = $notificationSchema['message.en'] ."".$userdetails->name;
-				$model = "Approval";
+				$notificationSchema['message.en'] =$userdetails->name ."(".$params['rolename'] .") " .$notificationSchema['message.en'];
+				$model = "userApproval";
 				$service = $notificationSchema->service . '/' . $params['phone'];
 				$parameters = ['update_status' => $params['update_status'], 'approval_log_id' => $params['approval_log_id']];
                 break; 
 				
                 case self::NOTIFICATION_TYPE_APPROVED:
                 $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_APPROVED)->first();
-				$notificationSchema['message.en'] = $notificationSchema['message.en'] ."".$userdetails->name;
+				$notificationSchema['message.en'] = $userdetails->name ."(".$params['rolename'] .") " .$notificationSchema['message.en'];
 				$service = $notificationSchema->service . '/' . $params['phone'];
-				$model = "Approval";
+				$model = "userApproval";
 				$parameters = ['update_status' => $params['update_status'], 'approval_log_id' => $params['approval_log_id']];
                 break;
 				
                 case self::NOTIFICATION_TYPE_REJECTED:
                 $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_REJECTED)->first();
-				$notificationSchema['message.en'] = $notificationSchema['message.en'] ."".$userdetails->name .". \nReason: ".$params['reason'];
+				$notificationSchema['message.en'] = $userdetails->name ."(".$params['rolename'] .") " .$notificationSchema['message.en'] .". \nReason: ".$params['reason'];
 				$service = $notificationSchema->service . '/' . $params['phone'];
-				$model = "Approval";
+				$model = "userApproval";
 				$parameters = ['update_status' => $params['update_status'], 'approval_log_id' => $params['approval_log_id']];
                 break;
 
 				case self::NOTIFICATION_TYPE_LEAVE_APPROVAL:
                 $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_LEAVE_APPROVAL)->first();
-				$notificationSchema['message.en'] = $notificationSchema['message.en'] ."".$userdetails->name;	
+				$notificationSchema['message.en'] = $userdetails->name ."(". $params['rolename'] .") ". $notificationSchema['message.en'];	
 				$service = $notificationSchema->service . '/' . $params['phone'];
-				$model = "Approval";
+				$model = "leaveApproval";
 				$parameters = ['update_status' => $params['update_status'], 'approval_log_id' => $params['approval_log_id']];
                 break;
 				
 				case self::NOTIFICATION_TYPE_LEAVE_APPROVED:
                 $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_LEAVE_APPROVED)->first();
-				$notificationSchema['message.en'] = $notificationSchema['message.en'] ."".$userdetails->name;
+				$notificationSchema['message.en'] = $userdetails->name ."(". $params['rolename'] .") ". $notificationSchema['message.en'] ;
 				$service = $notificationSchema->service . '/' . $params['phone'];
-				$model = "Approval";
+				$model = "leave";
 				$parameters = ['update_status' => $params['update_status'], 'approval_log_id' => $params['approval_log_id']];
                 break;
 				
@@ -152,7 +153,7 @@ class Controller extends BaseController
                 $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_COMOFF_APPROVED)->first();
 				$notificationSchema['message.en'] = $notificationSchema['message.en'] ."".$userdetails->name;
 				$service = $notificationSchema->service . '/' . $params['phone'];
-				$model = "Approval";
+				$model = "compoffApproval";
 				$parameters = ['update_status' => $params['update_status'], 'approval_log_id' => $params['approval_log_id']];
                 break;
 				
@@ -160,15 +161,15 @@ class Controller extends BaseController
                 $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_COMOFF_REJECTED)->first();
 				$notificationSchema['message.en'] = $notificationSchema['message.en'] ."".$userdetails->name;
 				$service = $notificationSchema->service . '/' . $params['phone'];
-				$model = "Approval";
+				$model = "compoffApproval";
 				$parameters = ['update_status' => $params['update_status'], 'approval_log_id' => $params['approval_log_id']];
                 break;
 				
 				case self::NOTIFICATION_TYPE_LEAVE_REJECTED:
                 $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_LEAVE_REJECTED)->first();
-				$notificationSchema['message.en'] = $notificationSchema['message.en'] ."".$userdetails->name;
+				$notificationSchema['message.en'] =$userdetails->name ."(". $params['rolename'] .") ". $notificationSchema['message.en'];
 				$service = $notificationSchema->service . '/' . $params['phone'];
-				$model = "Approval";
+				$model = "leave";
 				$parameters = ['update_status' => $params['update_status'], 'approval_log_id' => $params['approval_log_id']];
                 break;
 				
@@ -176,31 +177,31 @@ class Controller extends BaseController
                 $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_ATTENDANCE_APPROVAL)->first(); 
 				$notificationSchema['message.en'] = $notificationSchema['message.en'] ."".$userdetails->name;
 				$service = $notificationSchema->service . '/' . $params['phone'];
-				$model = "Approval"; 
+				$model = "attendanceApproval"; 
 				$parameters = ['update_status' => $params['update_status'], 'approval_log_id' => $params['approval_log_id']];
                 break;
 				
 				case self::NOTIFICATION_TYPE_ATTENDANCE_APPROVED:
                 $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_ATTENDANCE_APPROVED)->first(); 
-				$notificationSchema['message.en'] = $notificationSchema['message.en'] ."".$userdetails->name;
+				$notificationSchema['message.en'] = $userdetails->name ."(". $params['rolename'] .") ". $notificationSchema['message.en'];
 				$service = $notificationSchema->service . '/' . $params['phone'];
-				$model = "Approval";
+				$model = "attendanceApproval";
 				$parameters = ['update_status' => $params['update_status'], 'approval_log_id' => $params['approval_log_id']];
                 break;
 				
 				
 				case self::NOTIFICATION_TYPE_ATTENDANCE_REJECTED:
                 $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_ATTENDANCE_REJECTED)->first(); 
-				$notificationSchema['message.en'] = $notificationSchema['message.en'] ."".$userdetails->name;
+				$notificationSchema['message.en'] = $userdetails->name ."(". $params['rolename'] .") ". $notificationSchema['message.en'];;
 				$service = $notificationSchema->service . '/' . $params['phone'];
-				$model = "Approval";
+				$model = "attendanceApproval";
 				$parameters = ['update_status' => $params['update_status'], 'approval_log_id' => $params['approval_log_id']];
                 break;
 				
 				case self::NOTIFICATION_TYPE_EVENT_CREATED:
                 $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_EVENT_CREATED)->first(); 
-				$notificationSchema['message.en'] = $notificationSchema['message.en'] ."".$userdetails->name;
-				$model = $params['model'];
+				$notificationSchema['message.en'] = $userdetails->name ."(".$params['rolename'].")" .$notificationSchema['message.en'];
+				$model = 'event';//$params['model'];
 				$service = $notificationSchema->service . '/' . $params['phone'];
 				$parameters = ['update_status' => $params['approval_log_id'], 'approval_log_id' => $params['approval_log_id']];
                 break;
@@ -208,27 +209,39 @@ class Controller extends BaseController
 				
 				case self::NOTIFICATION_TYPE_EVENT_CHANGES:
                 $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_EVENT_CHANGES)->first(); 
-				$notificationSchema['message.en'] = $userdetails->name .$notificationSchema['message.en'] ;
-				$model = "Planner";
+				$notificationSchema['message.en'] =  $userdetails->name ."(".$params['rolename'].")" .$notificationSchema['message.en'] ."-".$params['title'];
+				 
+				$model = "event";
 				$service = $notificationSchema->service . '/' . $params['phone'];
 				$parameters = ['update_status' => $params['approval_log_id'], 'approval_log_id' => $params['approval_log_id']];
                 break;
 				
-				case self::NOTIFICATION_TYPE_TASK_ASSIGN:
-                $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_TASK_ASSIGN)->first(); 
-				
-				$notificationSchema['message.en'] = $notificationSchema['message.en']."".$userdetails->name ." in ".$params['update_status'];
-				$model = $params['model'];
+				case self::NOTIFICATION_TYPE_EVENT_DELETED:
+				 
+                $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_EVENT_DELETED)->first();  
+				$notificationSchema['message.en'] =  $userdetails->name ."(".$params['rolename'].")" .$notificationSchema['message.en'] .$params['type'];
+				 
+				$model = "event"; 
 				$service = $notificationSchema->service . '/' . $params['phone'];
 				$parameters = ['update_status' => $params['approval_log_id'], 'approval_log_id' => $params['approval_log_id']];
+                break;
+				
+				case self::NOTIFICATION_TYPE_TASK_ASSIGN: 
+                $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_TASK_ASSIGN)->first();  
+				$notificationSchema['message.en'] = $userdetails->name ."(".$params['rolename'].")" .$notificationSchema['message.en'];
+			 
+				$model = 'task';//$params['model'];
+				$service = $notificationSchema->service . '/' . $params['phone'];
+				$parameters = ['update_status' => $params['approval_log_id'], 'approval_log_id' => $params['approval_log_id']];
+				
                 break;
 				
 				
 				case self::NOTIFICATION_TYPE_TASK_CHANGES:
                 $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_TASK_CHANGES)->first(); 
-				
-				$notificationSchema['message.en'] = $userdetails->name ." ".$notificationSchema['message.en'];
-				$model = 'Planner';
+				 
+				$notificationSchema['message.en'] = $userdetails->name ."(".$params['rolename'].")" .$notificationSchema['message.en'] ."-".$params['title'];
+				$model = 'task';
 				$service = $notificationSchema->service . '/' . $params['phone'];
 				$parameters = ['update_status' => $params['approval_log_id'], 'approval_log_id' => $params['approval_log_id']];
                 break;
@@ -237,15 +250,15 @@ class Controller extends BaseController
 				case self::NOTIFICATION_TYPE_COMOFF_APPROVAL:
                 $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_COMOFF_APPROVAL)->first(); 
 				
-				$notificationSchema['message.en'] = $notificationSchema['message.en']." ".$userdetails->name ;
-				$model = 'Planner';
+				$notificationSchema['message.en'] = $userdetails->name ."(".$params['rolename'].")" .$notificationSchema['message.en'] ;
+				$model = 'compoffApproval';
 				$service = $notificationSchema->service . '/' . $params['phone'];
 				$parameters = ['update_status' => $params['approval_log_id'], 'approval_log_id' => $params['approval_log_id']];
                 break;
 				
 				case self::NOTIFICATION_TYPE_FORM_FILLED:
                 $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_FORM_FILLED)->first(); 
-				$model = 'Form';
+				$model = 'formApproval';
 				$notificationSchema['message.en'] =$params['approval_log_id'] ." ".$notificationSchema['message.en']."".$userdetails->name;
 				
 				$service = $notificationSchema->service . '/' . $params['phone'];
@@ -254,7 +267,7 @@ class Controller extends BaseController
 				
 				case self::NOTIFICATION_TYPE_CHECKIN:
                 $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_CHECKIN)->first(); 
-				$model = 'Planner';
+				$model = 'Attendances';
 				$notificationSchema['message.en'] = $notificationSchema['message.en'];
 				
 				$service = $notificationSchema->service . '/' . $params['phone'];
@@ -263,8 +276,8 @@ class Controller extends BaseController
 				
 				case self::NOTIFICATION_TYPE_MEMBER_DELETED:
                 $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_MEMBER_DELETED)->first(); 
-				$model = 'Planner';
-				$notificationSchema['message.en'] = $notificationSchema['message.en'].$params['title'];
+				$model = 'event';
+				$notificationSchema['message.en'] = $userdetails->name ."(".$params['rolename'].")" .$notificationSchema['message.en'] .$params['type'] ."-".$params['title'];
 				
 				$service = $notificationSchema->service . '/' . $params['phone'];
 				$parameters = ['update_status' => $params['approval_log_id'], 'approval_log_id' => $params['approval_log_id']];
@@ -313,9 +326,14 @@ class Controller extends BaseController
 		]);
 		$notificationLog->notificationSchema()->associate($notificationSchema);
 		$notificationLog->save();
- 
-		return true;
-    }
+		}
+		catch(Exception $e)
+			{
+			$response_data = array('status' =>'200','message'=>'error','data' => $e);
+			return response()->json($response_data,200); 
+			} 
+			return true;		
+    } 
 
      /**
      * generates form title for a particular form id and form response

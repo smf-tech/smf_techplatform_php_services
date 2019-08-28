@@ -9,7 +9,7 @@ use Maklad\Permission\Models\Permission;
 use Dingo\Api\Routing\Helpers;
 use App\Organisation;
 use App\Project;
-use App\RoleConfig;
+use App\RoleConfig; 
 use Illuminate\Support\Facades\DB;
 use App\ApprovalLog;
 use Carbon\Carbon;
@@ -63,19 +63,24 @@ public function test($id)
     }
 
     public function update($phone)
-    {
-
+    { 
         $user = User::where('phone', $phone)->first();
 		$userId = $user['id'];
 		
 		$userLocation = $user['location'];
         if($user) {
+			 $rolename = \App\Role::select('display_name')->where("_id",$user['role_id'])->first();
+			 if(isset($rolename['display_name']))
+			 {
+				$newrolename =  $rolename['display_name'];
+			 }
             $update_data = json_decode(file_get_contents('php://input'), true);
 			 
             if (isset($update_data['type']) && !empty($update_data['type'])) {
                 if ($update_data['type'] !== 'organisation') {
-                    $update_data['associate_id'] = $update_data['org_id'];
+                    $update_data['associate_id'] = $update_data['org_id']; 
                     $orgId = \App\Role::find($update_data['role_id'])->org_id;
+					
                     $update_data['org_id'] = $orgId;
                 }
             }
@@ -102,14 +107,17 @@ public function test($id)
             if (isset($update_data['password'])) {
                 unset($update_data['password']);
             }
+			
+			//$update_data['status.action_on'] = new \MongoDB\BSON\UTCDateTime(new DateTime(date('y-m-d H:i:s'))); 
+			
             if(isset($update_data['role_id']) && $update_data['role_id'] != $user['role_id']){
-                 $user['location'] = [];
-
-
+                 $user['location'] = []; 
                  $user->save(); 
             }
-				//var_dump($user);
-                // exit;  
+			$user['status.status'] = 'pending';
+			$user['status.action_by'] = $userId;	 
+			$user['status.reason'] = '';
+			// echo json_encode($user);die();
             $user->update($update_data);
 
 			$approverList = [];
@@ -119,7 +127,8 @@ public function test($id)
 			$approvalLogId = '';
 			if (isset($update_data['role_id'])) {
                 $approverList = $this->getApprovers($this->request, $update_data['role_id'], $userLocation, $update_data['org_id']);
-               
+               /*  $rolename = Role::select("display_name")->where("_id",$update_data['role_id']); 
+				var_dump($rolename);die(); */
 				if(empty($approverList))
 				{
 				  $approverList = User::where('is_admin',true)->where('approved',true)->where('org_id',$update_data['org_id']);
@@ -148,7 +157,8 @@ public function test($id)
 					[ 
 						'phone' => $phone,
 						'update_status' => self::STATUS_APPROVED,
-						'approval_log_id' => $approvalLogId
+						'approval_log_id' => $approvalLogId,
+						'rolename' => $newrolename
                     ],
                     $update_data['org_id']
 				);

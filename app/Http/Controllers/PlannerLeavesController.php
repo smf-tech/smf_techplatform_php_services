@@ -17,6 +17,7 @@ use App\PlannerTransactions;
 use App\PlannerAttendanceTransaction;
 use App\PlannerLeaveApplications;
 use App\PlannerHolidayMaster;
+use App\PlannerClaimCompoffRequests;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
 use App\ApprovalLog;
@@ -67,18 +68,45 @@ class PlannerLeavesController extends Controller
             foreach($leaveAppliedData as $leave){
                 $leavedata=[
                     "id"=>$leave->_id,
-                    "leave_type"=>$leave->leave_type,
-                    "full_half_day"=> $leave->full_half_day,
+                    "leave_type"=> ucfirst($leave->leave_type),
+                    "full_half_day"=>  ucfirst($leave->full_half_day),
                     "startdate"=> $leave->startdate,
                     "enddate"=> $leave->enddate,
                     "user_id"=> $leave->user_id,
                     "reason"=>$leave->reason,
                     "paid_leave"=>$leave->paid_leave,
-                    "status"=> $leave->status['status'],
+                    "status"=> ucfirst($leave->status['status']),
                     "rejection_reason"=>$leave->status['rejection_reason']
                 ];
                 array_push($leavesdata, $leavedata);
-        }
+            }
+
+        $PlannerClaimCompoffRequests = PlannerClaimCompoffRequests::
+                                             select('entity_type','full_half_day','startdate','enddate','user_id','reason','status.status','status.rejection_reason')  
+                                            ->where('user_id',$user->_id)
+                                            ->where('startdates','>=',$startDateMonth)
+                                            ->where('enddates','<=',$endDateMonth)
+                                            ->get();
+
+            foreach($PlannerClaimCompoffRequests as $compoff){
+                $compoffdata=[
+                    "id"=>$compoff->_id,
+                    "leave_type"=> ucfirst($compoff->entity_type),
+                    "full_half_day"=>  ucfirst($compoff->full_half_day),
+                    "startdate"=> $compoff->startdate,
+                    "enddate"=> $compoff->enddate,
+                    "user_id"=> $compoff->user_id,
+                    "reason"=>$compoff->reason,
+                    "paid_leave"=>"",
+                    "status"=> ucfirst($compoff->status['status']),
+                    "rejection_reason"=>$compoff->status['rejection_reason']
+                ];
+                array_push($leavesdata, $compoffdata);
+            }
+
+                                      
+            //echo json_encode($compoffdata);
+            //die();                                
             
             $holidaylist = PlannerHolidayMaster::select('name','holiday_date','type')->whereBetween('Date', array($startDateMonth,$endDateMonth))->get();
                    

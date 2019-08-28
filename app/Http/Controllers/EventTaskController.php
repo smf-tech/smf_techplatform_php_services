@@ -153,7 +153,7 @@ class EventTaskController extends Controller
 		{	
 	
 			$org_id = explode(',',$request['org_id']);
-			$maindata=User::select('name','role_id')->whereIn('org_id',$org_id);
+			$maindata=User::select('name','role_id')->whereIn('org_id',$org_id)->orderBy('name','asc');
 			
 			if($request['role'] !='')
 			{     
@@ -271,18 +271,20 @@ class EventTaskController extends Controller
 				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
 			} 
 		$currentTime = Carbon::now();  
-		$maindata=PlannerTransactions::where('_id',$eventId)->where('is_mark_attendance_required',true)->where('schedule.starttiming','<=',$currentTime)->where('schedule.endtiming','>=',$currentTime)->first(); 
-		 
+		$maindata=PlannerTransactions::where('_id',$eventId)->where('is_mark_attendance_required',true)
+		->where('schedule.starttiming','<=',$currentTime)->where('schedule.endtiming','>=',$currentTime)
+		->first(); 
+		  
 		if($maindata) 
 		{ 
-			$dateInterval=date_diff(date_create($maindata['mark_attendance_attributes']['generated_on']),date_create($timestamp));
+			/* $dateInterval=date_diff(date_create($maindata['mark_attendance_attributes']['generated_on']),date_create($timestamp));
 			$reference = new DateTimeImmutable;
 			$endTime = $reference->add($dateInterval);
 			$sec = $endTime->getTimestamp() - $reference->getTimestamp();
-			$milisecond = $sec * 1000;
+			$milisecond = $sec * 1000; */
 			  
-			if($maindata['mark_attendance_attributes']['otp_ttl'] <= $milisecond)
-			{
+			if(!isset($maindata['mark_attendance_attributes']['otp']) || $maindata['mark_attendance_attributes']['otp'] =="")
+			{ 
 				$otp =  rand(100000,999999);  
 				$maindata['mark_attendance_attributes.otp'] = $otp;
 				$maindata['mark_attendance_attributes.generated_on'] = $timestamp;
@@ -305,10 +307,10 @@ class EventTaskController extends Controller
 			}
 			
 		}else{
-				$response_data = array('status' =>'200','message'=>'Code can be generated only when Event starts');
+				$response_data = array('status' =>'200','message'=>'Code can be generated only when Event is Active');
 				return response()->json($response_data,200); 
 			}
-		 
+		  
 		if($maindata)
 		{
 			$response_data = array('status' =>'200','message'=>'success','AttencdenceCode' => $otp);
@@ -347,8 +349,8 @@ class EventTaskController extends Controller
 			$sec = $endTime->getTimestamp() - $reference->getTimestamp();
 			$milisecond = $sec * 1000;
 			  
-			if($maindata['mark_attendance_attributes']['otp_ttl'] >= $milisecond)
-			{
+			// if($maindata['mark_attendance_attributes']['otp_ttl'] >= $milisecond)
+			// {
 				 
 				$count = 0; 
 				foreach($maindata['participants'] as $ids)
@@ -390,11 +392,11 @@ class EventTaskController extends Controller
 				
 				
 				
-			}
-			else{
-				$response_data = array('status' =>'200','message'=>'success','data' => 'OTP Expired');
-				return response()->json($response_data,200);
-			}
+			// }
+			// else{
+				// $response_data = array('status' =>'200','message'=>'OTP Expired','data' => 'OTP Expired');
+				// return response()->json($response_data,200);
+			// }
 			
 		}
 		else{
@@ -424,7 +426,8 @@ class EventTaskController extends Controller
 			$maindata['default.updated_by'] = $org_id['_id'];
 			$maindata['default.updated_on'] = $timestamp;
 			$actionFlag = 'edit';
-			
+			$members = $maindata['participants'];
+			 
 		}	
 		else{
 					
@@ -436,7 +439,7 @@ class EventTaskController extends Controller
 			  $maindata['mark_complete'] = false;
 			  $actionFlag = 'insert';
 		}
-		
+		 
 		$maindata['type'] = $requestjson['type'];
 		$maindata['title']  = $requestjson['title'];
 		$maindata['ownerid']  = $org_id->_id;
@@ -462,15 +465,15 @@ class EventTaskController extends Controller
 		$maindata['registration_schedule.endtiming'] = new \MongoDB\BSON\UTCDateTime($requestjson['registration_schedule']['enddatetime']); 
 		}else{
 			$maindata['registration_required'] = $requestjson['registration_required'];
-		}
+		} 
 		
 		if($requestjson['is_mark_attendance_required'] == "true"){ 
 			$maindata['is_mark_attendance_required'] = $requestjson['is_mark_attendance_required'];
-			$otp =  rand(100000,999999); 
+			//$otp =  rand(100000,999999); 
 			$timestamp = Date('Y-m-d H:i:s');
-			$maindata['mark_attendance_attributes.otp'] = "";//$otp;
-			$maindata['mark_attendance_attributes.generated_on'] = "";//$timestamp;     
-			$maindata['mark_attendance_attributes.otp_ttl'] = "";//'3600000'; 
+			$maindata['mark_attendance_attributes.otp'] = '';//$otp;
+			$maindata['mark_attendance_attributes.generated_on'] = '';//$timestamp;     
+			$maindata['mark_attendance_attributes.otp_ttl'] = '';//'3600000'; 
 		}
 		  else{
 			$maindata['is_mark_attendance_required'] = $requestjson['is_mark_attendance_required'];
@@ -480,7 +483,7 @@ class EventTaskController extends Controller
 		$maindata['default.project_id'] = $org_id['project_id'][0]; 
 		
 		if(isset($requestjson['participants']))
-		{	 
+		{		
 		  $count=0;
 		 DB::setDefaultConnection('mongodb');
 		 foreach($requestjson['participants'] as $participant)
@@ -494,61 +497,27 @@ class EventTaskController extends Controller
 			 {	
 			 	$maindata['participants_count'] = $count;
 			 }	
-			$maindata['attended_completed'] = 0;
-			$temp = $maindata;
+			 $maindata['attended_completed'] = 0;
+		
 		}
 		
 		else {$maindata['participants'] = [];}		
-		try{  
+		try{ 
 			$success = $maindata->save();
-			if($actionFlag == 'edit')
-			 {	
-				 foreach($temp['participants'] as $row)
-					{   
-						DB::setDefaultConnection('mongodb');
-						$firebase_id = User::where('_id',$row['id'])->first(); 
-						 
-						if($temp['type'] == 'Event')
-						{				
-							$this->sendPushNotification(
-							$this->request,
-							self::NOTIFICATION_TYPE_EVENT_CHANGES,
-							$firebase_id['firebase_id'],
-							[
-								'phone' => "9881499768",
-								'update_status' => self::NOTIFICATION_TYPE_EVENT_CHANGES,
-								'model' => "Planner",
-								'approval_log_id' => "Testing"
-							],
-							$firebase_id['org_id']
-							); 
-						}
-						if($temp['type'] == 'Task')
-						{				
-							$this->sendPushNotification(
-							$this->request,
-							self::NOTIFICATION_TYPE_TASK_CHANGES,
-							$firebase_id['firebase_id'],
-							[
-								'phone' => "9881499768",
-								'title' => $requestjson['title'],
-								'model' => "Planner",
-								'update_status' => self::NOTIFICATION_TYPE_TASK_CHANGES,
-								'approval_log_id' => "Testing"
-							],
-							$firebase_id['org_id']
-							); 
-						}
-							
-					}
-			 	//echo json_encode($temp); die();
-			 }	
+			 
+			DB::setDefaultConnection('mongodb');
+			  if($actionFlag == 'insert'){
 			foreach($requestjson['participants'] as $row)
 			{   
-				DB::setDefaultConnection('mongodb');
-				$firebase_id = User::where('_id',$row['id'])->first(); 
 				 
-				if($requestjson['type'] == 'Event')
+				$firebase_id = User::where('_id',$row['id'])->first(); 
+				 $rolename = \App\Role::select('display_name')->where("_id",$firebase_id['role_id'])->first();
+		
+					 if(isset($rolename['display_name']))
+					 { 
+						$newrolename =  $rolename['display_name'];
+					 }	
+				if($requestjson['type'] == 'Event'&& isset($firebase_id['firebase_id']) && $firebase_id['firebase_id'] !="" && $firebase_id['firebase_id'] !="\n")
 				{				
 					$this->sendPushNotification(
 					$this->request,
@@ -556,31 +525,96 @@ class EventTaskController extends Controller
 					$firebase_id['firebase_id'],
 					[
 						'phone' => "9881499768",
+						'title' => $requestjson['title'],
 						'update_status' => self::NOTIFICATION_TYPE_EVENT_CREATED,
 						'model' => "Planner",
+						'rolename' => $newrolename,
 						'approval_log_id' => "Testing"
 					],
 					$firebase_id['org_id']
 					); 
-				}
-				if($requestjson['type'] == 'Task')
-				{				
+				} 
+				if($requestjson['type'] == 'Task' && isset($firebase_id['firebase_id']) && $firebase_id['firebase_id'] !="" && $firebase_id['firebase_id'] !="\n")
+				{		
+					$rolename = \App\Role::select('display_name')->where("_id",$firebase_id['role_id'])->first();
+		
+					 if(isset($rolename['display_name']))
+					 { 
+						$newrolename =  $rolename['display_name'];
+					 }	
+					 
 					$this->sendPushNotification(
 					$this->request,
 					self::NOTIFICATION_TYPE_TASK_ASSIGN,
-					$firebase_id['firebase_id'],
+					trim($firebase_id['firebase_id'],'\n'),
 					[
 						'phone' => "9881499768",
 						'title' => $requestjson['title'],
 						'model' => "Planner",
+						'rolename' => $newrolename,
 						'update_status' => self::NOTIFICATION_TYPE_TASK_ASSIGN,
 						'approval_log_id' => "Testing"
 					],
 					$firebase_id['org_id']
 					); 
-				}
-					
-			}
+				}   
+			 
+				 
+			  }}
+			  else{
+				  foreach($members as $mem)
+				  {
+					 $firebase_id = User::where('_id',$mem['id'])->first(); 
+					 
+					$rolename = \App\Role::select('display_name')->where("_id",$firebase_id['role_id'])->first();
+		
+					 if(isset($rolename['display_name']))
+					 { 
+						$newrolename =  $rolename['display_name'];
+					 }	
+				if($requestjson['type'] == 'Event' && isset($firebase_id['firebase_id']))
+				{				
+					  $this->sendPushNotification(
+					$this->request,
+					self::NOTIFICATION_TYPE_EVENT_CHANGES,
+					$firebase_id['firebase_id'],
+					[
+						'phone' => "9881499768",
+						'title' => $requestjson['title'],
+						'rolename' => $newrolename,
+						'update_status' => self::NOTIFICATION_TYPE_EVENT_CHANGES,
+						'model' => "Planner",
+						'approval_log_id' => "Testing"
+					],
+					$firebase_id['org_id']
+					);   
+				} 
+				if($requestjson['type'] == 'Task')
+				{		
+					$rolename = \App\Role::select('display_name')->where("_id",$org_id['role_id'])->first();
+		
+					 if(isset($rolename['display_name']))
+					 { 
+						$newrolename =  $rolename['display_name'];
+					 }	
+					  
+					/* $this->sendPushNotification(
+					$this->request,
+					self::NOTIFICATION_TYPE_TASK_CHANGES,
+					$firebase_id['firebase_id'],
+					[
+						'phone' => "9881499768",
+						'title' => $requestjson['title'],
+						'model' => "Planner",
+						'rolename' => $newrolename,
+						'update_status' => self::NOTIFICATION_TYPE_TASK_CHANGES,
+						'approval_log_id' => "Testing"
+					],
+					$firebase_id['org_id']
+					); */ 
+				} 
+				  }
+			  }
 						
 			}catch(Exception $e)
 			{
@@ -595,7 +629,7 @@ class EventTaskController extends Controller
 		}
 		else
 		{
-			$response_data = array('status' =>'404','message'=>'success');
+			$response_data = array('status' =>'404','message'=>'Event Not Created.');
 			return response()->json($response_data,200); 
 		}
 		
@@ -605,7 +639,7 @@ class EventTaskController extends Controller
 	//Fetch all the events by Month
 	public function getEventByMonth(Request $request)
 	{
-		$org_id = $this->request->user();
+		 $org_id = $this->request->user();
 		$database = $this->connectTenantDatabase($request,$org_id->org_id);
 			if ($database === null) {
 				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
@@ -622,12 +656,19 @@ class EventTaskController extends Controller
 		$start_date_str = Carbon::createFromTimestamp($start)->toDateTimeString();
 		$start_date_time = Carbon::parse($start_date_str)->startOfDay(); 
 		$end_date_str = Carbon::createFromTimestamp($end)->toDateTimeString();
-		$end_date_time = Carbon::parse($end_date_str)->endOfDay(); 	
-		// echo  $start_date_time."-".$end_date_time;die();
-		$maindata = PlannerTransactions::whereBetween('schedule.starttiming',array(new \MongoDB\BSON\UTCDateTime(new DateTime($year."-".$month."-01")),new \MongoDB\BSON\UTCDateTime(new DateTime($year."-".$month."-31"))))->where('type',$type)->whereOr('ownerid',$userId)->whereOr('participants.id',$userId)->whereOr('schedule.starttiming',new \MongoDB\BSON\UTCDateTime(new DateTime($year."-".$month."-01")))->whereOr('schedule.starttiming',new \MongoDB\BSON\UTCDateTime(new DateTime($year."-".$month."-31")))->get();
-		// $maindata = PlannerTransactions::select('_id','schedule.startdatetime','schedule.enddatetime')->where('schedule.starttiming','<=',$start_date_time)->where('schedule.endtiming','>=',$end_date_time)->where('type',$type)->get();
-		
-		$data = array();  
+		$end_date_time = Carbon::parse($end_date_str)->endOfDay(); 	 
+		  
+		$maindata = PlannerTransactions::
+		whereBetween('schedule.starttiming',array(new \MongoDB\BSON\UTCDateTime(new DateTime($year."-".$month."-01")),new \MongoDB\BSON\UTCDateTime(new DateTime($year."-".$month."-31"))))
+		->where('type',$type)
+		->whereOr('ownerid',$userId)
+		->whereOr('participants.id',$userId)
+		->whereOr('schedule.starttiming',new \MongoDB\BSON\UTCDateTime(new DateTime($year."-".$month."-01")))
+		->whereOr('schedule.starttiming',new \MongoDB\BSON\UTCDateTime(new DateTime($year."-".$month."-31")))
+		->orderby('schedule.starttiming','asc')
+		->get();
+		  
+		  $data = array();  
 		if($maindata){
 			foreach($maindata as $row)
 			{  
@@ -653,17 +694,17 @@ class EventTaskController extends Controller
 		 
 		$mainarray = array();
 		
-		foreach($data as $row)
+		  foreach($data as $row)
 		{
 			$startdatetime = $row['schedule']['startdatetime'] / 1000;
-			$enddatetime = $row['schedule']['enddatetime'] / 1000;
-			for ($i=$startdatetime; $i<=$enddatetime; $i+=86400) {  
+			$enddatetime = $row['schedule']['enddatetime'] / 1000; 
+			 for ($i=$startdatetime; $i<=$enddatetime; $i+=86400) {  
 				array_push($mainarray, date("Y-m-d", $i)); 
-			}
+				
+			}   
 			array_push($mainarray, date("Y-m-d", $enddatetime));  
-		}
-			
-			
+		}  
+		
 			
 		
 		if($mainarray)
@@ -675,7 +716,7 @@ class EventTaskController extends Controller
 		{
 			$response_data = array('status' =>'300','message'=>'No Data Found..');
 			return response()->json($response_data,200); 
-		}
+		}  
 		
 	}
 	
@@ -712,6 +753,7 @@ class EventTaskController extends Controller
 										where('schedule.starttiming','<=',$end_date_time)
 										->where('schedule.endtiming','>=',$start_date_time)
 										->where('type',$type)
+										->orderby('schedule.starttiming','asc')
 										->get();
 
 	 
@@ -760,7 +802,7 @@ class EventTaskController extends Controller
 	 
 	//Fetch all the categories of tasks
 	public function addmembertask(Request $request)
-	{ 
+	{  
 		$org_id = $this->request->user();
 		$userLocation = $org_id['location'];
 		$database = $this->connectTenantDatabase($request,$org_id->org_id);
@@ -769,6 +811,10 @@ class EventTaskController extends Controller
 			} 
 			 
 			$approverRoleConfig = \App\RoleConfig::where('approver_role', $org_id->role_id)->get();
+			
+			if(count($approverRoleConfig) >0) 
+			{
+				
 			$levelIds = [];
 			$jurisdictionIds = [];
 			$roleIds = [];
@@ -845,19 +891,24 @@ class EventTaskController extends Controller
 			$response_data = array('status' =>'404','message'=>'No members found');
 			return response()->json($response_data,200); 
 		}
+	}{
+			$response_data = array('status' =>'404','message'=>'No members found');
+			return response()->json($response_data,200); 
+		}
 		
 	}
 	
 	public function deletemember(Request $request)
-	{
+	{ 
 		$org_id = $this->request->user();
+		
 		$database = $this->connectTenantDatabase($request,$org_id->org_id);
 			if ($database === null) {
 				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
 			} 
 		$requestjson = json_decode(file_get_contents('php://input'), true);
 		$eventDetails = PlannerTransactions::find($requestjson['eventId']);
-		
+		 
 		if($eventDetails)
 		{
 			$memberarray = array();
@@ -877,6 +928,12 @@ class EventTaskController extends Controller
 			$eventDetails->save();
 			
 			DB::setDefaultConnection('mongodb');
+			$rolename = \App\Role::find($org_id['role_id']);
+		 
+				 if(isset($rolename['display_name']))
+				 {
+					$newrolename =  $rolename['display_name'];
+				 }
 				$firebase_id = User::where('_id',$requestjson['memberId'])->first(); 
 				 
 				$this->sendPushNotification(
@@ -885,7 +942,9 @@ class EventTaskController extends Controller
 				$firebase_id['firebase_id'],
 				[
 					'phone' => "9881499768",
+					'type' => $eventDetails['type'],
 					'title' => $eventDetails['title'],
+					'rolename' => $newrolename,					 
 					'update_status' => self::NOTIFICATION_TYPE_MEMBER_DELETED,
 					'approval_log_id' => $org_id['name']
 				],
@@ -911,6 +970,7 @@ class EventTaskController extends Controller
 		
 	}
 	
+
 	public function createLeave(Request $request)
 	{
 		$org_id = $this->request->user();
@@ -920,11 +980,17 @@ class EventTaskController extends Controller
 			if ($database === null) {
 				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
 			} 
-		$requestjson = json_decode(file_get_contents('php://input'), true);
-		$start_date_str = new \MongoDB\BSON\UTCDateTime($requestjson['startdate']);
+		$requestjson = json_decode(file_get_contents('php://input'), true); 
+
+		$start_date = Carbon::createFromTimestamp($requestjson['startdate']/1000 );
+		$startdate = new Carbon($start_date);
+        $startdate->timezone = 'Asia/Kolkata';
+        $start_date_str = new \MongoDB\BSON\UTCDateTime($startdate->startOfDay()->addHours(5)->addMinutes(30));
 		
-		
-		$enddate_date_str = new \MongoDB\BSON\UTCDateTime($requestjson['enddate']);
+	    $end_date = Carbon::createFromTimestamp($requestjson['enddate']/1000 );
+		$enddate = new Carbon($end_date);
+        $enddate->timezone = 'Asia/Kolkata';
+		$end_date_str =  new \MongoDB\BSON\UTCDateTime($enddate->endOfDay());
 		
 		$start_date_str1 = Carbon::createFromTimestamp($requestjson['startdate'] / 1000)->toDateTimeString();
 		$end_date_str1 = Carbon::createFromTimestamp($requestjson['enddate'] / 1000)->toDateTimeString();
@@ -956,7 +1022,7 @@ class EventTaskController extends Controller
 
 
 		$attendanceInfo = PlannerAttendanceTransaction:://select('created_at')
-						  whereBetween('created_at',array($start_date_time1,$end_date_time1))
+						  whereBetween('created_at',array($start_date_str,$end_date_str))
 						  ->where('user_id',$org_id->_id)->get();
 	   
 
@@ -969,13 +1035,11 @@ class EventTaskController extends Controller
 
 
 		$holidayInfo = PlannerHolidayMaster::select('holiday_date','type')
-						   ->where('Date',">=",$start_date_time1)
-						   ->where('Date',"<=",$end_date_time1)
+						   ->where('Date',">=",$start_date_str)
+						   ->where('Date',"<=",$end_date_str)
 						   ->where('type', 'holiday')
 						   ->get();
 
-		//echo json_encode($holidayInfo);
-		//exit;				   
 		
 		if(count($holidayInfo) == 0){
 		 
@@ -983,12 +1047,13 @@ class EventTaskController extends Controller
 						  select('user_id','startdate','enddate')
 						  ->where('user_id',$org_id->_id)
 						  ->where('status.status','!=','rejected')
-						->WhereBetween('startdates',array($start_date_time1,$end_date_time1))
+						->WhereBetween('startdates',array($start_date_str,$end_date_str))
 						//->whereOr('startdate',">=",$start_date_time1)
 						//->whereOr('enddate',"<=",$end_date_time1)
-						->whereOr('startdates',$end_date_time1)
-						->whereOr('enddates',$start_date_time1)
-						->get(); 
+						->whereOr('startdates',$end_date_str)
+						->whereOr('enddates',$start_date_str)
+						->get();
+		//die(); 				 
 
 		 //echo json_encode($PlannerLeaveApp);die();
 		if(count($PlannerLeaveApp) > 0){
@@ -1001,9 +1066,9 @@ class EventTaskController extends Controller
 		$maindata['full_half_day'] = $requestjson['full_half_day'];
 		$maindata['startdate'] = (int)$requestjson['startdate'] ;
 		$maindata['enddate'] = (int)$requestjson['enddate'];
-		$maindata['startdates'] = new \MongoDB\BSON\UTCDateTime($requestjson['startdate']);
-		$maindata['enddates'] =new \MongoDB\BSON\UTCDateTime($requestjson['enddate']);
-		$maindata['user_id'] = $requestjson['user_id'];
+		$maindata['startdates'] = $start_date_str;
+		$maindata['enddates'] = $end_date_str;
+		$maindata['user_id'] = $org_id->_id;
 		$maindata['reason'] = $requestjson['reason'];
 		$maindata['paid_leave'] = true;
 		$maindata['status.status'] = "pending";
@@ -1037,13 +1102,20 @@ class EventTaskController extends Controller
 				array_push($approverUsers,$approverIds);
 				} 
 				 
+				$rolename = \App\Role::select('display_name')->where("_id",$org_id['role_id'])->first();
+		
+					 if(isset($rolename['display_name']))
+					 { 
+						$newrolename =  $rolename['display_name'];
+					 } 
+				 
 				$ApprovalLogs = new ApprovalLog;
-				
+				 
 				$ApprovalLogs['entity_id'] = $last_inserted_id;
 				$ApprovalLogs['entity_type'] = "leave";
 				$ApprovalLogs['approver_ids'] = $approverUsers;
 				$ApprovalLogs['status'] = "pending";
-				$ApprovalLogs['userName'] = $requestjson['user_id'];
+				$ApprovalLogs['userName'] = $org_id->_id;
 				$ApprovalLogs['reason'] = "";
 				$ApprovalLogs['startdate'] = (int)($requestjson['startdate'] / 1000);
 				$ApprovalLogs['enddate'] = (int)($requestjson['enddate'] / 1000);
@@ -1076,7 +1148,7 @@ class EventTaskController extends Controller
 				$ApprovalsPending['entity_type'] = "leave";
 				$ApprovalsPending['approver_ids'] = $approverUsers;
 				$ApprovalsPending['status'] = "pending";
-				$ApprovalsPending['userName'] = $requestjson['user_id'];
+				$ApprovalsPending['userName'] = $org_id->_id;
 				$ApprovalsPending['reason'] = "";
 				
 				$ApprovalsPending['startdate'] =  new \MongoDB\BSON\UTCDateTime($requestjson['startdate'] );
@@ -1096,6 +1168,7 @@ class EventTaskController extends Controller
 				} 
 				try{
 					$ApprovalsPending->save(); 
+			 
 					foreach($approverUsers as $row)
 					{  
 						DB::setDefaultConnection('mongodb');
@@ -1107,7 +1180,8 @@ class EventTaskController extends Controller
 						[
 							'phone' => "9881499768",
 							'update_status' => self::STATUS_PENDING,
-							'approval_log_id' => "Testing"
+							'approval_log_id' => "Testing",
+							'rolename'=>$newrolename
 						],
 						$firebase_id['org_id']
 						);
@@ -1200,14 +1274,28 @@ class EventTaskController extends Controller
 				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
 			}
 		try{
-				$leave=PlannerLeaveApplications::find($leaveId);  
-				$leave->delete();
-				
-				$ApprovalsPending=ApprovalsPending::where('entity_id',$leaveId)->first();
-				$ApprovalsPending->delete();
-				
-				$response_data = array('status' =>'200','message'=>'success');
-				return response()->json($response_data,200); 			   
+
+			$leaveInfo = ApprovalsPending::where('entity_id',$leaveId)->first();
+		 
+			if($leaveInfo['entity_type'] == 'compoff')
+			{
+				$compoff = PlannerClaimCompoffRequests::find($leaveId);  
+				if($compoff){
+				$compoff->delete();
+				}
+			}else{
+					$leave=PlannerLeaveApplications::find($leaveId);    
+					if($leave){
+					$leave->delete();
+				}
+			}
+					// $ApprovalsPending=ApprovalsPending::where('entity_id',$leaveId)->first();
+					if($leaveInfo){
+					$leaveInfo->delete();
+					}			
+					$response_data = array('status' =>'200','message'=>'Deleted successfully');
+					return response()->json($response_data,200); 	
+							
 			}
 			catch(exception $e)
 			{
@@ -1216,7 +1304,7 @@ class EventTaskController extends Controller
 			}		
 	}
 	
-	
+	 
 	
 	//delete task
 	public function deleteTask(Request $request,$taskId)
@@ -1230,15 +1318,56 @@ class EventTaskController extends Controller
 			}
 		try{
 				$task=PlannerTransactions::find($taskId);
-				$task->delete($task->id);
+			if($task){
+				$members = $task['participants'];
+				$type = $task['type'];
+				$title = $task['title'];
+				 
+				$task->delete($task->id); 
+				DB::setDefaultConnection('mongodb'); 
+				if($members){
+				foreach($members as $mem)
+				{
+					$firebase_id = User::where('_id',$mem['id'])->first(); 
+					$rolename = \App\Role::select('display_name')->where("_id",$firebase_id['role_id'])->first();
+		
+					 if(isset($rolename['display_name']))
+					 { 
+						$newrolename =  $rolename['display_name'];
+					 }
+					/* $this->sendPushNotification(
+					$this->request,
+					self::NOTIFICATION_TYPE_EVENT_DELETED,
+					$firebase_id['firebase_id'],
+					[
+						'phone' => "9881499768",
+						'title' => $title,
+						'type' => $type,
+						'rolename' => $newrolename,
+						'update_status' => self::NOTIFICATION_TYPE_EVENT_DELETED,
+						'model' => $type,
+						'approval_log_id' => "Testing"
+					],
+					$firebase_id['org_id']
+					);  */
+						
+				}
+				
 				$response_data = array('status' =>'200','message'=>'success');
-				return response()->json($response_data,200); 			   
-			}
+				return response()->json($response_data,200); 		
+				}				
+			}else{
+				$response_data = array('status' =>'200','message'=>'No Event Found');
+				return response()->json($response_data,200); 
+			}	
+		}
 			catch(exception $e)
 			{
 				$response_data = array('status' =>'200','message'=>'success','data' => $e);
 				return response()->json($response_data,200); 
-			}		
+			}
+			
+	
 	}
 	
 	//get the events members
@@ -1380,39 +1509,63 @@ class EventTaskController extends Controller
 	
 	public function applyCompoff(Request $request)
 	{
-		$org_id = $this->request->user();
-		$database = $this->connectTenantDatabase($request,$org_id->org_id);
+		$user = $this->request->user();
+		$database = $this->connectTenantDatabase($request,$user->org_id);
 			if ($database === null) {
 				return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
 			}	
 		$timestamp = Date('Y-m-d H:i:s');	
 		$requestjson = json_decode(file_get_contents('php://input'), true);	 
-		$start_date_str = Carbon::createFromTimestamp(($requestjson['startdate'] / 1000))->toDateTimeString();
-		$end_date_str = Carbon::createFromTimestamp(($requestjson['enddate'] / 1000))->toDateTimeString();
-		$start_date_time = Carbon::parse($start_date_str)->startOfDay();  
-		$end_date_time = Carbon::parse($end_date_str)->endOfDay();  
-		$PlannerClaimCompoffRequests = PlannerClaimCompoffRequests::where('user_id',$requestjson['user_id'])
+		$start_date = Carbon::createFromTimestamp(($requestjson['startdate'] / 1000));
+		
+		$startdate = new Carbon($start_date);
+        $startdate->timezone = 'Asia/Kolkata';
+        $start_date_time = new \MongoDB\BSON\UTCDateTime($startdate->startOfDay()->addHours(5)->addMinutes(30));
+
+
+		$end_date = Carbon::createFromTimestamp(($requestjson['enddate'] / 1000));
+
+		$enddate = new Carbon($end_date);
+        $enddate->timezone = 'Asia/Kolkata';
+        $end_date_time = new \MongoDB\BSON\UTCDateTime($enddate->endOfDay()->addHours(5)->addMinutes(30));
+ 
+		$PlannerClaimCompoffRequests = PlannerClaimCompoffRequests::where('user_id',$user->_id)
 															  ->where('startdates','>=',$start_date_time)
 															  ->where('enddates','<=',$end_date_time)
 															  ->get();
 	   
 		if(count($PlannerClaimCompoffRequests) == 0 )
 		{
-		$PlannerClaimCompoffRequests = new PlannerClaimCompoffRequests;
+			$PlannerClaimCompoffRequests = new PlannerClaimCompoffRequests;
 		}
 		else
 		{
 			$response_data = array('status' =>'300','message'=>'Conflict in Dates Please Change your Date Range');
 			return response()->json($response_data,200);
 		}
+
+
+
+		$attendanceInfo = PlannerAttendanceTransaction:://select('created_at')
+						  whereBetween('created_at',array($start_date_time,$end_date_time))
+						  ->where('user_id',$user->_id)->get();
+	  
+		if(count($attendanceInfo) == 0)
+		  {
+			  $response_data = array('status' =>'300','message'=>"You haven't marked any attendance in selected date range");
+			  return response()->json($response_data,200); 
+		  } 
+
+
+		
 	
 		$PlannerClaimCompoffRequests['entity_type'] = "compoff";
 		$PlannerClaimCompoffRequests['full_half_day'] = $requestjson['full_half_day'];
 		$PlannerClaimCompoffRequests['startdate'] = $requestjson['startdate'] ;
 		$PlannerClaimCompoffRequests['enddate'] = $requestjson['enddate'];
-		$PlannerClaimCompoffRequests['startdates'] = new \MongoDB\BSON\UTCDateTime($requestjson['startdate']);
-		$PlannerClaimCompoffRequests['enddates'] = new \MongoDB\BSON\UTCDateTime($requestjson['enddate']);
-		$PlannerClaimCompoffRequests['user_id'] = $requestjson['user_id'];
+		$PlannerClaimCompoffRequests['startdates'] = $start_date_time;
+		$PlannerClaimCompoffRequests['enddates'] =$end_date_time;
+		$PlannerClaimCompoffRequests['user_id'] = $user->_id;
 		$PlannerClaimCompoffRequests['reason'] = $requestjson['reason'];
 
 		$PlannerClaimCompoffRequests['status.status'] = "pending";
@@ -1420,12 +1573,12 @@ class EventTaskController extends Controller
 		$PlannerClaimCompoffRequests['status.action_on'] = "";
 		$PlannerClaimCompoffRequests['status.rejection_reason'] = ""; 
 		  
-		$PlannerClaimCompoffRequests['default.org_id'] = $org_id['org_id'];
+		$PlannerClaimCompoffRequests['default.org_id'] = $user['org_id'];
 		$PlannerClaimCompoffRequests['default.updated_by'] = "";
-		$PlannerClaimCompoffRequests['default.created_by'] = $org_id['_id'];
+		$PlannerClaimCompoffRequests['default.created_by'] = $user->_id;
 		$PlannerClaimCompoffRequests['default.created_on'] = $timestamp;    
 		$PlannerClaimCompoffRequests['default.updated_on'] = "";
-		$PlannerClaimCompoffRequests['default.project_id'] = $org_id['project_id'][0];
+		$PlannerClaimCompoffRequests['default.project_id'] = $user['project_id'][0];
 
 		try{ 
 			$PlannerClaimCompoffRequests->save();
@@ -1443,7 +1596,7 @@ class EventTaskController extends Controller
 		$end_date_time = Carbon::parse($end_date_str)->endOfDay();  
 		 
 		$approverUsers = array();
-		$approverList = $this->getApprovers($this->request, $org_id['role_id'], $org_id['location'], $org_id['org_id']);
+		$approverList = $this->getApprovers($this->request, $user['role_id'], $user['location'], $user['org_id']);
 		  
 		$approverIds =array();
 		foreach($approverList as $approver) { 
@@ -1451,7 +1604,12 @@ class EventTaskController extends Controller
 		
 		array_push($approverUsers,$approverIds);
 		} 
-		$database = $this->connectTenantDatabase($request,$org_id->org_id);
+		$rolename = \App\Role::select('display_name')->where("_id",$user['role_id'])->first();
+		 if(isset($rolename['display_name']))
+		 {
+			$newrolename =  $rolename['display_name'];
+		 }
+		$database = $this->connectTenantDatabase($request,$user->org_id);
 		
 		$ApprovalLogs = new ApprovalLog;
 		$ApprovalLogs['entity_type'] = "compoff";
@@ -1462,16 +1620,16 @@ class EventTaskController extends Controller
 		$ApprovalLogs['enddate'] = $requestjson['enddate'];
 		$ApprovalLogs['startdates'] = new \MongoDB\BSON\UTCDateTime($requestjson['startdate']);
 		$ApprovalLogs['enddates'] = new \MongoDB\BSON\UTCDateTime($requestjson['enddate']);
-		$ApprovalLogs['userName'] = $requestjson['user_id'];
+		$ApprovalLogs['userName'] = $user->_id;
 		$ApprovalLogs['reason'] = $requestjson['reason']; 
 		$ApprovalLogs['status'] = "pending";  
 		  
-		$ApprovalLogs['default.org_id'] = $org_id['org_id'];
+		$ApprovalLogs['default.org_id'] = $user['org_id'];
 		$ApprovalLogs['default.updated_by'] = "";
-		$ApprovalLogs['default.created_by'] = $org_id['_id'];
+		$ApprovalLogs['default.created_by'] = $user->_id;;
 		$ApprovalLogs['default.created_on'] = $timestamp;    
 		$ApprovalLogs['default.updated_on'] = "";
-		$ApprovalLogs['default.project_id'] = $org_id['project_id'][0];	 
+		$ApprovalLogs['default.project_id'] = $user['project_id'][0];	 
 		
 		try{
 			$ApprovalLogs->save(); 
@@ -1496,22 +1654,22 @@ class EventTaskController extends Controller
 		$ApprovalsPending['enddate'] = $requestjson['enddate'];
 		$ApprovalsPending['startdates'] = new \MongoDB\BSON\UTCDateTime($requestjson['startdate']);
 		$ApprovalsPending['enddates'] = new \MongoDB\BSON\UTCDateTime($requestjson['enddate']);
-		$ApprovalsPending['userName'] = $requestjson['user_id'];
+		$ApprovalsPending['userName'] = $user->_id;;
 		$ApprovalsPending['reason'] = $requestjson['reason']; 
 		$ApprovalsPending['status'] = "pending"; 
 		
 		  
-		$ApprovalsPending['default.org_id'] = $org_id['org_id'];
+		$ApprovalsPending['default.org_id'] = $user['org_id'];
 		$ApprovalsPending['default.updated_by'] = "";
-		$ApprovalsPending['default.created_by'] = $org_id['_id'];
+		$ApprovalsPending['default.created_by'] = $user->_id;;
 		$ApprovalsPending['default.created_on'] = $timestamp;    
 		$ApprovalsPending['default.updated_on'] = "";
-		$ApprovalsPending['default.project_id'] = $org_id['project_id'][0];	
+		$ApprovalsPending['default.project_id'] = $user['project_id'][0];	
 		try{
 			 $ApprovalsPending->save();
 			 foreach($approverUsers as $row)
 					{  
-						DB::setDefaultConnection('mongodb');
+						DB::setDefaultConnection('mongodb'); 
 						$firebase_id = User::where('_id',$row)->first(); 
 						$this->sendPushNotification(
 						$this->request,
@@ -1519,6 +1677,7 @@ class EventTaskController extends Controller
 						$firebase_id['firebase_id'],
 						[
 							'phone' => "9881499768",
+							'rolename'=>$newrolename,
 							'update_status' => self::STATUS_PENDING,
 							'approval_log_id' => "Testing"
 						],
@@ -1743,50 +1902,66 @@ class EventTaskController extends Controller
 		if(isset($maindata))
 		{
 			$type = $maindata['type']; 
+			$title = $maindata['title']; 
 			$maindata['default.updated_by'] = $org_id['_id'];
 			$maindata['default.updated_on'] = $timestamp;
 			if(isset($requestjson['participants']))
 			{		
 				  $count=0;
 				  $attendance_count =0;
-				 foreach($requestjson['participants'] as $participant)
+				 foreach($maindata['participants'] as $participant)
 				 { 
 					$maindata['participants.'.$count] =  $participant;
 					if($maindata['participants.'.$count.'.attended_completed'] ==  true)
 					{
-						$attendance_count ++;
-					}
-					$count++;
-					 
+						$count ++;
+					} 
 				 }  
 				 
 				 $maindata['participants'] = $requestjson['participants'];
 				 $maindata['participants_count'] = count($requestjson['participants']);
-				 $maindata['attended_completed'] = $attendance_count; 
+				 $maindata['attended_completed'] = $count; 
 			} 
 			else{
 					$maindata['participants'] = [];
 				}
 				try{  
-				 
+						$storage_path = storage_path();
+						 
+						$files = fopen($storage_path."/logs/lumen-2019-08-27_testLog.log","a");
+								 DB::setDefaultConnection('mongodb');
+								foreach($requestjson['participants'] as $row){ 
+								$firebase_id = User::where('_id',$row['id'])->first();  
+								 fwrite($files,$firebase_id['firebase_id'] ."<br>"); 
+								}
+								 fclose($files);
+					 
 							$success = $maindata->save();
 							foreach($requestjson['participants'] as $row)
 							{   
 								DB::setDefaultConnection('mongodb');
+								$rolename = \App\Role::find($org_id['role_id']);
+		 
+								 if(isset($rolename['display_name']))
+								 {
+									$newrolename =  $rolename['display_name'];
+								 }
 								$firebase_id = User::where('_id',$row['id'])->first(); 
 								 				
-									$this->sendPushNotification(
+									 $this->sendPushNotification(
 									$this->request,
 									self::NOTIFICATION_TYPE_EVENT_CREATED,
 									$firebase_id['firebase_id'],
 									[
 										'phone' => "9881499768",
+										'rolename' => $newrolename,
 										'update_status' => self::NOTIFICATION_TYPE_EVENT_CREATED,
 										'model' => "Planner",
+										'title' => $title,
 										'approval_log_id' => "Testing"
 									],
 									$firebase_id['org_id']
-									);  
+									);   
 							}
 							}catch(Exception $e)
 							{
@@ -1807,10 +1982,7 @@ class EventTaskController extends Controller
 		}else{
 			$response_data = array('status' =>'404','message'=>'Invalid Click');
 			return response()->json($response_data,200); 
-		}	
-		
-			
-			
+		}		
 	}
 	
 	

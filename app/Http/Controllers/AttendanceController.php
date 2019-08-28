@@ -113,7 +113,7 @@ class AttendanceController extends Controller
          $currentDateString = Carbon::now()->toDateString();
          $currentDateEndTime = Carbon::now()->endOfDay();
 
-         $attendanceDate = Carbon::createFromTimestamp((int)$data['dates']/1000);
+         $attendanceDate = Carbon::createFromTimestamp($data['dates']/1000);
 
 
 
@@ -184,11 +184,15 @@ class AttendanceController extends Controller
 
                     $attendanceData['check_in.time'] = $data['dates'];
                     $attendanceData['check_in.address'] = $address;
-                    $attendanceData['check_out.lat'] = '';
-                    $attendanceData['check_out.long'] = '';
-                    $attendanceData['check_out.time'] = '';
-                    $attendanceData['check_out.address'] = '';
+                    $attendanceData['check_out.lat'] = 0;
+                    $attendanceData['check_out.long'] = 0;
+                    $attendanceData['check_out.time'] = 0;
+                    $attendanceData['check_out.address'] = 0;
                     $attendanceData['status'] = 'pending';
+                    $attendanceData['status.status'] = 'pending';
+                    $attendanceData['status.action_by'] = $user->_id;
+                    $attendanceData['status.action_on'] = $data['dates'];
+                    $attendanceData['status.rejection_reason'] = '';
                     $attendanceData['created_on'] = $data['dates'];
                     $attendanceData['created_by'] = $user->_id;
                     $attendanceData['updated_on'] = $data['dates'];
@@ -198,7 +202,8 @@ class AttendanceController extends Controller
 
                     try{
 						
-						
+						//echo json_encode($attendanceData);
+						//die();
                        $attendanceData->save(); 
 					   
 					    DB::setDefaultConnection('mongodb');
@@ -326,7 +331,7 @@ class AttendanceController extends Controller
           $currentDateString = Carbon::now()->toDateString();
           $currentDateEndTime = Carbon::now()->endOfDay();
 
-          $attendanceDate = Carbon::createFromTimestamp((int)$data['dates']/1000);
+          $attendanceDate = Carbon::createFromTimestamp($data['dates']/1000);
 
           $carbonDate = new Carbon($attendanceDate);
           $carbonDate->timezone = 'Asia/Kolkata';
@@ -358,7 +363,7 @@ class AttendanceController extends Controller
 
             
           $attendanceData=PlannerAttendanceTransaction::where('_id',$data['attendanceId'])->where('user_id',$user->_id)->first(); 
-
+         
           if(isset($attendanceData['check_out.time']) && ($attendanceData['check_out.time']!='' ))
           {
 
@@ -382,7 +387,7 @@ class AttendanceController extends Controller
           $attendanceData['check_out.long'] = $data['longitude'];
           $attendanceData['check_out.time'] = $data['dates'];
           $attendanceData['check_out.address'] = $address;
-          $attendanceData['totalHours'] = $data['totalHours'];
+          //$attendanceData['totalHours'] = $data['totalHours'];
           $attendanceData['updated_on'] = $data['dates'];
           $attendanceData['updated_by'] = $user->_id;
           
