@@ -63,6 +63,34 @@ return [
             'bucket' => env('AWS_BUCKET'),
             'url' => env('AWS_URL'),
         ],
+		
+		'octopusS3' => [
+            'driver' => 's3',
+            'key' => env('OCT_AWS_ACCESS_KEY_ID'),
+            'secret' => env('OCT_AWS_SECRET_ACCESS_KEY'),
+            'region' => env('OCT_AWS_DEFAULT_REGION'),
+            'bucket' => env('OCT_AWS_BUCKET'),
+            'url' => env('OCT_AWS_URL'),
+        ],
+		
+		'communityS3' => [
+            'driver' => 's3',
+            'key' => env('COMMUNITY_AWS_ACCESS_KEY_ID'),
+            'secret' => env('COMMUNITY_AWS_SECRET_ACCESS_KEY'),
+            'region' => env('COMMUNITY_AWS_DEFAULT_REGION'),
+            'bucket' => env('COMMUNITY_AWS_BUCKET'),
+            'url' => env('COMMUNITY_AWS_URL'),
+        ],
+		
+		'octopus' => [
+            'driver' => 's3',
+            'key' => env('OCT_AWS_ACCESS_KEY_ID'),
+            'secret' => env('OCT_AWS_SECRET_ACCESS_KEY'),
+            'region' => env('OCT_AWS_DEFAULT_REGION'),
+            'bucket' => env('BJSOCTOPUS_BUCKET'),
+            'url' => env('OCT_AWS_URL'),
+        ],
+
 
     ],
 

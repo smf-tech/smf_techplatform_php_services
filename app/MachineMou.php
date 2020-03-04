@@ -63,4 +63,10 @@ class MachineMou extends \Jenssegers\Mongodb\Eloquent\Model
     {
         return $this->belongsTo(Taluka::class);
     }
+	
+	public function machineData()
+    {
+        return $this->hasMany('App\Machine', '_id', 'provider_information.machine_id');
+    }
+	 
 }

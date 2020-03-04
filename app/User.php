@@ -19,13 +19,17 @@ class User extends Model implements AuthenticatableContract,AuthorizableContract
 {
     use HasApiTokens,Authenticatable, Authorizable, HasRoles, AuditFields;
 
+	
+	 protected $connection = "mongodb";
+
+	// protected $connection = 'mongodb';
     /**
      * The attributes that are mass assignable.
      *
      * @var array
      */
     protected $fillable = [
-        'name','email','password','phone','dob','org_id','role_id','approve_status','project_id','profile_pic','type','associate_id','location','firebase_id','gender'
+        'name','email','password','phone','dob','org_id','role_id','approve_status','project_id','profile_pic','type','associate_id','location','firebase_id','gender','device_id'
     ];
 
     /**
@@ -46,5 +50,18 @@ class User extends Model implements AuthenticatableContract,AuthorizableContract
     public function findForPassport($identifier) {
         return User::orWhere('email', $identifier)->orWhere('phone', $identifier)->first();
     }
+	
+/*	public function operatorMapping() {
+
+		return $this->hasOne('App\OperatorMachineMapping','operator_id','_id');
+
+	}*/
+	
+	public function operatorMappingList() {
+		
+		return $this->hasOne('App\OperatorMachineMapping','operator_id','_id');
+		
+	}
+
 
 	}

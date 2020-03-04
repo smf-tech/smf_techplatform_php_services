@@ -4,14 +4,14 @@ namespace App;
 
 class ApprovalLog extends BaseModel
 {
-	use AuditFields;
+ 	use AuditFields;
 
-	protected $fillable = [
+  	protected $fillable = [
 		'entity_id',
 		'entity_type',
 		'approver_ids',
 		'status',
 		'reason',
 		'userName',
-	];
+	];   
 }

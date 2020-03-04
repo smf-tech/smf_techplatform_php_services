@@ -23,13 +23,17 @@ $app = new Laravel\Lumen\Application(
     realpath(__DIR__.'/../')
 );
 
-$app->withFacades();
+$app->withFacades(true, [
+    'Illuminate\Support\Facades\Mail' => 'Mail',]
+);
+
 
 $app->register(Jenssegers\Mongodb\MongodbServiceProvider::class);
 
 $app->withEloquent();
 
 $app->configure('app');
+$app->configure('dompdf');
 
 /*
 |--------------------------------------------------------------------------
@@ -126,6 +130,12 @@ $app->register(LaravelFCM\FCMServiceProvider::class);
 
 Dusterio\LumenPassport\LumenPassport::routes($app);
 
+$app->register(Jcf\Geocode\GeocodeServiceProvider::class);
+$app->register(\Barryvdh\DomPDF\ServiceProvider::class);
+//$app->register(Illuminate\Mail\MailServiceProvider::class);
+$app->configure('mail');
+$app->register(Illuminate\Mail\MailServiceProvider::class);
+$app->configure('services');
 /*
 |--------------------------------------------------------------------------
 | Load The Application Routes
