@@ -10,7 +10,7 @@
 | and give it the Closure to call when that URI is requested.
 |
 */
-
+$router->get('/tests','EventTaskController@tests');
 $router->get('/', function () use ($router) {
     return $router->app->version();
 });
@@ -28,6 +28,7 @@ $router->group(['middleware' => 'auth:api'], function($router)
 });*/
 
 $api = app('Dingo\Api\Routing\Router');
+//date_default_timezone_set('Asia/Kolkata'); 
 $api->version('v1',function($api){
     
     $api->group(['namespace'=>'App\Http\Controllers','middleware'=>['cors']],function($api){
@@ -39,22 +40,177 @@ $api->version('v1',function($api){
         $api->get('projects/{org_id}','OrganisationController@getorgprojects');
         $api->get('states','LocationController@getstates');
         $api->get('location/level/{orgId}/{jurisdictionTypeId}/{jurisdictionLevel}','LocationController@getLevelData');
-    });
+        $api->post('locationV2/level','LocationController@getLevelDataV2');
+        $api->get('/downloadBooklet/{meetId}/{gridType}','downloadPdfController@downloadBooklet');
+        //genrated for testing purpose only
+        $api->get('downloadCertificateForm/{type}', 'CertificateController@downloadCertificateForm');
+        $api->post('downloadCertificate', 'CertificateController@downloadCertificate');
+
+        $api->get('downloadCertificateReport', 'CertificateController@downloadCertificateReport');
+        
+        $api->get('configuration','OrganisationController@configuration');
+		
+		$api->get('cron','EventTaskController@cron');
+		$api->get('UserToMeet','MeetController@UserToMeet');
+	 
+		
+		//google map apis
+		
+		$api->get('getallstate','Structure1Controller@getallstate');	
+		$api->get('getalldistrict/{stateid}','Structure1Controller@getalldistrict');	
+		$api->get('getalltaluka/{districtid}','Structure1Controller@getalltaluka');	
+		$api->get('getstate/{type}/{id}','Structure1Controller@getstate');		
+		$api->get('getStructures/{talukaId}','Structure1Controller@getStructures');	
+		$api->get('getmachines/{id}','Structure1Controller@getmachines');
+		//url for genrating access token
+        $api->post('testlogin','ProgramController@testOtpLogin');
+		//test API 
+		$api->get('roleIds','Structure1Controller@roleIds');
+		//structure preparation details
+		$api->get('getStructurePreparedData','StructureController@getStructurePreparedData');
+		//$api->post('machineWorkLog','OpratorController@machineWorkingDetails');
+		//$api->get('getMachineData','OpratorController@getMachineData');		
+		
     
+	});
+   
     $api->group(['prefix'=>'oauth'],function($api){
         $api->post('token','\Laravel\Passport\Http\Controllers\AccessTokenController@issueToken');
     });
     $api->group(['namespace'=>'App\Http\Controllers','middleware'=>['auth:api','cors']],function($api){
-        $api->get('roles/{org_id}','RoleController@getorgroles');
+        $api->get('roles/{org_id}/{project_id}','RoleController@getorgroles');
+        $api->get('userLocationUpdate','UserController@userLocationUpdate');
         //$api->get('user/{phone}','UserController@show');
-        $api->get('user','UserController@getUserDetails');
+        $api->get('getUserDetails','UserController@getUserDetails');
+        $api->get('getUserProfileDetails','UserController@getUserProfileDetails');
+        //not yet use any where in current application
         $api->get('users','UserController@getUsers');
-		
+		$api->get('test/{id}','UserController@test');
         $api->get('tasks','TaskController@show');
         $api->get('tasksOfUser','TaskController@getTask');
+        //API to update user firebase Id
+        $api->put('updateFirebaseId', 'UserController@updateFirebaseId');
+		
+		
+		//new apis for events
+		
+       $api->get('statuscount/{user_id}/{org_id}','EventTaskController@statuscount');
+       $api->post('addmember','EventTaskController@addmember');
+       $api->post('deletemember','EventTaskController@deletemember');
+       $api->post('addform/','EventTaskController@addform');
+       $api->post('submitAttendanceEvent','EventTaskController@submitAttendanceEvent');
+       $api->get('generateAttendanceCode/{eventId}','EventTaskController@generateAttendanceCode');
+       $api->post('event_task','EventTaskController@event_task');
+       $api->post('getEventByMonth','EventTaskController@getEventByMonth');
+       $api->post('getEventByDay','EventTaskController@getEventByDay');
+       $api->post('addmembertoevent','EventTaskController@addmembertoevent');
+       $api->get('roleEvent','EventTaskController@roleEvent');
+       $api->get('getEventMembers/{eventId}','EventTaskController@getEventMembers');
+      
+       $api->post('test','ProgramController@test');
+       $api->get('push','EventTaskController@push');
+       $api->get('dumpMaster','DumpMasterController@dumpData');
+		//new apis for tasks
+		
+		$api->get('addmembertask','EventTaskController@addmembertask');
+		$api->get('deleteTask/{taskId}','EventTaskController@deleteTask');
+		$api->get('taskMarkComplete/{taskId}','EventTaskController@taskMarkComplete');
+		// $api->get('cron','EventTaskController@cron');
 
-        $api->get('orgs','OrganisationController@show');
-        $api->put('users/{phone}', ['uses' => 'UserController@update']);
+
+		 //---------------------Meet API's Start------------------- 
+		  
+		 $api->get('checkProfile/{mobile}{meetId}','MeetController@checkProfile');
+		 $api->get('meet_types','MeetController@meet_types');
+		 $api->post('getMatrimonyRoleUsers','MeetController@getMatrimonyRoleUsers');
+		 $api->post('insertMeet','MeetController@insertMeet');
+		 $api->get('meetpublished/{meetId}','MeetController@meetpublished');
+		 $api->post('getMeet','MeetController@getMeet');
+		 $api->get('masterData','MeetController@masterData');
+		 $api->post('insertUser','MeetController@insertUser');
+		 $api->get('archiveMeet/{meetId}/{type}','MeetController@archiveMeet');
+		 $api->post('registration_meet','MeetController@registration_meet');
+         $api->get('allocateBadge/{meetId}/{type}','MeetController@allocateBadge');
+         $api->get('getMeetUsers/{meetId}','MeetController@getMeetUsers');
+         $api->post('userApproval','MeetController@userApproval');
+         $api->post('markAttendance_interview','MeetController@markAttendance_interview');
+         $api->get('isFinalize/{meetId}','MeetController@isFinalize');
+         $api->get('group_batches/{meetId}','MeetController@group_batches');
+         $api->post('search','MeetController@search');		 
+		 //---------------------Meet API's End-------------------
+
+		
+       //--------------------Planner API's start ------------------//
+       //api for getting planner dashboard data
+        $api->get('plannersummary','PlannerController@getDashBoardSummary');
+       //API for getting holiday list
+        $api->get('getHolidayList/{year}/{month}','PlannerController@getHolidayList');
+        //API for getting current year holiday list
+        $api->get('getYearHolidayList','PlannerController@getYearHolidayList');
+        //API to get user leave balance 
+        $api->get('getUserLeaveBalance','PlannerController@getUserLeaveBalance');
+        //API to get user Leave data for total,used, balance
+        $api->get('getUserLeaveSummery','PlannerController@getUserLeaveSummery');
+        $api->get('getTeamAttendance/{date}','PlannerController@getTeamAttendance');
+        // $api->get('getUserRole/{userId}','PlannerController@getUserRole'); 
+
+        //api for getting team user attendance for month
+        //$api->post('getTeamUserAttendance','AttendanceController@getTeamUserAttendance'); 
+        //-----------Teammanagment API's start-----------------------------
+ 
+        //api for teammanagment dashboard
+        $api->get('teammanagmentsummary','TeamManagmentController@getallcount');
+        //api for teammanagment filter
+        $api->get('teammanagmentfilter','TeamManagmentController@getfilterbytype');
+        //api for teammanagment userlist according to filter 
+        $api->post('getlistbyfilter','TeamManagmentController@getListByFilter');
+        //api for user detail and formlist of single user
+        $api->post('getuserbyfilter','TeamManagmentController@getUserByFilter');
+        //api for teammanagment form detail 
+        $api->post('getformdetail','TeamManagmentController@getformdetail');
+        //api for approval
+        $api->post('applicationapproval','TeamManagmentController@applicationapproval');
+        //-----------Teammanagment API''s end-----------------------------
+	
+        //----------------Attendance API's start ---------------------//			
+        //api for getting user attendance for month
+        $api->get('getuserattendance/{year}/{month}','AttendanceController@getAttendanceByMonth');
+        //api for inserting attendance record like check in or check out
+        $api->post('insertAttendance','AttendanceController@insertAttendance');
+        //api for getting specific date attendance record
+        $api->get('attendanceOfDate/{date}/','AttendanceController@attendanceOfDate');
+
+        //api for getting team user attendance for month
+        $api->post('getTeamUserAttendance','AttendanceController@getTeamUserAttendance');
+
+        //------------Attendance API's end -------------------------//
+
+        //------------Leaves API's start ------------------------//
+        //api for getting leave summarized  data for user
+        $api->get('getLeavesSummary/{year}/{month}','PlannerLeavesController@getLeavesSummary');
+		$api->post('createLeave','EventTaskController@createLeave');
+		$api->post('editLeave','EventTaskController@editLeave');
+		$api->get('deleteLeave/{leaveId}','EventTaskController@deleteLeave');
+		$api->post('applyCompoff','EventTaskController@applyCompoff');
+		
+		$api->get('formss/schemaa/{form_id}','EventTaskController@getSurveyDetail');
+		$api->get('formss/resultt/{form_id}','EventTaskController@showResponses');
+        //-----------Leaves API's end -------------------------//
+
+
+        //--------------------Content Management API's start ------------------//
+           $api->get('contentDashboard','ContentMgmtController@contentDashboard');
+        //--------------------Content Management API's end ----------------//   
+
+        //-------------------Testing API's ------------------------//   
+        $api->get('getAddress','getAddressController@getGeoCodes');  
+        $api->get('getDistance','getAddressController@getDistance');  
+        $api->get('clearRecord','clearRecordController@clearRecord');  
+        //---------------- Testing API's end ------------------//
+
+
+		$api->get('orgs','OrganisationController@show');
+        $api->put('updateUser/{phone}', ['uses' => 'UserController@update']);
         $api->get('modules/{org_id}/{role_id}','RoleController@getroleconfig');
         $api->put('users/approval/{approvalLogId}', ['uses' => 'UserController@approveuser']);
         $api->post('upload-image', 'UserController@upload');
@@ -73,6 +229,8 @@ $api->version('v1',function($api){
         $api->get('talukas', 'LocationController@getTalukas');
         $api->get('villages', 'LocationController@getVillages');
         $api->get('clusters', 'LocationController@getClusters');
+        $api->get('getCity', 'LocationController@getCity');
+        $api->get('getCountry', 'LocationController@getCountry');
 
         $api->get('jurisdiction-types[/{id}]', 'JurisdictionTypeController@index');
         $api->get('reports[/{id}]', 'ReportController@index');
@@ -151,5 +309,101 @@ $api->version('v1',function($api){
         $api->put('farmersilttransportation/{form_id}/{record_id}','SurveyController@updateFarmerSiltTransportation');
         $api->get('farmersilttransportation/{form_id}','SurveyController@showResponse');
         $api->delete('farmersilttransportation/{form_id}/{record_id}','SurveyController@deleteFormResponse'); 
+		
+		
+		//-----------------Machine API's start------------------		
+		$api->post('machineList','MachineController@machineList');
+		$api->get('statusChange/{id}/{code}/{statuscodes}/{type}','MachineController@statusChange');
+		$api->post('getMachineAnalytics','MachineController@getMachineAnalytics'); 
+		//$api->post('machineMou','MachineController@machineMou'); 
+		$api->post('MOUTerminateDeployed','MachineController@MOUTerminateDeployed'); 
+		$api->get('machineDetails/{machineId}/{type}','MachineController@machineDetails'); 
+		//-----------------Machine API's End------------------
+
+		//StructureController API starts here	
+		/*$api->post('structureList','StructureController@getStructureList'); 
+		$api->get('structureAnalyst','StructureController@getStructureAnalyst'); 
+        $api->get('structureMasterData','StructureController@getStructureMasterData'); 
+		$api->post('prepareStructure','StructureController@saveStructurePreparedData'); 
+		$api->post('getAllAvlMachineList','StructureController@getAllMachineAvalList'); 
+		$api->post('machineDeployed','StructureController@machineDeployed');
+		$api->post('structureVisit','Structure1Controller@structureVisit');	
+		$api->post('communityMobilisation','Structure1Controller@communityMobilisation');		
+		//machine APIs
+		$api->post('dieselRecord','StructureController@machineDieselRecord'); 
+		$api->post('siltRecord','StructureController@siltDetails'); 
+		$api->post('machineShift','StructureController@machineShifting');
+		
+		$api->get('masterDataList','Structure1Controller@getMasterData');
+		$api->post('structureStatus','Structure1Controller@changeStructureStatus');	
+		//oprator 
+		$api->post('machineWorkLog','OpratorController@machineWorkingDetails'); */
+		
+		//StructureController API starts here
+
+		$api->post('machineVisit','StructureController@machineVisit');		
+		$api->post('dieselRecord','StructureController@machineDieselRecord');
+		$api->post('siltDetails','StructureController@siltDetails');
+		$api->post('createMachine','MachineController@createMachine');
+		$api->post('prepareStructure','StructureController@saveStructurePreparedData');	
+		$api->post('machineWorkLog','OpratorController@machineWorkingDetails');
+		$api->post('structureVisit','StructureController@structureVisit');	
+		$api->post('communityMobilisation','StructureController@communityMobilisation');
+		$api->post('sowStructure','StructureController@closeStructure');
+		$api->post('machineMou','MachineController@machineMou');
+		
+		$api->post('structureList','StructureController@getStructureList'); 
+		$api->post('structureAnalyst','StructureController@getStructureAnalyst'); 
+        $api->get('masterDataList','StructureController@getStructureMasterData'); 
+		//$api->post('prepareStructure','StructureController@saveStructurePreparedData'); 
+		$api->post('getAllAvlMachineList','StructureController@getAllMachineAvalList'); 
+		$api->post('machineDeployed','StructureController@machineDeployed');
+		$api->post('createStructure','StructureController@createStructure');		
+		$api->post('machineShift','StructureController@machineShifting');
+		$api->post('structureStatus','StructureController@changeStructureStatus');
+		//machine APIs
+		//$api->post('dieselRecord','Structure1Controller@machineDieselRecord'); 
+		$api->post('workLog','MachineController@getWorkDetails');
+		$api->post('siltRecord','StructureController@siltDetails'); 
+
+		
+		
+		//$api->get('masterDataList','StructureController@getMasterData');	
+				
+		//oprator 
+		$api->post('logDetails','OpratorController@getMachineWorkLogDetails');
+		$api->post('machineNonUtilization','OpratorController@machineNonUtilisation');
+		$api->get('getMachineData','OpratorController@getMachineData');		
+		$api->get('roleAccess','StructureController@roleAccess');	
+		$api->post('catchmentVillages','StructureController@getCathmentVillages');
+		$api->post('getMachineWorkLogData','OpratorController@getMachineWorkLogData');
+		//$api->post('machineWorkLog','OpratorController@machineWorkingDetails');
+		//Feed APIs
+		$api->post('newFeed','FeedController@createFeed');			
+		$api->get('getFeedList','FeedController@getFeedList');
+		$api->post('deleteFeed','FeedController@deleteFeed');
+        $api->post('commentList','FeedController@getCommentList');
+			
+		$api->post('curlCall','Structure1Controller@curlCall');
+		$api->post('awsImageMove','UserController@awsImageMove');
+		$api->post('structureBoundary','StructureController@structureBoundary');
+		//$api->post('awsImageMove','UserController@awsImageMove');
+		$api->post('machineMouUpload','MachineController@machineMouUpload');
+		$api->post('machineSignOff','MachineController@machineSignOff');
+		$api->post('editWorkLog','MachineController@editWorkLog');
+		$api->post('machineAvailable','MachineController@machineAvailable');
+		
+		//new oprator 
+		$api->post('createOperator','MachineController@createOperator');
+		$api->get('getOperatorList','MachineController@getOperatorList');
+		$api->post('assignOperator','MachineController@assignOperator');
+		$api->post('releaseOperator','MachineController@releaseOperator');
+		
+		$api->get('insertMapping','MachineController@insertMapping');
+		
+		//date synch API
+		$api->post('dataSynch','OpratorController@dataSynch');		
+						
+		
     });
 });
