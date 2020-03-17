@@ -3335,7 +3335,8 @@ class StructureController extends Controller
 		//print_r($status);exit;
 		if(isset($roleId) && $roleId !='') {
 		
-			$rolename = \App\Role::select('role_code','display_name')->where("_id",$roleId)->first();
+			$rolename = \App\Role::select('role_code','display_name')
+						->where("_id",$roleId)->first();
 		
 			if (!$rolename) {
 				return response()->json([
@@ -3425,6 +3426,7 @@ class StructureController extends Controller
 				$role_access[18] = array ('action_code'=> 131, 'action_name'=> 'Create Operator');
 				$role_access[19] = array ('action_code'=> 132, 'action_name'=> 'Assign Operator');
 				$role_access[20] = array ('action_code'=> 133, 'action_name'=> 'Release Operator');
+				$role_access[21] = array ('action_code'=> 134, 'action_name'=> 'Is Offline Location Allowed');
 					
 			
 			} else if ($rolename->role_code  == '112' || $rolename->role_code  == '115') { //HO OPS & HO MIS
@@ -3467,6 +3469,20 @@ class StructureController extends Controller
 			$resultData['role_name'] = $rolename->display_name;
 			$role_access[0] = array ('action_code'=> 125, 'action_name'=> 'Add Feed');
 			$role_access[1] = array ('action_code'=> 126, 'action_name'=> 'Delete Feed');
+			
+		}
+		else if ($rolename->role_code  == '141' ) {
+
+			$resultData['role_code'] = 141;
+				$resultData['role_name'] = $rolename->display_name;
+				
+				$role_access[0] = array ('action_code'=> 101, 'action_name'=> 'View Structure');
+				
+				
+				$role_access[1] = array ('action_code'=> 109, 'action_name'=> 'View Machine');
+
+				$role_access[2] = array ('action_code'=> 121, 'action_name'=> 'Change District');
+				$role_access[3] = array ('action_code'=> 122, 'action_name'=> 'Change Taluka');	
 			
 		}
 

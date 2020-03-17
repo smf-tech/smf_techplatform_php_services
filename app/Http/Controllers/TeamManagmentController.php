@@ -1899,7 +1899,7 @@ class TeamManagmentController extends Controller
 				if($leaves){
 
                 foreach($leaves as $key=>$leaveData){
-                    if($leaveData['type'] == $data['leave_type'] && ($data['approve_type'] == 'approved') ){
+                    if($leaveData['type'] == $data['leave_type'] && $data['approve_type'] == 'approved' ){
                         $leave_balance['leave_balance.'.$count.'.balance']=$leaveData['balance'] - $days;
                       
                     }

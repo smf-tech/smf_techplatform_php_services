@@ -56,7 +56,7 @@ class Controller extends BaseController
 	const NOTIFICATION_TYPE_EVENT_DELETED= 'Event Deletion';
 
 	
-	//const NOTIFICATION_TYPE_CHECKOUT= 'check out';
+	const NOTIFICATION_TYPE_CHECKOUT= 'check out';
 	
 	const ENTITY_USER = 'userapproval';
 	const ENTITY_LEAVE = 'leave';

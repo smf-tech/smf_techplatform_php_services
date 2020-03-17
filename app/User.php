@@ -21,7 +21,7 @@ class User extends Model implements AuthenticatableContract,AuthorizableContract
 
 	
 	 protected $connection = "mongodb";
-
+     // protected $table = 'users';
 	// protected $connection = 'mongodb';
     /**
      * The attributes that are mass assignable.

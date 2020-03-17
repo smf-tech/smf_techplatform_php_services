@@ -1,6 +1,6 @@
 <?php
 
-//owner:Sayli Dixit
+//owner:Jitendra
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -11,7 +11,7 @@ use Dingo\Api\Routing\Helpers;
 use App\Organisation;
 use App\Project;
 use App\Module;
-use App\RoleConfig;
+use App\RoleConfig; 
 use App\ContentManagement;
 use App\ContentCategories;
 use Illuminate\Support\Facades\DB;
@@ -140,4 +140,6 @@ class ContentMgmtController extends Controller
             }
 
     }
+	
+	
 }

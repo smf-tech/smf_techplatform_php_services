@@ -41,12 +41,14 @@ $api->version('v1',function($api){
         $api->get('states','LocationController@getstates');
         $api->get('location/level/{orgId}/{jurisdictionTypeId}/{jurisdictionLevel}','LocationController@getLevelData');
         $api->post('locationV2/level','LocationController@getLevelDataV2');
+        $api->post('selectedLocationData/level','LocationController@selectedLocationData');
         $api->get('/downloadBooklet/{meetId}/{gridType}','downloadPdfController@downloadBooklet');
         //genrated for testing purpose only
         $api->get('downloadCertificateForm/{type}', 'CertificateController@downloadCertificateForm');
         $api->post('downloadCertificate', 'CertificateController@downloadCertificate');
 
         $api->get('downloadCertificateReport', 'CertificateController@downloadCertificateReport');
+        
         
         $api->get('configuration','OrganisationController@configuration');
 		
@@ -85,6 +87,7 @@ $api->version('v1',function($api){
         $api->get('getUserProfileDetails','UserController@getUserProfileDetails');
         //not yet use any where in current application
         $api->get('users','UserController@getUsers');
+        $api->post('mvUserInfo','UserController@mvUserInfo');
 		$api->get('test/{id}','UserController@test');
         $api->get('tasks','TaskController@show');
         $api->get('tasksOfUser','TaskController@getTask');

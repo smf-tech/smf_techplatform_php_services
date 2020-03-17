@@ -152,25 +152,27 @@ class SurveyController extends Controller
 
         // Obtaining '_id','name','active','editable','multiple_entry','category_id','microservice_id','project_id','entity_id','assigned_roles' of Surveys
         // alongwith corresponding details of 'microservice','project','category','entity'
-        $data = Survey::select('_id','name','active','approve_required','editable','multiple_entry','category_id','microservice_id','project_id','entity_id','assigned_roles','created_at')
-        ->with('microservice','project','category','entity')
-        ->where('assigned_roles','=',$user->role_id)->orderBy('created_at')->get();
-   
+        $data = Survey::select('_id','name','active','approve_required','editable','multiple_entry','category_id','entity_collection_name','api_url','project_id','assigned_roles','created_at', 'entity_collection_name')
+        ->with('project','category')
+       // ->where('assigned_roles','=',$user->role_id)
+		->orderBy('created_at')->get();
+        
+       // echo json_encode($data);
+        //die;   
         foreach($data as $row)
         {
             // unset() removes the element from the 'row' object
-            unset($row->category_id);
-            unset($row->microservice_id);
+            unset($row->category_id); 
             unset($row->project_id);
             unset($row->entity_id);
             unset($row->assigned_roles);
 
-            if (is_object($row['microservice'])) {
+           /*  if (is_object($row['microservice'])) {
                 $microService = clone $row['microservice'];
                 $microService->route = $microService->route . '/' . $row->id;
                 unset($row['microservice']);
                 $row['microservice'] = $microService;
-            }
+            } */
         }
 
         return response()->json(['status'=>'success','data' => $data,'message'=>'']);
@@ -188,20 +190,33 @@ class SurveyController extends Controller
         // Obtaining '_id','name','json', active','editable','multiple_entry','category_id','microservice_id','project_id','entity_id','assigned_roles','form_keys' of a Survey
         // alongwith corresponding details of 'microservice','project','category','entity'
         $entity_id = Survey::where('_id',$survey_id)->select('entity_id')->get();
-        $data = Survey::with('microservice')->with('project')
-        ->with('category')->with('entity')        
-        ->select('category_id','microservice_id','project_id','entity_id','assigned_roles','_id','name','json','active','approve_required','editable','multiple_entry','form_keys')
+        $data = Survey:: with('project')
+		//->with('microservice')
+        ->with('category')
+        //->with('entity')        
+        ->select('category_id','project_id','entity_id','assigned_roles','_id','name','json','active','approve_required','editable','multiple_entry','form_keys','api_url','entity_collection_name','location_required','location_required_level')
         ->find($survey_id); 
-        // unset() removes the element from the 'row' object
         
+
+        $jurisdictions = \App\JurisdictionType::
+                            select('jurisdictions')
+                            ->where('project_id',$data->project_id)->first();
+
+
+        if($jurisdictions && !empty($jurisdictions['jurisdictions']))
+            {                       
+                $data['jurisdictions'] = $jurisdictions['jurisdictions'];
+            }
+        //array_merge($data,$jurisdictions);
         unset($data->category_id);
         unset($data->microservice_id);
         unset($data->project_id);
         unset($data->entity_id);
-        
-        if (isset($data['microservice'])) {
+        //var_dump($data);
+        //die();
+       /*  if (isset($data['microservice'])) {
             $data['microservice']->route = $data['microservice']->route . '/' . $survey_id;
-        }
+        } */
         
         // json_decode function takes a JSON string and converts it into a PHP variable
         $data->json = json_decode($data->json,true);
@@ -210,6 +225,18 @@ class SurveyController extends Controller
 
     public function createResponse($survey_id)
     {
+        $header = getallheaders();
+        //$user = $this->request->user();
+        if(isset($header['orgId']) && ($header['orgId']!='') 
+            && isset($header['projectId']) && ($header['projectId']!='')
+            && isset($header['roleId']) && ($header['roleId']!='')
+        )
+        { 
+            $org_id =  $header['orgId'];
+            $project_id =  $header['projectId'];
+            $role_id =  $header['roleId'];
+        }
+
         $database = $this->connectTenantDatabase($this->request);
         if ($database === null) {
             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
@@ -226,6 +253,13 @@ class SurveyController extends Controller
         $roleConfig = RoleConfig::where('role_id',$userRole)->first();
 
         $survey = Survey::find($survey_id);
+       // echo  $survey->json;
+        $formData = json_decode($survey->json, true);
+        // echo json_encode($formData['pages'][0]['elements']);
+        // die();
+        //echo json_encode($survey);
+        //echo json_encode($survey['multiple_entry']);
+        //die();
         $primaryKeys = isset($survey->form_keys)?$survey->form_keys:[];
 
         $fields = array();
@@ -244,21 +278,31 @@ class SurveyController extends Controller
             // in primaryValues if it is
             if(in_array($key,$primaryKeys))
             {
-                $primaryValues[$key] = $value;
+                
+                $primaryValues[$key] = 1;
             }
+            //echo var_dump($value);
+
+           // $fields[$key] = $value;
+
             $fields[$key] = $value;
         }       
-
+     
         // Gives current date and time in the format :  2019-01-24 10:30:46
         $date = Carbon::now();
        
         $fields['submit_count'] = 1;
         $fields['updatedDateTime'] = $date->getTimestamp();
         $fields['createdDateTime'] = $date->getTimestamp();
+        
+        $fields['created_at'] = new \MongoDB\BSON\UTCDateTime();
+        $fields['updatd_at'] = new \MongoDB\BSON\UTCDateTime();
+
+        
          $fields['status'] = 'approved';
 
 
-        if($survey['entity_id'] == null) {
+        /* if($survey['entity_id'] == null) {
           
             $collection_name = 'survey_results';
             $fields['form_id'] = $survey_id;
@@ -330,26 +374,38 @@ class SurveyController extends Controller
                     $ApprovalsPending->save();
                     $data['_id'] = $form;
                 }
-        } else {
+        } else { */
            
-            $collection_name = 'entity_'.$survey->entity_id;
+            $collection_name = $survey->entity_collection_name;
             $fields['survey_id'] = $survey_id;
 
-            $entity = Entity::find($survey->entity_id);
+           /*  $entity = Entity::find($survey->entity_id);
 
             if($entity->Name == 'machinenonutilization'){
                 $validate_filled_form = $this->validateMachineNonUtilization($user->id,$fields);
                 if(!$validate_filled_form){
                     return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Machine already utilized for the date'],400);
                 }
-            }
+            } */
 
             unset($fields['submit_count']);
+
             $user_submitted = $this->getUserResponse($user->id,$survey_id,$primaryValues,$collection_name);
-            
-           if(!empty($user_submitted)){
-return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Data already have been created for this structure, please change values and try again.'],400);
-            } else {     
+            //echo json_encode($user_submitted);die();
+           if(!empty($user_submitted) && $survey['multiple_entry'] == "false"){
+                    // echo json_encode($user_submitted);
+                    //die();
+                if($project_id == '5e6f661cab7a197863606a74')
+                    {
+                        return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Form already submitted.'],400);
+                    }
+                    else
+                    {
+                    return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Data already have been created for this structure, please change values and try again.'],400);
+                    }
+            } 
+
+            else {     
                 $approverUsers = array();
                  $timestamp = Date('Y-m-d H:i:s');
                     $approverList = $this->getApprovers($this->request, $user['role_id'], $user['location'], $user['org_id']);
@@ -362,12 +418,13 @@ return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'
                         if ($database === null) {
                             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
                         }   
-
-                $form = DB::collection('entity_'.$survey->entity_id)->insertGetId($fields);
+                  // echo $survey->entity_collection_name;
+                  // die();      
+                $form = DB::collection($survey->entity_collection_name)->insertGetId($fields);
 
                 $ApprovalLog = new ApprovalLog;
-                $ApprovalLog['entity_id']=(string)$form;
-                $ApprovalLog['category_id']=(string)$survey->entity_id;
+                // $ApprovalLog['entity_id']=(string)$form;
+                $ApprovalLog['category_id']=(string)$survey->category_id;
                 $ApprovalLog['entity_type']='form';
                 $ApprovalLog['approver_ids']= $approverUsers;
                 $ApprovalLog['status'] = 'pending';
@@ -390,8 +447,8 @@ return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'
                 
                 
                 $ApprovalsPending = new ApprovalsPending;
-                $ApprovalsPending['entity_id']=(string)$form;
-                $ApprovalsPending['category_id']=(string)$survey->entity_id;
+                // $ApprovalsPending['entity_id']=(string)$form;
+                $ApprovalsPending['category_id']=(string)$survey->category_id;
                 $ApprovalsPending['entity_type']='form';
                 $ApprovalsPending['approver_ids']= $approverUsers;
                 $ApprovalsPending['status'] = 'pending';
@@ -412,7 +469,7 @@ return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'
                 $data['_id'] = $form;
             }
 
-        }    
+       // }    
 
         $data['form_title'] = $this->generateFormTitle($survey_id,$data['_id'],$collection_name);
         $data['createdDateTime'] = $fields['createdDateTime'];
@@ -474,7 +531,8 @@ return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'
     } 
 
     public function getUserResponse($user_id,$survey_id,$primaryValues,$collection_name){
-        $formKey = $collection_name == 'survey_results' ? 'form_id' : 'survey_id';
+        $formKey = $collection_name == 'survey_results' ? 'form_id' : 'survey_id'; 
+		
         $response = DB::collection($collection_name)->where($formKey,'=',$survey_id)
                                                   ->where('userName','=',$user_id)
                                                   ->where('isDeleted','=',false)
@@ -486,6 +544,7 @@ return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'
                                                       }
                                                   })
                                                   ->get()->first();
+		//echo json_encode($collection_name);die();										 
         return $response;   
     }
 
@@ -496,9 +555,7 @@ return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'
             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
         }
 
-        $user = $this->request->user();
-        // echo json_encode($user);
-        //exit;
+        $user = $this->request->user(); 
 
         $survey = Survey::find($survey_id);
         
@@ -519,7 +576,7 @@ return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'
 
 
             
-        if(!isset($survey->entity_id)) {
+       /*  if(!isset($survey->entity_id)) {
             $collection_name = 'survey_results';
             $surveyResults = DB::collection('survey_results')
                                 ->where('form_id','=',$survey_id)
@@ -541,10 +598,10 @@ return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'
                                 })
                                 ->orderBy($field,$order)
                                 ->paginate($limit);
-        } else { 
-         
-            $collection_name = 'entity_'.$survey->entity_id;           
-            $surveyResults = DB::collection('entity_'.$survey->entity_id)
+        } else { */ 
+        
+            $collection_name = $survey->entity_collection_name;           
+            $surveyResults = DB::collection($survey->entity_collection_name)
                                 ->where('survey_id','=',$survey_id)
                                 ->where('userName','=',$user->id)
                                 ->where('isDeleted','!=',true)
@@ -558,15 +615,15 @@ return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'
                                         }
                                     } else {
                                         foreach ($this->request->user()->location as $level => $location) {
-                                            $q->whereIn('user_role_location.' . $level, $location);
+                                            $q->OrwhereIn('user_role_location.' . $level, $location);
                                         }
                                     }
-                                })
+                                }) 
                                 ->orderBy($field,$order)
                                 ->paginate($limit);
 
-        }      
-    
+        /* } */
+		  
         if ($surveyResults->count() === 0) {
             return response()->json(['status'=>'success','metadata'=>[],'values'=>[],'message'=>'']);
         }
@@ -577,7 +634,7 @@ return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'
         $result = ['form'=>['form_id'=>$survey_id,'userName'=>$surveyResults[0]['userName'],'createdDateTime'=>$createdDateTime, 'submit_count'=>$responseCount]];
 
         $values = [];
-        
+       
         foreach($surveyResults as &$surveyResult)
         {
             if (!isset($surveyResult['form_id'])) {
@@ -2211,5 +2268,177 @@ return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'
 
         return response()->json(['status'=>'success', 'data' => $data, 'message'=>'']);
     }
+	
+	public function staticJson()
+	{
+		$static = '{"pages":[{"name":"page1","elements":[{"type":"checkbox","name":"question1","title": "Types of TEA",
+     "isRequired": true,
+     "validators": [
+      {
+       "type": "expression",
+       "expression": "{question1} notempty"
+      }
+     ],
+     "hasOther": true,
+     "otherPlaceHolder": "Your favorite Tea",
+     "choices": [
+      {
+       "value": "item1",
+       "text": "Dark Tea"
+      },
+      {
+       "value": "item2",
+       "text": "Oolong Tea"
+      },
+      {
+       "value": "item3",
+       "text": "Green Tea"
+      },
+      {
+       "value": "item4",
+       "text": "White Tea"
+      }
+     ],
+     "hasNone": true,
+     "noneText": "None"
+    },
+    {
+     "type": "checkbox",
+     "name": "question2",
+     "useDisplayValuesInTitle": false,
+     "title": "Select only 2 options",
+     "isRequired": true,
+     "validators": [
+      {
+       "type": "answercount",
+       "minCount": 2,
+       "maxCount": 2
+      }
+     ],
+     "choices": [
+      {
+       "value": "item1",
+       "text": "A"
+      },
+      {
+       "value": "item2",
+       "text": "B"
+      },
+      {
+       "value": "item3",
+       "text": "C"
+      },
+      {
+       "value": "item4",
+       "text": "D"
+      }
+     ],
+     "otherErrorText": "Please select any 2 option"
+    },
+    {
+     "type": "radiogroup",
+     "name": "question3",
+     "title": "Select Gender",
+     "choices": [
+      {
+       "value": "item1",
+       "text": "MALE"
+      },
+      {
+       "value": "item2",
+       "text": "FEMALE"
+      },
+      {
+       "value": "item3",
+       "text": "OTHER"
+      }
+     ]
+    },
+    {
+     "type": "dropdown",
+     "name": "question4",
+     "title": "Select options from drop-down & give the ratting",
+     "choices": [
+      {
+       "value": "item1",
+       "text": "SMF"
+      },
+      {
+       "value": "item2",
+       "text": "MV"
+      },
+      {
+       "value": "item3",
+       "text": "BJS"
+      }
+     ]
+    },
+    {
+     "type": "rating",
+     "name": "question5",
+     "title": "Rating option",
+     "correctAnswer": 3,
+     "isRequired": true,
+     "validators": [
+      {
+       "type": "expression"
+      }
+     ],
+     "rateMin": 2
+    },
+    {
+     "type": "matrix",
+     "name": "question6",
+     "columns": [
+      "Column 1",
+      "Column 2",
+      "Column 3"
+     ],
+     "rows": [
+      "Row 1",
+      "Row 2"
+     ]
+    },
+    {
+     "type": "matrixdropdown",
+     "name": "question7",
+     "columns": [
+      {
+       "name": "Column 1"
+      },
+      {
+       "name": "Column 2"
+      },
+      {
+       "name": "Column 3"
+      }
+     ],
+     "choices": [
+      1,
+      2,
+      3,
+      4,
+      5
+     ],
+     "rows": [
+      "Row 1",
+      "Row 2"
+     ]
+    }
+   ],
+   "title": "Which Tea do you like?",
+   "description": "if other please specify"
+  }
+ ]
+}';
+// return $static;
+$arr = array(
+'status'=>'200',
+'data' => $static, 
+'message'=>'success'
+);
+ return response()->json($arr);
+	}
+	
 
 }

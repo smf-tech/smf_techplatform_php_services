@@ -102,7 +102,7 @@ class OpratorController extends Controller
 		}	
 		
 		$url = [];
-		if ($this->request->has('imageArraySize')) {
+		/*if ($this->request->has('imageArraySize')) {
 			for ($cnt = 0; $cnt < $this->request['imageArraySize']; $cnt++) {
 					
 				$fileName = 'image'.$cnt; 		
@@ -116,14 +116,22 @@ class OpratorController extends Controller
 					$newName = uniqid().'_'.$name.'.jpg';
 					$s3Path = $this->request->file($fileName)->storePubliclyAs(env('SS_IMAGE_PATH_MACHINE'), $newName, 'octopusS3');
 					
-					//if ($s3Path == null || !$s3Path) {
+					if ($s3Path == null || !$s3Path) {
+						
 						//return response()->json(['status' => 'error', 'data' => '', 'message' => 'Error while uploading an image'], 400);
-					//}
+						$error = array('status' =>400,
+								'msg' => 'Error while uploading an image',
+								//'requested_data'	=>	$this->request->all(),						
+								'code' => 400);						
+				
+						$this->logData($this->errorPath,$this->request->all(),'Error',$error);
+				
+					}
 					$url[] = 'https://' . env('OCT_AWS_CDN_PATH') . '/'.env('SS_IMAGE_PATH_MACHINE').'/' . $newName;
 					//return response()->json(['status' => 'success', 'data' => ['url' => $result], 'message' => 'Image successfully uploaded in S3']);
 				}
 			}
-		}
+		}*/
 		//echo "<pre>";	print_r($url);exit;
 		$temp = $this->request['formData'];
 		$requestJson = json_decode($temp);
@@ -183,7 +191,7 @@ class OpratorController extends Controller
 		$machineWorkObj->user_id = $user->_id;
 		
 		if ($requestJson->status == 'start' || $requestJson->status == 'stop') {								
-			$machineWorkObj->meter_reading_image = $url;	
+			//$machineWorkObj->meter_reading_image = $url;	
 		}
 		
 		//$machineWorkObj->is_valid = false;			

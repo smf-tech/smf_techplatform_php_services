@@ -430,11 +430,13 @@ class PlannerController extends Controller
 				array_push($roleIds,$approverData['role_id']);
 
 			}
-
+ 
 			if($project_id)
 			{ 
 				$userList =\App\User::select('name','orgDetails')
-				->where('orgDetails.project_id',$project_id); 
+				->where('orgDetails.project_id',$project_id)
+				->where('orgDetails.status.status','!=','rejected'); 
+				
 		 	}
 		 	
 			if(!empty($approverRoleConfig))

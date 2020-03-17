@@ -275,7 +275,7 @@ class DataQueue implements ShouldQueue
 					
 				case 'machineWorkingDetails':
 				
-				/*$url = [];
+				$url = [];
 				if ($request->has('imageArraySize')) {
 					for ($cnt = 0; $cnt < $request['imageArraySize']; $cnt++) {
 							
@@ -290,20 +290,25 @@ class DataQueue implements ShouldQueue
 							$newName = uniqid().'_'.$name.'.jpg';
 							$s3Path = $request->file($fileName)->storePubliclyAs(env('SS_IMAGE_PATH_MACHINE'), $newName, 'octopusS3');
 							
-							//if ($s3Path == null || !$s3Path) {
+							if ($s3Path == null || !$s3Path) {
 								//return response()->json(['status' => 'error', 'data' => '', 'message' => 'Error while uploading an image'], 400);
-							//}
+								$logInfoPath = "logs/Machine/DB/Queue/logs_".date('Y-m-d').'.log';
+
+								$this->logData($logInfoPath,$this->request->all(),'Error',$error);				
+							
+							}
 							$url[] = 'https://' . env('OCT_AWS_CDN_PATH') . '/'.env('SS_IMAGE_PATH_MACHINE').'/' . $newName;
 							//return response()->json(['status' => 'success', 'data' => ['url' => $result], 'message' => 'Image successfully uploaded in S3']);
 						}
 					}
 				}
-				$request['url'] = $url;*/
+				$request['url'] = $url;
 				$this->dateObj = $request->only(['params',
 												'roleArr',
 												'functionName',
 												'workLogId',
-												'status'												
+												'status',
+												'url'												
 												]
 												);
 					//$this->handle();
@@ -338,9 +343,17 @@ class DataQueue implements ShouldQueue
 								$newName = uniqid().'_'.$name.'.jpg';
 								$s3Path = $request->file($fileName)->storePubliclyAs(env('SS_IMAGE_PATH_MACHINE'), $newName, 'octopusS3');
 								
-								//if ($s3Path == null || !$s3Path) {
+								if ($s3Path == null || !$s3Path) {
 									//return response()->json(['status' => 'error', 'data' => '', 'message' => 'Error while uploading an image'], 400);
-								//}
+									$error = array('status' =>400,
+										'msg' => 'Error while uploading an image',
+										//'requested_data'	=>	$this->request->all(),						
+										'code' => 400);						
+									$logInfoPath = "logs/Machine/DB/Queue/logs_".date('Y-m-d').'.log';
+
+									$this->logData($logInfoPath,$this->request->all(),'Error',$error);					
+								
+								}
 								$url[] = 'https://' . env('OCT_AWS_CDN_PATH') . '/'.env('SS_IMAGE_PATH_MACHINE').'/' . $newName;
 								//return response()->json(['status' => 'success', 'data' => ['url' => $result], 'message' => 'Image successfully uploaded in S3']);
 							}
@@ -349,7 +362,7 @@ class DataQueue implements ShouldQueue
 					$request['url'] = $url;
 					$responseData = array('code'=>200,
 								  'status' =>200,
-								  'message'=>'MOU images URLs'
+								  'message'=>'Work log images URLs'
 								  );
 						
 					$logInfoPath = "logs/Machine/DB/Queue/logs_".date('Y-m-d').'.log';
