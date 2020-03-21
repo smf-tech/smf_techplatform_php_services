@@ -813,7 +813,7 @@ public function test($id)
                         {
                             DB::setDefaultConnection('mongodb');
                             $profileArr[$profileCnt]['org_id'] =$value;
-                            
+                            $Loop_org_id = $value; 
                             $orgtData =  Organisation::
                                           select('display_name')
                                           ->where('_id',$value)
@@ -824,7 +824,7 @@ public function test($id)
 
                         if($key == 'project_id')
                         {
-                            $database = $this->connectTenantDatabase($this->request);
+                            $database = $this->connectTenantDatabase($this->request,$Loop_org_id);
                             $profileArr[$profileCnt]['project_id'] =$value;
                             $projectData =  \App\Project::
                                                         select('display_name')

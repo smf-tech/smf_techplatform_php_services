@@ -321,7 +321,8 @@ class LocationController extends Controller
 				 						  
 			}
 			else{
-            $Location->where($locate,$requestJson['selected_location_id']);
+           // $Location->whereIn($locate,$requestJson['selected_location_id']);
+                $Location->whereIn($locate,explode(',',$requestJson['selected_location_id']));
 			}    
 			$queryBuilder = $Location->get();
  

@@ -34,6 +34,7 @@ class SurveyController extends Controller
     public function __construct(Request $request)
     {
         $this->request = $request;
+        $this->logInfoPath = "logs/survey_form_data/DB/logs_".date('Y-m-d').'.log';
     }
 
 
@@ -257,8 +258,10 @@ class SurveyController extends Controller
         $formData = json_decode($survey->json, true);
         // echo json_encode($formData['pages'][0]['elements']);
         // die();
-        //echo json_encode($survey);
-        //echo json_encode($survey['multiple_entry']);
+        $surveyOptions =  $survey['options'];
+        $surveyQuestions =  $survey['questions'];
+        //echo var_dump($surveyOptions);
+        // echo json_encode($surveyOptions);
         //die();
         $primaryKeys = isset($survey->form_keys)?$survey->form_keys:[];
 
@@ -269,8 +272,11 @@ class SurveyController extends Controller
         $fields['jurisdiction_type_id'] = $roleConfig->jurisdiction_type_id;
         $fields['user_role_location'] = $userRoleLocation;
 
+        $this->logData($this->logInfoPath,$this->request->all(),'DB');
         $primaryValues = array();
-
+        $resultsArr = [];
+        $cnt= 0;
+        $itemArrCnt=0;
         // Looping through the response object from the body
         foreach($this->request->all() as $key=>$value)
         {
@@ -281,16 +287,107 @@ class SurveyController extends Controller
                 
                 $primaryValues[$key] = 1;
             }
-            //echo var_dump($value);
+           
+            $valueChecK  =  $key;
+            $item = $value;
+            $arraySearchQuestion = $this->arraySearch($surveyQuestions, $valueChecK, $item);
+          
+            if($arraySearchQuestion)
+            {
+                
+                $resultArrsearchOption = $this->arraySearch($surveyOptions, $valueChecK, $item);
 
-           // $fields[$key] = $value;
+                if($resultArrsearchOption)
+                {
+                  
+                    $itemValueArray  = json_decode($item);
+                     
+                  
+                     if(is_array($itemValueArray))
+                     {
+                     
+                         foreach ($itemValueArray as $itemKkey => $itemValue) {
 
-            $fields[$key] = $value;
-        }       
-     
+                           
+                           $results['result_id'] = $itemValue;
+                           
+                           $results['question_id'] = $valueChecK;
+                          
+                            if($itemValue != 'other')
+                               { 
+                                 $resultArrsearchItem = $this->arraySearch($resultArrsearchOption, $itemValue, $item);
+                                if(isset($resultArrsearchItem) && isset($resultArrsearchItem[0]['option_title']) )
+                                    {
+                                    $option_title = $resultArrsearchItem[0]['option_title'];
+                         
+                                    
+                                    $results['result_title'] = $option_title;
+                                    }else
+                                    {
+                     
+                                    $results['result_title'] = $itemValue;                               
+                                    }
+                                     array_push($resultsArr, $results);
+                               }
+
+                               
+                            //$itemArrCnt = $itemArrCnt+1;
+                         }
+                        
+                    } else if(is_object($itemValueArray))
+                    {
+                        foreach($itemValueArray as $key => $objecData){
+                            
+                            foreach ($objecData as $rowKey => $rowValue) {
+                               
+                                foreach ($rowValue as $valueKey => $valueData) {
+                                     $results['question_id'] = $key;
+                                     $results['result_id'] = $rowKey;
+                                     $results['result_title'] =  $valueKey;
+                                     $results['result_flag'] =$valueData;
+                                    array_push($resultsArr, $results);
+                                    unset($results['result_flag']);
+                                }
+                               
+                            }
+
+                        }
+                       
+                    }  
+                    //$cnt = $cnt +1;
+                }else {
+
+                        $results['result_id'] = 'text';
+                        $results['question_id'] = $key;
+                        $results['result_title'] = $value;
+                        array_push($resultsArr, $results);
+                    }
+            }else
+            {
+                $checkValue = explode("-", $key);
+               
+                if(is_array($checkValue) && count($checkValue) == 2){
+                    $results['result_id'] = $checkValue[1];
+                    $results['question_id'] = $checkValue[0];
+                    $results['result_title'] = $value;
+                    array_push($resultsArr, $results);
+                  
+
+                }else{
+                  
+                     $fields[$key] = $value;
+                }
+            }
+            //$cnt = $cnt +1;
+            
+        }    
+       
+       //die();
         // Gives current date and time in the format :  2019-01-24 10:30:46
         $date = Carbon::now();
-       
+        $fields['results'] = $resultsArr;
+        
+
         $fields['submit_count'] = 1;
         $fields['updatedDateTime'] = $date->getTimestamp();
         $fields['createdDateTime'] = $date->getTimestamp();
@@ -418,8 +515,7 @@ class SurveyController extends Controller
                         if ($database === null) {
                             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
                         }   
-                  // echo $survey->entity_collection_name;
-                  // die();      
+
                 $form = DB::collection($survey->entity_collection_name)->insertGetId($fields);
 
                 $ApprovalLog = new ApprovalLog;
@@ -471,7 +567,10 @@ class SurveyController extends Controller
 
        // }    
 
-        $data['form_title'] = $this->generateFormTitle($survey_id,$data['_id'],$collection_name);
+        $data['form_title'] = $this->generateFormTitle($org_id,$survey_id,$data['_id'],$collection_name);
+        $data['form_title'] = " Form ";
+         // echo json_encode($data['form_title']);
+        // die();
         $data['createdDateTime'] = $fields['createdDateTime'];
         $data['updatedDateTime'] = $fields['updatedDateTime'];
 
@@ -2269,6 +2368,32 @@ class SurveyController extends Controller
         return response()->json(['status'=>'success', 'data' => $data, 'message'=>'']);
     }
 	
+    public function arraySearch($array, $key, $value)
+    {
+        
+        $results = array();
+        $innerLopCnt= 0;
+        if (is_array($array)) {
+           
+            foreach ($array as $levelOne) {
+                if(is_array($levelOne))
+                {
+                    
+                    foreach ($levelOne as $loopkey =>$loopvaule) {
+               
+                        if($loopvaule == $key )
+                        {
+                           
+                            $results[$innerLopCnt] = $levelOne;
+                            $innerLopCnt = $innerLopCnt+1;
+                        }
+                    }
+                }
+            }
+        }
+       
+        return $results;
+    }
 	public function staticJson()
 	{
 		$static = '{"pages":[{"name":"page1","elements":[{"type":"checkbox","name":"question1","title": "Types of TEA",
