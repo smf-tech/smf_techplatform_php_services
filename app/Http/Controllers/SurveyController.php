@@ -34,7 +34,8 @@ class SurveyController extends Controller
     public function __construct(Request $request)
     {
         $this->request = $request;
-        $this->logInfoPath = "logs/survey_form_data/DB/logs_".date('Y-m-d').'.log';
+		$this->logInfoPath = "logs/Survey/DB/logs_".date('Y-m-d').'.log';
+        $this->logLocationUpdate = "logs/Survey/DB/logs_".date('Y-m-d').'.log';
     }
 
 
@@ -144,7 +145,29 @@ class SurveyController extends Controller
 
     public function getSurveys()
     {
-        $database = $this->connectTenantDatabase($this->request);
+        
+		$header = getallheaders();
+ 		if(isset($header['orgId']) && ($header['orgId']!='') 
+ 			&& isset($header['projectId']) && ($header['projectId']!='')
+ 			&& isset($header['roleId']) && ($header['roleId']!='')
+		  )
+ 		{	
+			$orgId =  $header['orgId'];
+			$project_id =  $header['projectId'];
+			$role_id =  $header['roleId'];
+		} else {
+			
+			$message = "Header info missing";
+			$this->logData($this->logInfoPath ,$message,'Error');
+			
+			$response_data = array('status' =>'404',
+									'message'=>$message
+									);
+			
+			return response()->json($response_data,200);			
+		}
+		
+		$database = $this->connectTenantDatabase($this->request,$orgId);
         if ($database === null) {
             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
         }
@@ -195,7 +218,7 @@ class SurveyController extends Controller
 		//->with('microservice')
         ->with('category')
         //->with('entity')        
-        ->select('category_id','project_id','entity_id','assigned_roles','_id','name','json','active','approve_required','editable','multiple_entry','form_keys','api_url','entity_collection_name','location_required','location_required_level')
+        ->select('category_id','project_id','entity_id','assigned_roles','_id','name','json_result','active','approve_required','editable','multiple_entry','form_keys','api_url','entity_collection_name','location_required','location_required_level')
         ->find($survey_id); 
         
 
@@ -203,7 +226,7 @@ class SurveyController extends Controller
                             select('jurisdictions')
                             ->where('project_id',$data->project_id)->first();
 
-
+       
         if($jurisdictions && !empty($jurisdictions['jurisdictions']))
             {                       
                 $data['jurisdictions'] = $jurisdictions['jurisdictions'];
@@ -220,11 +243,11 @@ class SurveyController extends Controller
         } */
         
         // json_decode function takes a JSON string and converts it into a PHP variable
-        $data->json = json_decode($data->json,true);
+        $data->json_result = json_decode($data->json_result,true);
         return response()->json(['status'=>'success','data' => $data,'message'=>'']);
     }
 
-    public function createResponse($survey_id)
+     public function createResponse($survey_id)
     {
         $header = getallheaders();
         //$user = $this->request->user();
@@ -353,6 +376,31 @@ class SurveyController extends Controller
 
                         }
                        
+                    } else if(is_string($item))
+                     {
+                     
+                           $results['result_id'] = $item;
+                           
+                           $results['question_id'] = $valueChecK;
+                          
+                            if($item != 'other')
+                               { 
+                                 $resultArrsearchItem = $this->arraySearch($resultArrsearchOption, $item, $item);
+                                if(isset($resultArrsearchItem) && isset($resultArrsearchItem[0]['option_title']) )
+                                    {
+                                    $option_title = $resultArrsearchItem[0]['option_title'];
+                         
+                                    
+                                    $results['result_title'] = $option_title;
+                                    }else
+                                    {
+                     
+                                    $results['result_title'] = $item;                               
+                                    }
+                                     array_push($resultsArr, $results);
+                               }
+
+                        
                     }  
                     //$cnt = $cnt +1;
                 }else {
@@ -382,11 +430,10 @@ class SurveyController extends Controller
             
         }    
        
-       //die();
         // Gives current date and time in the format :  2019-01-24 10:30:46
         $date = Carbon::now();
         $fields['results'] = $resultsArr;
-        
+         
 
         $fields['submit_count'] = 1;
         $fields['updatedDateTime'] = $date->getTimestamp();
@@ -649,7 +696,28 @@ class SurveyController extends Controller
 
     public function showResponse($survey_id)
     {
-        $database = $this->connectTenantDatabase($this->request);
+		$header = getallheaders();
+ 		if(isset($header['orgId']) && ($header['orgId']!='') 
+ 			&& isset($header['projectId']) && ($header['projectId']!='')
+ 			&& isset($header['roleId']) && ($header['roleId']!='')
+		  )
+ 		{	
+			$orgId =  $header['orgId'];
+			$project_id =  $header['projectId'];
+			$role_id =  $header['roleId'];
+		} else {
+			
+			$message = "Header info missing";
+			$this->logData($this->logInfoPath ,$message,'Error');
+			
+			$response_data = array('status' =>'404',
+									'message'=>$message
+									);
+			
+			return response()->json($response_data,200);			
+		}
+		
+        $database = $this->connectTenantDatabase($this->request,$orgId);
         if ($database === null) {
             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
         }
@@ -667,12 +735,11 @@ class SurveyController extends Controller
         $startDate = $this->request->input('end_date') ?:Carbon::now('Asia/Calcutta')->subMonth()->getTimestamp();
     
         $role = $this->request->user()->role_id;
-        $roleConfig = \App\RoleConfig::where('role_id', $role)->first();
+        $roleConfig = \App\RoleConfig::where('role_id', $role_id)->first();
         $jurisdictionTypeId = $roleConfig->jurisdiction_type_id;
 
         $userLocation = $this->getFullHierarchyUserLocation($this->request->user()->location, $jurisdictionTypeId);
         $locationKeys = $this->getFormSchemaKeys($survey_id);
-
 
             
        /*  if(!isset($survey->entity_id)) {
@@ -2394,6 +2461,7 @@ class SurveyController extends Controller
        
         return $results;
     }
+    
 	public function staticJson()
 	{
 		$static = '{"pages":[{"name":"page1","elements":[{"type":"checkbox","name":"question1","title": "Types of TEA",

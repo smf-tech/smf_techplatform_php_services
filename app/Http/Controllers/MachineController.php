@@ -110,7 +110,8 @@ class MachineController extends Controller
 		
 		
 			$machine = Machine::select('RTO_numner','chassis_no','updated_at','make_model','status','status_code','disel_tank_capacity','provider_contact_number','type_id','machine_code','state_id','district_id','taluka_id','manufactured_year','owned_by','provider_name','provider_address')
-			->where(['project_id'=> $projectId
+			->where(['state_id'=>$requestJson['state'],
+					'project_id'=> $projectId
 					])
 			
 			->with('State')			  
@@ -128,10 +129,6 @@ class MachineController extends Controller
 					->where('created_at',"<=",$end_date_str);
 						
 			}]);
-			$state = explode(',',$requestJson['state']); 
-				
-			$machine->whereIn('state_id',$state);				
-
 						
 			if (isset($requestJson['district']) && $requestJson['district'] != "") {
 				$district = explode(',',$requestJson['district']); 

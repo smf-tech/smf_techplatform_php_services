@@ -145,8 +145,7 @@ class PlannerController extends Controller
                 ],
                 [
                 "subModule"=> "leave",
-                //"leave"=> isset($leaveData[0])? $leaveData[0]['leave_balance']:$emptyArray
-                "leave"=> $leaveData
+                 "leave"=> $leaveData
                 
                 ]
                 ];
@@ -430,7 +429,7 @@ class PlannerController extends Controller
 				array_push($roleIds,$approverData['role_id']);
 
 			}
- 
+
 			if($project_id)
 			{ 
 				$userList =\App\User::select('name','orgDetails')

@@ -31,9 +31,9 @@ use App\Entity;
 use App\PlannerHolidayMaster;
 use App\PlannerAttendanceTransaction;
 use App\PlannerUserLeaveBalance;
-
 use App\MachineMou;
 use App\Machine;
+
 use LaravelFCM\Message\OptionsBuilder;
 use LaravelFCM\Message\PayloadDataBuilder;
 use LaravelFCM\Message\PayloadNotificationBuilder;
@@ -243,31 +243,31 @@ class EventTaskController extends Controller
 		{	
 	
 			$org_id = explode(',',$request['org_id']);
-			$maindata=User::select('name','role_id')->whereIn('org_id',$org_id)->orderBy('name','asc');
+			$maindata=User::select('name','orgDetails')->whereIn('orgDetails.org_id',$org_id)->orderBy('name','asc');
 			
 			if($request['role'] !='')
 			{     
 				$role = explode(',',$request['role']);
-				$maindata->whereIn('role_id',$role);
+				$maindata->whereIn('orgDetails.role_id',$role);
 				  if($request['state']!='')
 				{
 					$state = explode(',',$request['state']);
-					$maindata->whereIn('location.state',$state);
+					$maindata->whereIn('orgDetails.location.state',$state);
 				}
 				if($request['district']!='')
 				{
 					$district = explode(',',$request['district']);
-					$maindata->whereIn('location.district',$district);
+					$maindata->whereIn('orgDetails.location.district',$district);
 				}
 				if($request['taluka']!='')
 				{
 					$taluka = explode(',',$request['taluka']);
-					$maindata->whereIn('location.taluka',$taluka);
+					$maindata->whereIn('orgDetails.location.taluka',$taluka);
 				}
 				if($request['village']!='')
 				{
 					$village = explode(',',$request['village']);
-					$maindata->whereIn('location.village',$village); 
+					$maindata->whereIn('orgDetails.location.village',$village); 
 				} 
 				
 				 
@@ -275,12 +275,14 @@ class EventTaskController extends Controller
 				$response_data = array('status' =>'404','message'=>'No Roles are Selected');
 				return response()->json($response_data,200); 
 			}
-			$tempData = $maindata->get();
-			 
+		    $tempData = $maindata->get();
+
 			$main =array();
 			foreach($tempData as $row)
-			{
-				$role_name = Role::select('display_name')->where('_id',$row['role_id'])->get();
+			{ 
+				foreach($row['orgDetails'] as $orgRow)
+				{
+				$role_name = Role::select('display_name')->where('_id',$orgRow['role_id'])->get();
 				
 				 if(count($role_name)==0){
 					
@@ -297,6 +299,7 @@ class EventTaskController extends Controller
 				'role_name'=>$role_name[0]['display_name']
 				);
 				array_push($main,$temp_arr);  
+				}
 				}
 			}
 			
@@ -2502,12 +2505,12 @@ class EventTaskController extends Controller
 	}
 	
 	
-	 public function cron()
+	  public function cron()
 	{
 		// $file = fopen('storage/logs/Cron/mouexpiration'.date('Y-m-d').'.log', 'a');
-		 
+		
 		try {
-             $dbName = 'BJS_5ddfbb6bd6e2ef4f78207513';
+             $dbName = 'BJS_5dcfa18c5dda7605c043f2b3';
 
 			$mongoDBConfig = config('database.connections.mongodb');
 			$mongoDBConfig['database'] = $dbName;
@@ -2517,37 +2520,35 @@ class EventTaskController extends Controller
 			);
 			DB::setDefaultConnection($dbName); 
 			
-			define('API_ACCESS_KEY','AAAAxAoRWyc:APA91bHVYeWNeHFqwO74C-W-uAJPeydy1XQSShbgq1dO___UW1g8kheoOP6EBi38L-aqMsV7RYw72KiGQL7qZv7IL301DxTUuwFp1Rh3XDfTZCshr217P0EnOQnFZOm4J73vvO7ACAjo');
+			define('API_ACCESS_KEY','AAAAU1fWiBA:APA91bGf2HfLRZUzgjGFAc0vYmXdS7tMStJXesrxd4B8Q-_z24h8IDAuAHhwxTFzJDuaOkmfBOCi7sRcVlqDlzI_HnT2_qpCPkwNd_nUwbV_M8dy5NFlTY-Bfa5LgTztqAt632YB26qE');
 							$fcmUrl = 'https://fcm.googleapis.com/fcm/send';
 							
             $todayDate = new \MongoDB\BSON\UTCDateTime(Carbon::now());       
             $MachineMou = MachineMou::where('status_code','!=','114')
 								// ->where('mou_details.mou_expiry_date','<=',$todayDate)
 								->get();
-             
+              
             if(count($MachineMou) > 0)
             {
-				
+				 
                 foreach($MachineMou as $row)
                 { 
 					// fwrite($file,"MachineMou_ID = ". $row['_id'] ."\n");
-					
+					 
 					$Mou = MachineMou::find($row['_id']);
 					$Mou['status'] = 'MOU Expired';
 					$Mou['status_code'] = '114';
 					try{
 						//$Mou->save(); 
-						   
-						if(isset($Mou['provider_information'])) { 
+						if(array_key_exists('provider_information',$Mou)) {
 						$machineDetails = Machine::where('_id',$Mou['provider_information']['machine_id'])->get();
-						 
+						
 						DB::setDefaultConnection('mongodb');
 						if($machineDetails){
 							$user = User::where('location.state',$machineDetails[0]['state_id'])
 										  ->orWhere('location.district',$machineDetails[0]['district_id'])	
 										  ->orWhere('location.taluka',$machineDetails[0]['taluka_id'])	
 										  ->get();
-							 			  
 							if($user){
 								foreach($user as $row){
 									if($row['firebase_id'] != null || $row['firebase_id'] !=''){
@@ -2555,10 +2556,10 @@ class EventTaskController extends Controller
 									$id[]=$row['_id']; 
 									}
 								}
-								 
+								  
 									$notification = [
 										'title' =>'MOU Expired',
-										'body' => 'MOU Expired for Machine code ('.$machineDetails[0]['machine_code'].')' ,
+										'body' => 'MOU Expired for Machine code('.$machineDetails[0]['machine_code'].')' ,
 										'icon' =>'myIcon', 
 										'sound' => 'mySound'
 									]; 

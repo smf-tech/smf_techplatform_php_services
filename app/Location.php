@@ -5,13 +5,13 @@ namespace App;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use App\State;
-use App\Cluster;
-use App\School;
 use App\District;
 use App\Taluka;
 use App\Village;
 use App\City;
 use App\Country;
+use App\Cluster;
+use App\School;
 
 class Location extends \Jenssegers\Mongodb\Eloquent\Model
 {
@@ -43,21 +43,22 @@ class Location extends \Jenssegers\Mongodb\Eloquent\Model
     {
         return $this->belongsTo(City::class)->where('is_active',1);;
     }
-
-    public function cluster()
-    {
-        return $this->belongsTo(Cluster::class)->where('is_active',1);
-    }
-
-    public function school()
-    {
-        return $this->belongsTo(School::class)->where('is_active',1);
-    }
-
 	
     public function country()
     {
         return $this->belongsTo(Country::class)->where('is_active',1);
     }
+	
+	public function cluster()
+    {
+        return $this->belongsTo(Cluster::class)->where('is_active',1);
+    }
+
+   	public function school()
+    {
+        return $this->belongsTo(School::class)->where('is_active',1);
+    }
+
+	
 
 }

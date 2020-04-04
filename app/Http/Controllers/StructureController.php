@@ -3335,8 +3335,7 @@ class StructureController extends Controller
 		//print_r($status);exit;
 		if(isset($roleId) && $roleId !='') {
 		
-			$rolename = \App\Role::select('role_code','display_name')
-						->where("_id",$roleId)->first();
+			$rolename = \App\Role::select('role_code','display_name')->where("_id",$roleId)->first();
 		
 			if (!$rolename) {
 				return response()->json([
@@ -3426,7 +3425,6 @@ class StructureController extends Controller
 				$role_access[18] = array ('action_code'=> 131, 'action_name'=> 'Create Operator');
 				$role_access[19] = array ('action_code'=> 132, 'action_name'=> 'Assign Operator');
 				$role_access[20] = array ('action_code'=> 133, 'action_name'=> 'Release Operator');
-				$role_access[21] = array ('action_code'=> 134, 'action_name'=> 'Is Offline Location Allowed');
 					
 			
 			} else if ($rolename->role_code  == '112' || $rolename->role_code  == '115') { //HO OPS & HO MIS

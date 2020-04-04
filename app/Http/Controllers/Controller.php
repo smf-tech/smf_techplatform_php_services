@@ -800,7 +800,7 @@ class Controller extends BaseController
      *
      * @return string 
      */   
-    public function generateFormTitle($orgId,$form_obj_id,$formresponse_obj_id,$collection_name='survey_results'){
+    public function generateFormTitle($form_obj_id,$formresponse_obj_id,$collection_name='survey_results'){
         
         $levels = $this->getLevels();
         if ($form_obj_id instanceof Survey) {
