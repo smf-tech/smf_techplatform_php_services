@@ -38,6 +38,9 @@ use App\MachineMou;
 use App\StatusCode;
 use App\MachineDailyWorkRecord;
 
+use App\MobileDispensarySevaDailyVehicleDetails;
+use App\MobileDispensarySevaPatientDetails;
+
 use Illuminate\Support\Arr;
 class clearRecordController extends Controller
 {
@@ -60,18 +63,19 @@ class clearRecordController extends Controller
     {
        $user = $this->request->user();
         // $all_user=User::select('role_id')->where('approve_status','pending')->get();
-        $database = $this->connectTenantDatabase($request,$user->org_id);
-        if ($database === null) {
-            return response()->json(['status' => '403', 'message' => 'error', 'data' => 'User does not belong to any Organization.'], 403);
-        }
+        //$database = $this->connectTenantDatabase($request,$user->org_id);
+       $database = DB::setDefaultConnection('mongodb');
+        // if ($database === null) {
+        //     return response()->json(['status' => '403', 'message' => 'error', 'data' => 'User does not belong to any Organization.'], 403);
+        // }
 
-        $approvalLogData = MachineDailyWorkRecord::select('_id')
+        $approvalLogData = MobileDispensarySevaPatientDetails::select('_id')
                             //->where('entity_type','form')
                             ->get();
         foreach($approvalLogData as $data)
         {
             // echo $data->id;die();
-                $logid = MachineDailyWorkRecord::find($data->id);
+                $logid = MobileDispensarySevaPatientDetails::find($data->id);
                 // var_dump( $Testid);die();
                 $logid->delete();
         }

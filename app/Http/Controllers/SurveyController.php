@@ -179,6 +179,7 @@ class SurveyController extends Controller
         $data = Survey::select('_id','name','active','approve_required','editable','multiple_entry','category_id','entity_collection_name','api_url','project_id','assigned_roles','created_at', 'entity_collection_name')
         ->with('project','category')
        // ->where('assigned_roles','=',$user->role_id)
+	    ->where(['active'=>'true', 'project_id'=> $project_id])
 		->orderBy('created_at')->get();
         
        // echo json_encode($data);

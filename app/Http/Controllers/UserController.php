@@ -263,8 +263,6 @@ public function test($id)
             $update_data = json_decode(file_get_contents('php://input'), true);
 		    $update_data['function']  = "update";
 
-             
-
             $update_project_id = (isset($update_data['project_id']) && is_array($update_data['project_id']))?$update_data['project_id'][0]:$update_data['project_id'];
             
             //$update_data['org_id'];

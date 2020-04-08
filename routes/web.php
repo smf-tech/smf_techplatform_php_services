@@ -42,10 +42,29 @@ $api->version('v1',function($api){
         $api->get('location/level/{orgId}/{jurisdictionTypeId}/{jurisdictionLevel}','LocationController@getLevelData');
         $api->post('locationV2/level','LocationController@getLevelDataV2');
         $api->post('selectedLocationData/level','LocationController@selectedLocationData');
-        $api->get('/downloadBooklet/{meetId}/{gridType}','downloadPdfController@downloadBooklet');
+		$api->get('/downloadBooklet/{meetId}/{gridType}','downloadPdfController@downloadBooklet');
         //genrated for testing purpose only
         $api->get('downloadCertificateForm/{type}', 'CertificateController@downloadCertificateForm');
         $api->post('downloadCertificate', 'CertificateController@downloadCertificate');
+        
+
+        $api->get('selectVan', 'mobileDispensarySevaController@selectVanForm');
+
+
+        $api->post('loadPatientForm', 'mobileDispensarySevaController@loadPatientForm');
+        $api->post('savePatientInfo', 'mobileDispensarySevaController@savePatientInfo');
+        //in this get vanCode from cookies
+        $api->get('showPatientInfoForm', 'mobileDispensarySevaController@showPatientInfoForm');
+        $api->get('testPage','mobileDispensarySevaController@testpage');
+
+        $api->get('insertVanForm', 'mobileDispensarySevaController@insertVanForm');
+        $api->post('insertVanInfo', 'mobileDispensarySevaController@insertVanInfo');
+
+        $api->get('vanDetailsList', 'mobileDispensarySevaController@vanDetailsList');
+
+        $api->get('patientList', 'mobileDispensarySevaController@patientList');
+
+        $api->get('webOptionView', 'mobileDispensarySevaController@webOptionView');
 
         $api->get('downloadCertificateReport', 'CertificateController@downloadCertificateReport');
         

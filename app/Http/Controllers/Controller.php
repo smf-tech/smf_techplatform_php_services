@@ -168,6 +168,7 @@ class Controller extends BaseController
 		$userdetails = $this->request->user();
 		$model = "Planner"; 
         $database=$this->connectTenantDatabase($request, $orgId);
+		
         if ($database === null) 
         {
             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
@@ -179,7 +180,9 @@ class Controller extends BaseController
         switch ($type) {
             case self::NOTIFICATION_TYPE_APPROVAL:
                 $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_APPROVAL)->first();
+				
 				$notificationSchema['message.en'] =$userdetails->name ."(".$params['rolename'] .") " .$notificationSchema['message.en'];
+				
 				$model = "userApproval";
 				$service = $notificationSchema->service . '/' . $params['phone'];
 				$parameters = ['update_status' => $params['update_status'], 'approval_log_id' => $params['approval_log_id']];
