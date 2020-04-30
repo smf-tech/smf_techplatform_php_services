@@ -40,19 +40,10 @@
         $('#example').DataTable();
     } );    
      
-   function backButtonfunction()
-      {
-          window.location.href = "http://13.235.105.204/api/webOptionView";
-      }  
-  function addCityButtonfunction()
-      {
-          window.location.href = "http://13.235.105.204/api/insertCityForm";
-      } 
-
-  function addDepotButtonfunction()
-      {
-          window.location.href = "http://13.235.105.204/api/insertDepotForm";
-      } 
+    function backButtonfunction()
+        {
+            window.location.href = "http://13.235.105.204/api/webOptionView";
+        } 
 	
    
 </script>
@@ -61,7 +52,7 @@
 <div class="container">
 
 <div class="row" >
-<h3 align="center">Van -Details Register </h3>	
+<h3 align="center">Van - Area Wise Patients Register</h3>	
 </div>
 <br>
     <!--div class="row" style="margin-left: 25%;" id="buttonRow">
@@ -82,67 +73,66 @@
         <div class="col-sm-2">
             
             <div  class="form-group">
-                <input type="button" class="btn btn-success" value="Back" onclick="backButtonfunction()"/>
-            </div>
+	        <input type="button" class="btn btn-success" value="Back" onclick="backButtonfunction()"/>
+	        </div>
         </div>
-
-        <div class="col-sm-2">
-            
-            <div  class="form-group">
-                <input type="button" class="btn btn-success" value="Add City" onclick="addCityButtonfunction()"/>
-            </div>
-        </div>
-
-        <div class="col-sm-2">
-            
-            <div  class="form-group">
-                <input type="button" class="btn btn-success" value="Add Depot" onclick="addDepotButtonfunction()"/>
-            </div>
-        </div>
-
-    </div>  	
+    </div>	
    <div class="row" id="">
         <div class="">
             <table id="example" class="datatable table table-striped table-bordered" style="width:100%">
               <thead>
                 <tr>
-                  <th class="th-sm">Volunteers Name
+                  <th class="th-sm">Area
 
                   </th>
-                  <th class="th-sm">Volunteers Mobile Number
+                  <th class="th-sm">Doctor supported by
 
                   </th>
-                  <th class="th-sm">Vehicle Owners Name 
+                  <th class="th-sm">Other
 
                   </th>
-                  <th class="th-sm">Vehicle Owners Mobile Number
+                  <th class="th-sm">Doctor Name
 
                   </th>
-                  <th class="th-sm">Vehicle Owners Pan Number
+                  <th class="th-sm">Doctor Mobile No.</th>
+                  <th class="th-sm">Total count of patients</th>
+                  <th class="th-sm">Total patients asked to isolate
 
                   </th>
-                  <th class="th-sm">Vehicle Registration Number
+                  <th class="th-sm">Total patients referred to Govt. hospitals
 
                   </th>
-                  <th class="th-sm">Vehicle City
+                  <th class="th-sm">Register Image
 
                   </th>
-                  <th class="th-sm">BJS Vehicle Number
+                 
+                  <th class="th-sm">Vevicle Reg. No.
+
+                  </th>
+                  <th class="th-sm">Date Time
 
                   </th>
                 </tr>
               </thead>
               <tbody>
-                    @foreach($vanDetailsList as $data)
+                    @foreach($patientList as $data)
                     <tr>
-                      <td>{{$data->volunteers_name}}</td>
-                      <td>{{$data->volunteers_mobile_number}}</td>
-                      <td>{{$data->vehicle_owners_name}}</td>
-                      <td>{{$data->vehicle_owners_mobile_number}}</td>
-                      <td>{{$data->vehicle_owners_pan_number}}</td>
+                      <td>{{$data->patient_area}}</td>
+                      <td>{{$data->doctor_org}}</td>
+                      <td>{{$data->Other}}</td>
+                      <td>{{$data->doctor_name}}</td>
+                      <td>{{$data->doctor_phone}}</td>
+                      <td>{{$data->patients_count}}</td>
+                      <td>{{$data->isolated_patients_count}}</td>
+                      <td>{{$data->patients_referred_govt_hospital_count}}</td>
+                      <td>
+                        @foreach($data->register_image as $key=> $imgData)
+
+                          <a target="_blank" href="{{$imgData}}">Image {{$key+1}}</a><br/>
+                        @endforeach  
+                      </td>
                       <td>{{$data->vehicle_reg_no}}</td>
-                      <td>{{$data->vehicle_city}}</td>
-                      <td>{{$data->bjs_vehicle_no}}</td>
+                      <td>{{$data->created_datetime}}</td>
                       
                     </tr>
                     @endforeach
@@ -150,22 +140,27 @@
               </tbody>
               <tfoot>
                 <tr>
-                  <th>Volunteers Name
+                  <th>Area
                   </th>
-                  <th>Volunteers Mobile Number
+                  <th>Doctor supported by
                   </th>
-                  <th>Vehicle Owners Name 
+                  <th>Other
                   </th>
-                  <th>Vehicle Owners Mobile Number
+                  <th>Doctor Name
                   </th>
-                  <th>Vehicle Owners Pan Number
+                  <th>Doctor Mobile No.
                   </th>
-                  <th>Vehicle Registration Number
+                  <th>Total count of patients
                   </th>
-                  <th>Vehicle City
+                  <th>Total patients asked to isolate
                   </th>
-                  <th>BJS Vehicle Number
-
+                  <th>Total patients referred to Govt. hospitals
+                  </th>
+                  <th>Register Image
+                  </th>
+                  <th>Vevicle Reg. No.
+                  </th>
+                  <th>Date Time
                   </th>
                 </tr>
               </tfoot>

@@ -151,6 +151,38 @@
         setTimeout(function() {
             $('#errMsg').fadeOut('slow');
         }, 6000);
+
+        $(document).ready(function() {
+        $('select[name="vehicle_city"]').on('change', function() {
+            var selectedCity = $(this).children("option:selected").val();
+            if(selectedCity) {
+                $.ajax({
+                    url: '/api/getSelectedCityVan',
+                    data:{'selectedCity': selectedCity
+                         },
+                    type: "POST",
+                    dataType: "json",
+                    success:function(data) {
+
+                        
+                        $('select[name="vanCode"]').empty();
+
+                       
+                        $('select[name="vanCode"]').append('<option value="">'+'---------Choose Van---------'+'</option>');
+                        $.each(data, function(key, value) {
+                           
+
+                          $('select[name="vanCode"]').append('<option value="'+ value.bjs_vehicle_no +'_'+ value.vehicle_reg_no +'">'+ value.bjs_vehicle_no +'('+ value.vehicle_reg_no +')'+'</option>');
+                        });
+
+
+                    }
+                });
+            }else{
+                $('select[name="vanCode"]').empty();
+            }
+        });
+    });
 </script>
 </head>
 <body >
@@ -191,7 +223,7 @@
                                 <input type="text" id="vanCode" name="vanCode" placeholder="vanCode" class="form-control"  readonly="readonly"  required = "required" value="" }} />
                                      
                                 
-                             </div-->
+                             </div>
                              <div class="form-group">
                                 <label for="vanCode">Select Van / वैन का चयन करें </label>
                                  <select class="form-control" name="vanCode" id="vanCode"  required = "required" oninvalid="this.setCustomValidity('Please Select Van From the List')" oninput="setCustomValidity('')">
@@ -203,6 +235,33 @@
                                      
                                  </select>    
                                 
+                             </div-->
+                             <div class="form-group">
+                                <label for="vanCity">Select City / शहर का चयन करें </label>
+                                 <select class="form-control" name="vehicle_city" id="vehicle_city"  required = "required" oninvalid="this.setCustomValidity('Please Select City From the List')" oninput="setCustomValidity('')">
+                                     <option value="">---------Choose City---------</option>
+                                      @foreach($cityData as $city)
+                                        <option value="{{$city->city_name}}">{{$city->city_name}}</option>
+                                    @endforeach
+                                 </select>    
+                             </div>
+
+                             <div class="form-group">
+                                <label for="vanDepot">Select Depot / डिपो का चयन करें </label>
+                                 <select class="form-control" name="vehicle_depot" id="vehicle_depot"  required = "required" oninvalid="this.setCustomValidity('Please Select Depot From the List')" oninput="setCustomValidity('')">
+                                     <option value="">---------Choose Depot---------</option>
+                                      @foreach($depotData as $depot)
+                                        <option value="{{$depot->depot_name}}">{{$depot->depot_name}}</option>
+                                    @endforeach
+                                        <option value="NA">NA</option>
+                                 </select>    
+                             </div>  
+                                    
+                            <div class="form-group">
+                                <label for="vanCode">Select Van / वैन का चयन करें </label>
+                                 <select class="form-control" name="vanCode" id="vanCode"  required = "required" oninvalid="this.setCustomValidity('Please Select Van From the List')" oninput="setCustomValidity('')">
+                                     
+                                 </select>    
                              </div>
                              <div class="form-group">
                                  <label for="patient_area">Area / स्थान</label>

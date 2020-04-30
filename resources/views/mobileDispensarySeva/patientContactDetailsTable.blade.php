@@ -40,19 +40,10 @@
         $('#example').DataTable();
     } );    
      
-   function backButtonfunction()
-      {
-          window.location.href = "http://13.235.105.204/api/webOptionView";
-      }  
-  function addCityButtonfunction()
-      {
-          window.location.href = "http://13.235.105.204/api/insertCityForm";
-      } 
-
-  function addDepotButtonfunction()
-      {
-          window.location.href = "http://13.235.105.204/api/insertDepotForm";
-      } 
+    function backButtonfunction()
+        {
+            window.location.href = "http://13.235.105.204/api/webOptionView";
+        } 
 	
    
 </script>
@@ -61,7 +52,7 @@
 <div class="container">
 
 <div class="row" >
-<h3 align="center">Van -Details Register </h3>	
+<h3 align="center">Patient Details Register</h3>	
 </div>
 <br>
     <!--div class="row" style="margin-left: 25%;" id="buttonRow">
@@ -82,67 +73,43 @@
         <div class="col-sm-2">
             
             <div  class="form-group">
-                <input type="button" class="btn btn-success" value="Back" onclick="backButtonfunction()"/>
-            </div>
+	        <input type="button" class="btn btn-success" value="Back" onclick="backButtonfunction()"/>
+	        </div>
         </div>
-
-        <div class="col-sm-2">
-            
-            <div  class="form-group">
-                <input type="button" class="btn btn-success" value="Add City" onclick="addCityButtonfunction()"/>
-            </div>
-        </div>
-
-        <div class="col-sm-2">
-            
-            <div  class="form-group">
-                <input type="button" class="btn btn-success" value="Add Depot" onclick="addDepotButtonfunction()"/>
-            </div>
-        </div>
-
-    </div>  	
+    </div>	
    <div class="row" id="">
         <div class="">
             <table id="example" class="datatable table table-striped table-bordered" style="width:100%">
               <thead>
                 <tr>
-                  <th class="th-sm">Volunteers Name
+                  <th class="th-sm">Area
 
                   </th>
-                  <th class="th-sm">Volunteers Mobile Number
+                  <th class="th-sm">Patient Name
 
                   </th>
-                  <th class="th-sm">Vehicle Owners Name 
+                  <th class="th-sm">Patient Mobile Number
 
                   </th>
-                  <th class="th-sm">Vehicle Owners Mobile Number
+                 
+                 
+                  <th class="th-sm">Address
 
                   </th>
-                  <th class="th-sm">Vehicle Owners Pan Number
-
-                  </th>
-                  <th class="th-sm">Vehicle Registration Number
-
-                  </th>
-                  <th class="th-sm">Vehicle City
-
-                  </th>
-                  <th class="th-sm">BJS Vehicle Number
+                  <th class="th-sm">Date Time
 
                   </th>
                 </tr>
               </thead>
               <tbody>
-                    @foreach($vanDetailsList as $data)
+                    @foreach($vehicleDailyRegisterData as $data)
                     <tr>
-                      <td>{{$data->volunteers_name}}</td>
-                      <td>{{$data->volunteers_mobile_number}}</td>
-                      <td>{{$data->vehicle_owners_name}}</td>
-                      <td>{{$data->vehicle_owners_mobile_number}}</td>
-                      <td>{{$data->vehicle_owners_pan_number}}</td>
-                      <td>{{$data->vehicle_reg_no}}</td>
-                      <td>{{$data->vehicle_city}}</td>
-                      <td>{{$data->bjs_vehicle_no}}</td>
+                      <td>{{$data->patient_area}}</td>
+                      <td>{{$data->patient_name}}</td>
+                      <td>{{$data->patient_phone}}</td>
+                      <td>{{  str_limit($data->patient_address, $limit = 30, $end = '...')}}</td>
+                      <td>{{$data->created_datetime}}</td>
+                      
                       
                     </tr>
                     @endforeach
@@ -150,21 +117,20 @@
               </tbody>
               <tfoot>
                 <tr>
-                  <th>Volunteers Name
+                  <th>Area
+
                   </th>
-                  <th>Volunteers Mobile Number
+                  <th>Patient Name
+
                   </th>
-                  <th>Vehicle Owners Name 
+                  <th>Patient Mobile Number
+
                   </th>
-                  <th>Vehicle Owners Mobile Number
+            
+                  <th>Address
+
                   </th>
-                  <th>Vehicle Owners Pan Number
-                  </th>
-                  <th>Vehicle Registration Number
-                  </th>
-                  <th>Vehicle City
-                  </th>
-                  <th>BJS Vehicle Number
+                  <th>Date
 
                   </th>
                 </tr>

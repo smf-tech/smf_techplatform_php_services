@@ -22,6 +22,8 @@ use App\MobileDispensarySevaVanDetails;
 use App\MobileDispensarySevaDailyVehicleDetails;
 use App\MobileDispensarySevaPatientDetails;
 use App\mobileDispensarySevaPatientContactDetails;
+use App\MobileDispensarySevaVanCity;
+use App\MobileDispensarySevaVanDepot;
 
 use PDF; 
 
@@ -52,21 +54,58 @@ class mobileDispensarySevaController extends Controller
       //echo json_encode($vanData);
        //die();
 
-        return view('mobileDispensarySeva.selectVan',compact('vanData'));
+       $cityData = MobileDispensarySevaVanCity::orderBy('city_name', 'ASC')->get();
+       $depotData = MobileDispensarySevaVanDepot::orderBy('depot_name', 'ASC')->get();
+
+        return view('mobileDispensarySeva.selectVan',compact(['vanData','cityData','depotData']));
 
     }
 
 
     public function insertVanForm(Request $request){
         DB::setDefaultConnection('mongodb');
-        return view('mobileDispensarySeva.insertVanForm');
 
+          $cityData = MobileDispensarySevaVanCity::orderBy('city_name', 'ASC')->get();
+          $depotData = MobileDispensarySevaVanDepot::orderBy('depot_name', 'ASC')->get();
+        //echo json_encode($vanData);
+        //die();
+
+        return view('mobileDispensarySeva.insertVanForm',compact(['cityData','depotData']));
+
+        //return view('mobileDispensarySeva.insertVanForm');
+
+    }
+
+    public function showAddCityForm(Request $request){
+
+         DB::setDefaultConnection('mongodb');
+
+      
+
+        return view('mobileDispensarySeva.insertCityForm');
+    }
+
+    public function showAddDepotForm(Request $request){
+
+         DB::setDefaultConnection('mongodb');
+        return view('mobileDispensarySeva.insertDepotForm');
     }
 
     
 
-    public function testpage(Request $request){
-        return view('mobileDispensarySeva.testPage');
+    public function testpage1(Request $request){
+
+
+        $vanData = MobileDispensarySevaVanDetails::orderBy('bjs_vehicle_no', 'ASC')->get();
+      //echo json_encode($vanData);
+       //die();
+
+       $cityData = MobileDispensarySevaVanCity::orderBy('city_name', 'ASC')->get();
+       $depotData = MobileDispensarySevaVanDepot::orderBy('depot_name', 'ASC')->get();
+
+        //return view('mobileDispensarySeva.selectVan',compact(['vanData','cityData','depotData']));
+
+        return view('mobileDispensarySeva.testPage',compact(['vanData','cityData','depotData']));
     }
 
     public function webOptionView(Request $request){
@@ -94,11 +133,10 @@ class mobileDispensarySevaController extends Controller
         else{
 
 
-            $vanDetailsRecord = MobileDispensarySevaVanDetails::get();
+            $vanDetailsRecord = MobileDispensarySevaVanDetails::where('vehicle_city',$request->input('vehicle_city'))->get();
              $vehicleCount = count($vanDetailsRecord);
         
-
-
+           
 
 
         $vehicleData = new MobileDispensarySevaVanDetails();
@@ -213,7 +251,7 @@ class mobileDispensarySevaController extends Controller
        
         $vehicleData['created_at'] = $currentDate ? : '' ;
         $vehicleData['updated_at'] = $currentDate ? : '';
-       
+      
 
         try{ 
 
@@ -231,18 +269,22 @@ class mobileDispensarySevaController extends Controller
                  $msg = 'Van - Area Visit Register record submitted successfully.';
                 
                  $vanData =  MobileDispensarySevaVanDetails::orderBy('bjs_vehicle_no', 'ASC')->get();
+                 $cityData = MobileDispensarySevaVanCity::orderBy('city_name', 'ASC')->get();
+                $depotData = MobileDispensarySevaVanDepot::orderBy('depot_name', 'ASC')->get();
       
 
                 //return view('mobileDispensarySeva.selectVan',compact('vanData'));
-                return view('mobileDispensarySeva.selectVan',compact(['vanData','msg'])); 
+                return view('mobileDispensarySeva.selectVan',compact(['vanData','cityData','depotData','msg'])); 
             }
             else
             {
                 $msg = "Couldn't submit Van - Area Visit Register record, please try after some time.";
                 $vanData = MobileDispensarySevaVanDetails::orderBy('bjs_vehicle_no', 'ASC')->get();
+                $cityData = MobileDispensarySevaVanCity::orderBy('city_name', 'ASC')->get();
+                $depotData = MobileDispensarySevaVanDepot::orderBy('depot_name', 'ASC')->get();
                 
                 //$response_data = array('status' =>'200','message'=>$msg);
-                return view('mobileDispensarySeva.selectVan',compact(['vanData','msg']));   
+                return view('mobileDispensarySeva.selectVan',compact(['vanData','cityData','depotData','msg']));   
             } 
 
        
@@ -557,23 +599,29 @@ class mobileDispensarySevaController extends Controller
 	            if($success)
 	            {
 	                $vanData = MobileDispensarySevaVanDetails::get();
+                    $cityData = MobileDispensarySevaVanCity::orderBy('city_name', 'ASC')->get();
+                    $depotData = MobileDispensarySevaVanDepot::orderBy('depot_name', 'ASC')->get();
 	                $msg = 'Patient record inserted successfully.';
 	               // $response_data = array('status' =>'200','message'=>$msg);
-	                return view('mobileDispensarySeva.patientInfoForm',compact(['vanData','msg'])); 
+	                return view('mobileDispensarySeva.patientInfoForm',compact(['vanData','cityData','depotData','msg'])); 
 	            }
 	            else
 	            {
 	                $vanData = MobileDispensarySevaVanDetails::get();
+                    $cityData = MobileDispensarySevaVanCity::orderBy('city_name', 'ASC')->get();
+                    $depotData = MobileDispensarySevaVanDepot::orderBy('depot_name', 'ASC')->get();
 	                $errMsg = "धीमे नेटवर्क के कारण फ़ॉर्म सबमिट नहीं किया जा सका। कृपया पुनः प्रयास करें।";
-	                return view('mobileDispensarySeva.patientInfoForm',compact(['vanData','errMsg']));
+	                return view('mobileDispensarySeva.patientInfoForm',compact(['vanData','cityData','depotData','errMsg']));
 	            }
         }
         else
         {
 
         	$vanData = MobileDispensarySevaVanDetails::get();
+            $cityData = MobileDispensarySevaVanCity::orderBy('city_name', 'ASC')->get();
+            $depotData = MobileDispensarySevaVanDepot::orderBy('depot_name', 'ASC')->get();
             $errMsg = "धीमे नेटवर्क के कारण फ़ॉर्म सबमिट नहीं किया जा सका। कृपया पुनः प्रयास करें।";
-            return view('mobileDispensarySeva.patientInfoForm',compact(['vanData','errMsg']));
+            return view('mobileDispensarySeva.patientInfoForm',compact(['vanData','cityData','depotData','errMsg']));
         }	
          
          
@@ -656,10 +704,10 @@ class mobileDispensarySevaController extends Controller
         //$vanCode = 'Test';DB::setDefaultConnection('mongodb');
 
        $vanData =  MobileDispensarySevaVanDetails::orderBy('bjs_vehicle_no', 'ASC')->get();
-      //echo json_encode($vanData);
-       //die();
+       $cityData = MobileDispensarySevaVanCity::orderBy('city_name', 'ASC')->get();
+       $depotData = MobileDispensarySevaVanDepot::orderBy('depot_name', 'ASC')->get();
 
-        return view('mobileDispensarySeva.patientInfoForm',compact('vanData'));
+        return view('mobileDispensarySeva.patientInfoForm',compact(['vanData','cityData','depotData']));
        // return view('mobileDispensarySeva.patientInfoForm'); 
     }
 
@@ -688,6 +736,172 @@ class mobileDispensarySevaController extends Controller
            exit;   
 		}
 	}
+
+
+
+    public function insertCity(Request $request)
+    {
+        DB::setDefaultConnection('mongodb');
+        $formData = $request->all();
+        $entered_city_name = $request->input('city_name');
+        
+
+        // $vanCodeArr = explode('_', $request->input('vanCode'));
+        // //$vanCode = $vanCode['0'];
+
+        $checkCityData = MobileDispensarySevaVanCity::where('city_name',$entered_city_name)->first();
+       //echo json_encode($checkVanRegNoData);
+        if($checkCityData && $checkCityData['city_name']==$entered_city_name)
+        {
+                $msg = 'City Name is already present.';
+                //$response_data = array('status' =>'200','message'=>$msg);
+                return view('mobileDispensarySeva.insertCityForm',compact(['msg'])); 
+        }
+        else{
+
+
+        $cityData = new MobileDispensarySevaVanCity();
+        //$cityData = new MobileDispensarySevaDailyVehicleDetails();
+        foreach($formData as $key => $value)
+        {
+            $cityData[$key]= $value;
+        }
+        
+       
+        $carbon = new Carbon();
+        $currentDate = $carbon->setTimezone('Asia/Kolkata');
+        $currentDate = $carbon->toDateTimeString();
+        
+        $dateOnly = $carbon->format('d-m-Y H:i:s');
+        
+        $cityData['created_datetime'] = $dateOnly;
+       
+        $cityData['created_at'] = $currentDate ? : '' ;
+        $cityData['updated_at'] = $currentDate ? : '';
+       
+        // echo json_encode($cityData);
+        // die();
+        try{ 
+
+                $success = $cityData->save();
+            }
+            catch(Exception $e)
+            {
+                $response_data = array('status' =>'200','message'=>'error','data' => $e);
+                return response()->json($response_data,200); 
+            }
+
+            if($success)
+            {
+            
+                $msg = 'City inserted successfully.';
+                //$response_data = array('status' =>'200','message'=>$msg);
+                return view('mobileDispensarySeva.insertCityForm',compact(['msg'])); 
+            }
+            else
+            {
+                
+                $msg = "Couldn't save City Name, please try after some time.";
+                //$response_data = array('status' =>'200','message'=>$msg);
+                return view('mobileDispensarySeva.insertCityForm',compact(['msg']));  
+            } 
+
+        }
+       
+        
+
+       
+    }
+
+
+     public function insertDepot(Request $request)
+    {
+        DB::setDefaultConnection('mongodb');
+        $formData = $request->all();
+        $entered_depot_name = $request->input('depot_name');
+
+        // $vanCodeArr = explode('_', $request->input('vanCode'));
+        // //$vanCode = $vanCode['0'];
+
+        $checkDepotData = MobileDispensarySevaVanDepot::where('depot_name',$entered_depot_name)->first();
+       //echo json_encode($checkVanRegNoData);
+        if($checkDepotData && $checkDepotData['depot_name']==$entered_depot_name)
+        {
+                $msg = 'Depot Name is already present.';
+                //$response_data = array('status' =>'200','message'=>$msg);
+                return view('mobileDispensarySeva.insertDepotForm',compact(['msg'])); 
+        }
+        else{
+
+
+        $depotData = new MobileDispensarySevaVanDepot();
+        //$cityData = new MobileDispensarySevaDailyVehicleDetails();
+        foreach($formData as $key => $value)
+        {
+            $depotData[$key]= $value;
+        }
+        
+       
+        $carbon = new Carbon();
+        $currentDate = $carbon->setTimezone('Asia/Kolkata');
+        $currentDate = $carbon->toDateTimeString();
+        
+        $dateOnly = $carbon->format('d-m-Y H:i:s');
+        
+        $depotData['created_datetime'] = $dateOnly;
+       
+        $depotData['created_at'] = $currentDate ? : '' ;
+        $depotData['updated_at'] = $currentDate ? : '';
+       
+        // echo json_encode($cityData);
+        // die();
+        try{ 
+
+                $success = $depotData->save();
+            }
+            catch(Exception $e)
+            {
+                $response_data = array('status' =>'200','message'=>'error','data' => $e);
+                return response()->json($response_data,200); 
+            }
+
+            if($success)
+            {
+            
+                $msg = 'Depot inserted successfully.';
+                //$response_data = array('status' =>'200','message'=>$msg);
+                return view('mobileDispensarySeva.insertDepotForm',compact(['msg'])); 
+            }
+            else
+            {
+                
+                $msg = "Couldn't save Depot Name, please try after some time.";
+                //$response_data = array('status' =>'200','message'=>$msg);
+                return view('mobileDispensarySeva.insertDepotForm',compact(['msg']));  
+            } 
+
+        }
+       
+        
+
+       
+    }
+
+
+
+    public function getSelectedCityVan(Request $request)
+    {
+
+         $city_name = $request->input('selectedCity');
+      // die();
+        $vanDetailsRecord = MobileDispensarySevaVanDetails::select('bjs_vehicle_no','vehicle_reg_no')->where('vehicle_city',$city_name)->orderBy('bjs_vehicle_no', 'ASC')->get();
+
+        if($vanDetailsRecord ){
+            return  json_encode($vanDetailsRecord);
+
+        }
+    }
+
     
 }
 

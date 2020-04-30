@@ -73,6 +73,17 @@ $api->version('v1',function($api){
         $api->get('patientList', 'mobileDispensarySevaController@patientList');
         $api->get('dailyVehicleRegister', 'mobileDispensarySevaController@dailyVehicleRegister');
 
+        $api->get('insertCityForm', 'mobileDispensarySevaController@showAddCityForm');
+        $api->post('insertCity', 'mobileDispensarySevaController@insertCity');
+
+        $api->get('testpage1','mobileDispensarySevaController@testpage1');
+
+        $api->get('insertDepotForm', 'mobileDispensarySevaController@showAddDepotForm');
+        $api->post('getSelectedCityVan', 'mobileDispensarySevaController@getSelectedCityVan');
+        
+
+        $api->post('insertDepot', 'mobileDispensarySevaController@insertDepot');
+
         $api->get('webOptionView', 'mobileDispensarySevaController@webOptionView');
 
         $api->get('downloadCertificateReport', 'CertificateController@downloadCertificateReport');

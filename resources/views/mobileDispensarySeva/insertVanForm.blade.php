@@ -94,6 +94,32 @@
                                 
                              </div>
 
+                             <div class="form-group">
+                                 <label for="vehicle_city">Select Van City </label>
+                                <!--input type="text" id="vehicle_city" name="vehicle_city" placeholder="Van City" class="form-control" pattern="[a-zA-Z][a-zA-Z0-9\s]*" oninvalid="this.setCustomValidity('Please Enter Valid Van City')" oninput="setCustomValidity('')"/-->
+
+                                <select class="form-control" name="vehicle_city" id="vehicle_city"  required = "required" oninvalid="this.setCustomValidity('Please Select city From the List')" oninput="setCustomValidity('')">
+                                     <option value="">---------Choose City---------</option>
+                                      @foreach($cityData as $city)
+                                        <option value="{{$city->city_name}}">{{$city->city_name}}</option>
+                                    @endforeach
+                                        <!--option value="NA">NA</option-->
+                                 </select>    
+                             </div>
+
+                             <!--div class="form-group">
+                                 <label for="vehicle_city">Select Van Depot </label>
+                                
+
+                                <select class="form-control" name="vehicle_depot" id="vehicle_depot" >
+                                     <option value="">---------Choose Depot---------</option>
+                                      @foreach($depotData as $depot)
+                                        <option value="{{$depot->depot_name}}">{{$depot->depot_name}}</option>
+                                    @endforeach
+                                        <option value="NA">NA</option>
+                                 </select>    
+                             </div-->
+
                              <!--div class="form-group">
                                  <label for="vehicle_reg_no">Take image</label>
                                  <input type="file"  accept="image/* capture="camera"name="test_image class="form-control" required = "required" />

@@ -206,8 +206,29 @@ class SurveyController extends Controller
 
     public function getSurveyDetails($survey_id)
     {
-         $user = $this->request->user();
-        $database = $this->connectTenantDatabase($this->request);
+        $header = getallheaders();
+        if(isset($header['orgId']) && ($header['orgId']!='') 
+            && isset($header['projectId']) && ($header['projectId']!='')
+            && isset($header['roleId']) && ($header['roleId']!='')
+          )
+        {   
+            $orgId =  $header['orgId'];
+            $project_id =  $header['projectId'];
+            $role_id =  $header['roleId'];
+        } else {
+            
+            $message = "Header info missing";
+            $this->logData($this->logInfoPath ,$message,'Error');
+            
+            $response_data = array('status' =>'404',
+                                    'message'=>$message
+                                    );
+            
+            return response()->json($response_data,200);            
+        } 
+
+        $user = $this->request->user();
+        $database = $this->connectTenantDatabase($this->request,$orgId);
         if ($database === null) {
             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
         }
@@ -248,7 +269,7 @@ class SurveyController extends Controller
         return response()->json(['status'=>'success','data' => $data,'message'=>'']);
     }
 
-     public function createResponse($survey_id)
+    public function createResponse($survey_id)
     {
         $header = getallheaders();
         //$user = $this->request->user();
@@ -270,15 +291,24 @@ class SurveyController extends Controller
         $user = $this->request->user();
         $userLocation = $this->request->user()->location;  
         
-        $userRole = $this->request->user()->role_id;  
+        $userRole = $role_id;  
         $userRoleLocation = ['role_id' => $userRole];
         $userRoleLocation = array_merge($userRoleLocation,$userLocation);
          
 
-        $roleConfig = RoleConfig::where('role_id',$userRole)->first();
+        $database = $this->connectTenantDatabase($this->request,$org_id);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
 
+
+         //echo $org_id .'--------' .$userRole;
+        $database = $this->connectTenantDatabase($this->request,$org_id);
+         $roleConfig = RoleConfig::where('role_id',$userRole)->first();
+        //die();
         $survey = Survey::find($survey_id);
-       // echo  $survey->json;
+       //echo  json_encode($survey_id);
+       //die();
         $formData = json_decode($survey->json, true);
         // echo json_encode($formData['pages'][0]['elements']);
         // die();
@@ -288,6 +318,7 @@ class SurveyController extends Controller
         // echo json_encode($surveyOptions);
         //die();
         $primaryKeys = isset($survey->form_keys)?$survey->form_keys:[];
+
 
         $fields = array();
         
@@ -300,6 +331,7 @@ class SurveyController extends Controller
         $primaryValues = array();
         $resultsArr = [];
         $cnt= 0;
+        $valueDataCnt= 0;
         $itemArrCnt=0;
         // Looping through the response object from the body
         foreach($this->request->all() as $key=>$value)
@@ -360,23 +392,66 @@ class SurveyController extends Controller
                         
                     } else if(is_object($itemValueArray))
                     {
+                        
+                        
+                         //echo json_encode($itemValueArray);
+
                         foreach($itemValueArray as $key => $objecData){
                             
-                            foreach ($objecData as $rowKey => $rowValue) {
-                               
-                                foreach ($rowValue as $valueKey => $valueData) {
-                                     $results['question_id'] = $key;
-                                     $results['result_id'] = $rowKey;
-                                     $results['result_title'] =  $valueKey;
-                                     $results['result_flag'] =$valueData;
-                                    array_push($resultsArr, $results);
-                                    unset($results['result_flag']);
+                            $resultArrsearchItem = $this->arraySearch($resultArrsearchOption, $key, $item);
+                            // echo '---------'.json_encode($objecData);
+                            // die();
+
+                           if(isset($resultArrsearchItem) && isset($resultArrsearchItem[0]['option_title']) )
+                           {
+                           // foreach($resultArrsearchItem as $optionKey => $optionValue)
+                           // {
+                                 
+                                foreach ($objecData as $rowKey => $rowValue)
+                                {
+                                    //echo $rowKey;
+                                    foreach ($rowValue as $valueKey => $valueData)
+                                    { 
+                                        //if($rowKey == $optionValue['option_id'])
+                                        //{
+                                            
+                                            $rowValueSearch = $this->arraySearch($resultArrsearchOption, $rowKey, $item);
+                                            
+                                             
+                                            $results['question_id'] = $key;
+                                            $results['result_id'] = $rowKey;
+                                            $results['result_title'] = $rowValueSearch[0]['rowValue'];// $optionValue['rowValue'];
+                                            //echo json_encode($optionValue);
+                                             $results['result_flag'] =$valueData;
+                                             array_push($resultsArr, $results);
+                                             unset($results['result_flag']);
+                                             $valueDataCnt = $valueDataCnt+1;
+                                        //}
+                                   } 
                                 }
-                               
+
                             }
 
-                        }
-                       
+                           //}
+                           
+                           
+                           
+                            // foreach ($objecData as $rowKey => $rowValue) {
+                               
+                            //     foreach ($rowValue as $valueKey => $valueData) {
+                            //          $results['question_id'] = $key;
+                            //          $results['result_id'] = $rowKey;
+                            //          $results['result_title'] =  $valueKey;
+                            //          $results['result_flag'] =$valueData;
+                            //         array_push($resultsArr, $results);
+                            //         unset($results['result_flag']);
+
+                            //     }
+                               
+                            // }
+
+                        } 
+                        
                     } else if(is_string($item))
                      {
                      
@@ -434,8 +509,8 @@ class SurveyController extends Controller
         // Gives current date and time in the format :  2019-01-24 10:30:46
         $date = Carbon::now();
         $fields['results'] = $resultsArr;
-         
-
+       
+        $fields['submitted_body']= file_get_contents('php://input');
         $fields['submit_count'] = 1;
         $fields['updatedDateTime'] = $date->getTimestamp();
         $fields['createdDateTime'] = $date->getTimestamp();
@@ -559,7 +634,7 @@ class SurveyController extends Controller
                     $approverIds = $approver['id'];  
                     array_push($approverUsers,$approverIds);
                     } 
-                $database = $this->connectTenantDatabase($this->request);
+                $database = $this->connectTenantDatabase($this->request,$org_id);
                         if ($database === null) {
                             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
                         }   
@@ -695,6 +770,83 @@ class SurveyController extends Controller
         return $response;   
     }
 
+
+    public function getRecords($survey_id)
+    {
+       $header = getallheaders();
+        if(isset($header['orgId']) && ($header['orgId']!='') 
+            && isset($header['projectId']) && ($header['projectId']!='')
+            && isset($header['roleId']) && ($header['roleId']!='')
+          )
+        {   
+            $orgId =  $header['orgId'];
+            $project_id =  $header['projectId'];
+            $role_id =  $header['roleId'];
+        } else {
+            
+            $message = "Header info missing";
+            $this->logData($this->logInfoPath ,$message,'Error');
+            
+            $response_data = array('status' =>'404',
+                                    'message'=>$message
+                                    );
+            
+            return response()->json($response_data,200);            
+        }
+        
+        $database = $this->connectTenantDatabase($this->request,$orgId);
+        if ($database === null) {
+            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+        }
+
+        $user = $this->request->user(); 
+
+        $survey = Survey::find($survey_id);
+
+       
+
+        $collection_name = $survey->entity_collection_name;
+        $records = DB::collection($survey->entity_collection_name)->select('submitted_body','status','survey_id','updatedDateTime','createdDateTime')->where('userName',$user->_id)->get();
+        
+        $submit_count = count($records);
+        $form_id = $survey_id;  
+        $submittedData= [];
+        $form= [];
+        $metadata = [];
+        $valuesArr = [];
+        $tempArr = [];
+        $form['form']['submit_count'] = $submit_count;
+        $form['form']['form_id'] = $form_id;
+        $submittedData['metadata']= [$form];
+        
+        foreach($records as $rcKey => $rcValue) {
+                  foreach ($rcValue['_id'] as $idValue) {
+                    $tempArr['$oid']  = $idValue;
+                  };
+                 //echo $temp_id;//[0]['$oid'];
+                 
+                $tempArr['form_title'] =  $survey->name['default'].'_'.$rcValue['createdDateTime'];
+                $tempArr['form_id'] = $rcValue['survey_id'];
+                $tempArr['updatedDateTime'] = $rcValue['updatedDateTime'];
+                $tempArr['status'] = $rcValue['status'];
+                //$tempArr['$oid'] = $rcValue['_id'];
+                $tempArr['result'] = $rcValue['submitted_body'];
+
+                array_push($valuesArr, $tempArr);
+            
+        }
+
+        //echo json_encode($valuesArr);
+        $submittedData['values']= $valuesArr;
+
+       //die();
+        
+
+       // $records = '{"code":200,"status":"success","metadata":[{"form":{"submit_count":"2","form_id":"5e9ab9ea56c8d04ef6755c54"}}],"values":[{"form_title":"Form1","form_id":"5e9ab9ea56c8d04ef6755c54","updatedDateTime":1587465230,"status":"Approved","$oid":"5e9ecc0e7e16e67dec0790b3","result":{"question5phone":"9890650446","question2":"item2","question5name":"My Bjs Testuser","Lang":"en","question1":"{\"question1\":{\"Row 1\":{\"Column 1\":false},\"Row 2\":{\"Column 1\":false}}}","lat":"0.0","long":"0.0"}},{"form_title":"Form2","form_id":"5e9ab9ea56c8d04ef6755c54","updatedDateTime":1587465230,"status":"Rejected","$oid":"5e9ecc0e7e16e67dec0790b2","result":{"question5phone":"9890650445","question2":"item3","question5name":"My Bjs Testusersss","Lang":"en","question1":"{\"question1\":{\"Row 1\":{\"Column 1\":false},\"Row 2\":{\"Column 1\":false}}}","lat":"0.0","long":"0.0"}}],"message":"Success"}';
+
+        //return $records; 
+        return response()->json(['status'=>'success','code'=>'200','data' => $submittedData,'message'=>'Success']);
+    }
     public function showResponse($survey_id)
     {
 		$header = getallheaders();
