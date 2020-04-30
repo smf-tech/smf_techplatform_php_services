@@ -44,6 +44,15 @@
         window.location.href = "http://13.235.105.204/api/patientList";
     }
 
+    function DailyVehicleRegfunction()
+    {
+        window.location.href = "http://13.235.105.204/api/dailyVehicleRegister";
+    }
+
+    function PatientDetailsRegister()
+    {
+        window.location.href = "http://13.235.105.204/api/patientContactDetailsList";
+    }
    
 </script>
 </head>
@@ -54,54 +63,49 @@
 <!--h3 align="center">BJS - FORCE MOTORS MOBILE DISPENSARY SEVA</h3-->	
 </div>
     <br/>
-    <div class="row" style="text-align: center;border: 0px solid red;margin-left: 12%;">
-        <div class="col-sm-2 col-sm-offset-1">
+    <div class="row" style="">
+        <div class="col-sm-4 col-sm-offset-1">
             <div  class="form-group">
                 <input type="button" class="btn-lg btn-success" value="Add Vehicle" onclick="insertVehiclefunction()" />
             </div>
             
         </div>
-        <div class="col-sm-2 col-sm-offset-1">
+        <div class="col-sm-4 col-sm-offset-1">
             <div  class="form-group">
                 <input type="button" class="btn-lg btn-success" value="Vehicle List" onclick="vehicleSheetfunction()" />
             </div>
-            
         </div>
-        <div class="col-sm-2 col-sm-offset-1">
+    </div>    
+    <br/>
+    <div class="row" style="">    
+        <div class="col-sm-4 col-sm-offset-1">
             <div  class="form-group">
-                <input type="button" class="btn-lg btn-success" id='patienRegBtn' value="Patients List" onclick="PatientSheetfunction()"/>
+                <input type="button" class="btn-lg btn-success" id='vehicleRegBtn' value="Van - Area Visit Register" onclick="DailyVehicleRegfunction()"/>
             </div>
             
         </div>
-
-        <!--div class="col-md-2 col-md-offset-2">
-			<div  class="form-group">
-				<input type="button" class="btn-lg btn-success" value="Vehicle Details" onclick="vehicleSheetfunction()" />
+        <div class="col-sm-4 col-sm-offset-1">
+            <div  class="form-group">
+                <input type="button" class="btn-lg btn-success" id='patienRegBtn' value="Van - Area Wise Patients Register" onclick="PatientSheetfunction()"/>
             </div>
-			
-		</div>
-		<div class="col-md-2 col-md-offset-2">
-			<div  class="form-group">
-				<input type="button" class="btn-lg btn-success" id='patienRegBtn' value="Patients List" onclick="PatientSheetfunction()"/>
-            </div>
-			
-		</div-->
-	</div>
-    <div class="row">
-        <div class="col-md-8 col-md-offset-2">
-            <div id="showMsg" class="alert-warning">
+            
+        </div>
         
+
+	</div>
+     <br/>
+    <div class="row" style="">    
+        <div class="col-sm-4 col-sm-offset-1">
+            <div  class="form-group">
+                <input type="button" class="btn-lg btn-success" id='patienRegetailsBtn' value="Patient Details Register" onclick="PatientDetailsRegister()"/>
             </div>
+            
         </div>
-    </div>	
-   <div class="row" id="vehicleSheet">
-        <div class="col-md-8 col-md-offset-2">
-            <div class="panel panel-default">
-                           
-              
-            </div>
-        </div>
+        
+        
+
     </div>
+    
 </div>
 </body>
  

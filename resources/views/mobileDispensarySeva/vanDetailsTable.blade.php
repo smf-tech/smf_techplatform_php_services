@@ -52,7 +52,7 @@
 <div class="container">
 
 <div class="row" >
-<h3 align="center">Vehicles Details </h3>	
+<h3 align="center">Van -Details Register </h3>	
 </div>
 <br>
     <!--div class="row" style="margin-left: 25%;" id="buttonRow">

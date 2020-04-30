@@ -55,7 +55,15 @@ $api->version('v1',function($api){
         $api->post('savePatientInfo', 'mobileDispensarySevaController@savePatientInfo');
         //in this get vanCode from cookies
         $api->get('showPatientInfoForm', 'mobileDispensarySevaController@showPatientInfoForm');
-        $api->get('testPage','mobileDispensarySevaController@testpage');
+
+
+        $api->get('showPatientContactDetailsForm', 'mobileDispensarySevaController@showPatientContactDetailsForm');
+
+        $api->post('savePatientContactDetails', 'mobileDispensarySevaController@savePatientContactDetails');
+
+        $api->get('patientContactDetailsList', 'mobileDispensarySevaController@patientContactDetailsList');
+        
+       // $api->post('testPageSave','mobileDispensarySevaController@testPageSave');
 
         $api->get('insertVanForm', 'mobileDispensarySevaController@insertVanForm');
         $api->post('insertVanInfo', 'mobileDispensarySevaController@insertVanInfo');
@@ -63,6 +71,7 @@ $api->version('v1',function($api){
         $api->get('vanDetailsList', 'mobileDispensarySevaController@vanDetailsList');
 
         $api->get('patientList', 'mobileDispensarySevaController@patientList');
+        $api->get('dailyVehicleRegister', 'mobileDispensarySevaController@dailyVehicleRegister');
 
         $api->get('webOptionView', 'mobileDispensarySevaController@webOptionView');
 
@@ -73,6 +82,12 @@ $api->version('v1',function($api){
 		
 		$api->get('cron','EventTaskController@cron');
 		$api->get('UserToMeet','MeetController@UserToMeet');
+		$api->post('imageSevaUpload1','ImageUploadTestController@imageSevaUpload');
+        $api->post('testPageSave','ImageUploadTestController@testPageSave');
+		$api->get('testPage','ImageUploadTestController@testpage');
+		$api->post('imageSevaUpload','mobileDispensarySevaController@imageSevaUpload');
+		
+		
 	 
 		
 		//google map apis
