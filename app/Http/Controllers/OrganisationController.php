@@ -78,7 +78,7 @@ class OrganisationController extends Controller
                 return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
             }
 
-            $projects = Project::get(['name']); 
+            $projects = Project::where('is_active',1)->select('name')->get(); 
             $response_data = array('status' =>'success','data' => $projects,'message'=>'');
             return response()->json($response_data,200); 
         }else{

@@ -53,6 +53,11 @@
     {
         window.location.href = "http://13.235.105.204/api/patientContactDetailsList";
     }
+	
+    function SevaConsentDetails()
+    {
+        window.location.href = "http://13.235.105.204/api/sevaConsentlist";
+    }
    
 </script>
 </head>
@@ -102,9 +107,15 @@
             
         </div>
         
-        
+       <div class="col-sm-4 col-sm-offset-1">
+            <div  class="form-group">
+                <input type="button" class="btn-lg btn-success" id='sevaConsentBtn' value="Seva Consent Details" onclick="SevaConsentDetails()"/>
+            </div>
+            
+        </div>  
 
     </div>
+  
     
 </div>
 </body>

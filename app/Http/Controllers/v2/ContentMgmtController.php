@@ -1,8 +1,10 @@
 <?php
 
 //owner:Jitendra
+use Illuminate\Support\Facades\Session;
 namespace App\Http\Controllers;
 
+ 
 use Illuminate\Http\Request;
 use App\User;
 use Maklad\Permission\Models\Role;
@@ -12,6 +14,7 @@ use App\Organisation;
 use App\Project;
 use App\Module;
 use App\RoleConfig; 
+use App\SevaContents;
 use App\ContentManagement;
 use App\ContentCategories;
 use Illuminate\Support\Facades\DB;
@@ -141,5 +144,50 @@ class ContentMgmtController extends Controller
 
     }
 	
+	
+	
+	public function sevaConsentForm(Request $request){
+		return view('sevaConsentForm');
+	}
+	
+	public function savesevaConsentForm(Request $request){ 
+		DB::setDefaultConnection('mongodb');  
+		
+	
+		$name = $request->input('name');
+		$mobile_no = $request->input('mobile_no');
+		$city = $request->input('city');
+		$personal_id = $request->input('personal_id');
+		$registration_no = $request->input('registration_no');
+		
+		$sevaContent = new SevaContents();
+	    $sevaContent['name'] = $name;
+	    $sevaContent['mobile_no'] = $mobile_no;
+	    $sevaContent['city'] = $city;
+	    $sevaContent['personal_id'] = $personal_id;
+	    $sevaContent['registration_no'] = $registration_no;
+		$sevaContent->save();
+		if(isset($sevaContent->id)){
+		$msg = "Form submitted successfully";
+		return $msg;
+		}else{
+		$msg = "Something went wrong...";
+		return $msg;	
+		}
+		
+	}
+	
+	public function sevaConsentlist(Request $request)
+	{
+	   DB::setDefaultConnection('mongodb');
+       $SevaContents = SevaContents::get();       
+       return view('sevaConsentDetailsTable',compact('SevaContents'));
+	}
+	
+	public function sevaConsentDetailsList(Request $request){
+
+        
+
+    }
 	
 }

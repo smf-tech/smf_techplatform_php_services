@@ -47,7 +47,13 @@ $api->version('v1',function($api){
         $api->get('downloadCertificateForm/{type}', 'CertificateController@downloadCertificateForm');
         $api->post('downloadCertificate', 'CertificateController@downloadCertificate');
         
-
+		//seva consent 
+        $api->post('savesevaConsentForm', 'ContentMgmtController@savesevaConsentForm');
+        $api->get('sevaConsentForm', 'ContentMgmtController@sevaConsentForm');
+        $api->get('sevaConsentlist', 'ContentMgmtController@sevaConsentlist');
+        $api->get('sevaConsentDetailsList', 'ContentMgmtController@sevaConsentDetailsList');
+		
+		
         $api->get('selectVan', 'mobileDispensarySevaController@selectVanForm');
 
 

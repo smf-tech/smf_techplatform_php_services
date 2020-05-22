@@ -1319,7 +1319,10 @@ class MeetController extends Controller
 					return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
 				}
 		
-			$MatrimonyMeets = MatrimonyMeets::where('_id',$meetId)->first();		
+			$MatrimonyMeets = MatrimonyMeets::where('_id',$meetId)
+											 
+    										 ->first();
+
 			if($MatrimonyMeets)
 			{   
 				DB::setDefaultConnection('bjsCommunity');
@@ -1328,17 +1331,19 @@ class MeetController extends Controller
 				foreach($MatrimonyMeets['contacts'] as $row)
 				{
 					$userData = CommunityUser::find($row['userId']); 
-					if($userData){	
-					
-					$userData['isApproved'] = $row['isApproved']; 
-					$userData['markAttendance'] = $row['markAttendance']; 
-					$userData['interviewDone'] = $row['interviewDone']; 
-					$userData['paymentDone'] = $row['paymentDone']; 
-					 
-					array_push($responseArr,$userData);
+					if($userData ){	
+
+						if($row['isApproved'] == 'pending') {
+							$userData['isApproved'] = $row['isApproved']; 
+							$userData['markAttendance'] = $row['markAttendance']; 
+							$userData['interviewDone'] = $row['interviewDone']; 
+							$userData['paymentDone'] = $row['paymentDone']; 
+							 
+							array_push($responseArr,$userData);
+						}
 					 
 					}
-					if($count >= 1000)
+					if(count($responseArr) >= 100)
 					{
 						break;
 					}

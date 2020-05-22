@@ -262,7 +262,7 @@
 							 
 							 <div class="form-group" id="startMeterReading" >
                                  <label for="startMeterReading">Start Meter Reading / शुरुआत की मीटर  रीडिंग     </label>
-                                 <input type="number" required = "required" name="start_meter_reading" placeholder="Start Meter Reading" class="form-control" id="start_meter_reading" oninvalid="this.setCustomValidity('Please Enter Valid Start Meter Reading')" oninput="setCustomValidity('')"/>
+                                 <input type="number" step='0.01' required = "required" name="start_meter_reading" placeholder="Start Meter Reading" class="form-control" id="start_meter_reading" oninvalid="this.setCustomValidity('Please Enter Valid Start Meter Reading')" oninput="setCustomValidity('')"/>
                              </div>
 							 <!--div class="form-group" id="VisitedArea1" >
                                  <label for="VisitedArea1">Visited Area 1 / देखा गया क्षेत्र 1</label>
@@ -307,7 +307,7 @@
 							 
 							 <div class="form-group" id="EndMeterReading" >
                                  <label for="EndMeterReading">End Meter Reading / अंत की मीटर  रीडिंग</label>
-                                 <input type="number" required = "required" name="end_meter_reading" placeholder="End Meter Reading" class="form-control" id="end_meter_reading" onkeypress="endMeterReading()" oninvalid="this.setCustomValidity('Please Enter Valid End Meter Reading')" oninput="setCustomValidity('')"/>
+                                 <input type="number" step='0.01' required = "required" name="end_meter_reading" placeholder="End Meter Reading" class="form-control" id="end_meter_reading" onkeypress="endMeterReading()" oninvalid="this.setCustomValidity('Please Enter Valid End Meter Reading')" oninput="setCustomValidity('')"/>
                              </div>
 							 <div class="error" style="display:none">End Meter Reading should not be less than Start Meter Reading</div>
                              <!--div class="form-group">

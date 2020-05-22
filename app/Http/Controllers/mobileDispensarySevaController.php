@@ -126,9 +126,10 @@ class mobileDispensarySevaController extends Controller
        //echo json_encode($checkVanRegNoData);
         if($checkVanRegNoData && $checkVanRegNoData['vehicle_reg_no']==$entered_vehicle_reg_no)
         {
-                $msg = 'Vehicle registration number is alreadys.';
-                //$response_data = array('status' =>'200','message'=>$msg);
-                return view('mobileDispensarySeva.insertVanForm',compact(['msg'])); 
+                $msg = 'Vehicle registration number is already present.';
+                $cityData = MobileDispensarySevaVanCity::orderBy('city_name', 'ASC')->get();
+                $depotData = MobileDispensarySevaVanDepot::orderBy('depot_name', 'ASC')->get();
+                return view('mobileDispensarySeva.insertVanForm',compact(['cityData','depotData','msg'])); 
         }
         else{
 
@@ -176,15 +177,17 @@ class mobileDispensarySevaController extends Controller
             {
             
                 $msg = 'Vehicle details inserted successfully.';
-                //$response_data = array('status' =>'200','message'=>$msg);
-                return view('mobileDispensarySeva.insertVanForm',compact(['msg'])); 
+                $cityData = MobileDispensarySevaVanCity::orderBy('city_name', 'ASC')->get();
+                $depotData = MobileDispensarySevaVanDepot::orderBy('depot_name', 'ASC')->get();
+                return view('mobileDispensarySeva.insertVanForm',compact(['cityData','depotData','msg'])); 
             }
             else
             {
                 
                 $msg = "Couldn't save Vehicle details, please try after some time.";
-                //$response_data = array('status' =>'200','message'=>$msg);
-                return view('mobileDispensarySeva.insertVanForm',compact(['msg']));  
+                $cityData = MobileDispensarySevaVanCity::orderBy('city_name', 'ASC')->get();
+                $depotData = MobileDispensarySevaVanDepot::orderBy('depot_name', 'ASC')->get();
+                return view('mobileDispensarySeva.insertVanForm',compact(['cityData','depotData','msg']));  
             } 
 
         }
