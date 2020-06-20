@@ -1,0 +1,1637 @@
+<?php 
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
+use DateTimeImmutable;
+use DateTime;
+use Carbon\Carbon;
+use Dingo\Api\Routing\Helpers;
+use App\Role;
+use App\User; 
+use App\Machine;
+use App\Structure;
+use App\MachineLog;
+use App\StructureLog;
+use App\MachineMou;
+use App\StatusCode;
+use App\MachineDailyWorkRecord;
+use Illuminate\Support\Arr;
+use App\StructureMachineMapping;
+
+date_default_timezone_set('Asia/Kolkata');
+ 
+class MachineController extends Controller
+{
+    use Helpers;
+
+    protected $request;
+	
+	public function __construct(Request $request){ 
+	
+        $this->request = $request;
+		$this->logInfoPah = "logs/Machine/DB/logs_".date('Y-m-d').'.log';
+		$this->errorPath = "logs/Machine/Error/logs_".date('Y-m-d').'.log';
+
+    }
+	
+	 
+	//machine list according to location
+	public function machineList(Request $request)
+	{
+		$header = getallheaders();
+ 		if(isset($header['orgId']) && ($header['orgId']!='') 
+ 			&& isset($header['projectId']) && ($header['projectId']!='')
+ 			&& isset($header['roleId']) && ($header['roleId']!='')
+		  )
+ 		{	
+			$org_id =  $header['orgId'];
+			$project_id =  $header['projectId'];
+			$role_id =  $header['roleId'];
+		} else {
+			
+			$message = "insufficent header info";
+			$this->logData($this->logInfoPah ,$message,'Error');
+			$response_data = array('status' =>'404','message'=>$message);
+			
+			return response()->json($response_data,200);			
+		}		
+		
+		if($request) {
+			$requestJson = json_decode(file_get_contents('php://input'), true);
+			$user = $this->request->user(); 
+			
+			$user = $this->request->user();	
+			$this->request->user_id = $user->_id;
+			$this->logData($this->logInfoPah,$request->all(),'DB');		
+		
+			$database = $this->connectTenantDatabase($request,$org_id);
+            if ($database === null) {
+                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+            }
+		
+		
+			$machine = Machine::select('RTO_numner','chassis_no','updated_at','make_model','status','status_code','disel_tank_capacity','provider_contact_number','type_id','machine_code','state_id','district_id','taluka_id','manufactured_year','owned_by','provider_name','provider_address')
+			->where('state_id',$requestJson['state'])
+			->with('State')			
+			//->where('district_id',$requestJson['district'])  
+			->with('District')
+			->with('Taluka')			
+			->with('masterData')
+			->with('MasterDatatype')
+			->with('machine_make_master')
+			->with('MasterManufactureYr')
+			->with('machineDeployed.structureDetails');
+						
+			if (isset($requestJson['district'])) {
+				$machine->where('district_id',$requestJson['district']);
+				
+			}
+			
+			if(isset($requestJson['taluka']) && $requestJson['taluka']!=''){
+				$machine->where('taluka_id',$requestJson['taluka'])->with('Taluka');
+			}
+		
+		
+		$machineDetails = $machine->orderBy('created_at', 'DESC')->get(); 
+	 // echo "<pre>";print_r($machineDetails->toArray());exit;
+		if(count($machineDetails) > 0)
+			{
+				$ResponsemachineData = array();
+				foreach($machineDetails as $row) {
+					
+					$machineData = array();
+					//get oprator contact nu and name
+					$mData = MachineMou::where('provider_information.machine_id',$row['_id'])->get()->last();
+					
+					$machineData['_id'] = $row['_id'];
+					$machineData['make_model'] = $row['machine_make_master']['value'];
+					$machineData['owned_by'] = $row['masterData']['value'];
+					$machineData['state'] = $row['state']['name'];
+					$machineData['stateId'] = $row['state']['_id'];
+					$machineData['district'] = $row['district']['name'];
+					$machineData['districtId'] = $row['district']['_id'];
+					$machineData['taluka'] = $row['taluka']['name'];
+					$machineData['talukaId'] = $row['taluka']['_id'];
+					$machineData['provider_name'] = $row['provider_name'];
+					$machineData['provider_address'] = $row['provider_address'];
+					$machineData['machinetype'] = $row['MasterDatatype']['value'];
+					$machineData['machine_code'] = $row['machine_code'];
+					$machineData['disel_tank_capacity'] = $row['disel_tank_capacity'];
+					$machineData['provider_contact_number'] = $row['provider_contact_number'];
+					$machineData['status'] = ucfirst( $row['status']);
+					$machineData['statusCode'] = $row['status_code'];
+					$machineData['updatedDate'] = date('d M Y g:i a', strtotime($row['updated_at']));
+					
+					$machineData['machine_location'] = $row['taluka']['name'];
+					$machineData['talukaId'] = $row['taluka']['_id'];
+					$machineData['owned_by'] = $row['ownedBy']['value'];
+					
+					$machineData['operator_contact_number'] = '';
+					$machineData['operator_name'] = '';
+						
+					if ($mData ) {
+						$machineData['operator_contact_number'] = $mData['machine_mobile_number'];
+						$machineData['operator_name'] = $mData['operator_details.first_name'].' '.$mData['operator_details.last_name'];
+						
+					}	
+			
+					if (!empty($row['machineDeployed']) ) { 
+					
+						$machineData['deployedStrutureId'] = $row['machineDeployed']['structure_id'];
+						$machineData['deployedStrutureCode'] = $row['machineDeployed']['structureDetails']['code'];
+					}
+					
+					array_push($ResponsemachineData,$machineData);
+				}
+				if(count($ResponsemachineData) > 0)
+				{
+				$response_data = array('code'=>200,'status'=>200,'data' => $ResponsemachineData,'message'=>"success");
+				return response()->json($response_data,200); 
+				}else{
+					$response_data = array('code'=>200,'status'=>200, 'message'=>"No Machines Found..");
+					return response()->json($response_data,200); 
+				}
+			}
+			else
+			{
+				$response_data = array('code'=>300,'status' =>300,'message'=>"No Machines Found..");
+				return response()->json($response_data,200); 
+			}
+		}
+		else
+		{
+			$response_data = array('code'=>300,'status' =>300,'message'=>"Undefined Request..");
+            return response()->json($response_data,200); 
+		}
+	}
+
+
+
+ 
+	//change status
+	public function statusChange(Request $request,$id,$code,$statuscodes,$type,$org_id='')
+	{
+		if ($org_id == '') {
+			$header = getallheaders();
+ 		if(isset($header['orgId']) && ($header['orgId']!='') 
+ 			&& isset($header['projectId']) && ($header['projectId']!='')
+ 			&& isset($header['roleId']) && ($header['roleId']!='')
+		  )
+ 		{	
+			$org_id =  $header['orgId'];
+			$project_id =  $header['projectId'];
+			$role_id =  $header['roleId'];
+		} else {
+			
+			$message = "insufficent header info";
+			$this->logData($this->logInfoPah ,$message,'Error');
+			$response_data = array('status' =>'404','message'=>$message);
+			
+			return response()->json($response_data,200);			
+		}
+	}		
+	$this->logData($this->logInfoPah,$request->all(),'DB');
+				
+		if($request)
+		{ 
+			$user = $this->request->user();
+			//$user->org_id = '5c1b940ad503a31f360e1252'	;	
+			//$user['_id'] = '12423435';	
+			$database = $this->connectTenantDatabase($request,$org_id);
+			
+			//$user->org_id);
+            if ($database === null) {
+                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+            }  
+		
+			$status_code = statusCode::where(['statusCode'=>$statuscodes, 'type'=>'machine'])->first();
+			 
+		if($status_code){	
+		if($type == 'machine')
+		{ 	
+			$machine = Machine::where('_id',$id)->first();
+			$MachineLog =  new MachineLog;
+			$MachineLog['code'] = $code;
+			$MachineLog['action_title'] = $status_code['status_name'];
+			$MachineLog['action_code'] = $status_code['statusCode'];
+			$MachineLog['machine_id'] = $id;
+			$MachineLog['action_by'] = $user['_id'];
+		  	if($machine)
+			{
+				$machine['status'] = $status_code['status_name'];
+				$machine['status_code'] = $status_code['statusCode'];
+				 
+				try{
+					$updated = $machine->save();
+					$MachineLog->save();					
+					//if machine release from taluka then close mapping
+					if ($statuscodes == '115') {
+						//update previous mapping status to shifted
+						$strObj = StructureMachineMapping::where(['status' => 'deployed',
+																  'machine_id'=> $id])
+																  ->first();
+
+						//print_r($strObj->toArray());exit;																  
+						if ($strObj) {
+							$strObj->status = 'closed';
+							$strObj->save();				
+						}
+						//notification
+						$params['request_type'] =  self::NOTIFICATION_MACHINE_FREE;
+						$params['update_status'] = 'Machine Free From Taluka';
+						$roleArr = array('110','111','112','115');
+						$params['org_id'] = $org_id;
+										
+						$params['code'] = $machine->machine_code;
+
+						$params['stateId'] = $machine->state_id;
+						$params['districtId'] = $machine->district_id;
+						$params['talukaId'] = $machine->taluka_id;
+						$params['modelName'] = 'Machine';
+						
+						$this->sendSSNotification($this->request,$params, $roleArr);
+
+						
+					}	
+					
+					if($updated) {
+						$response_data = array('statusCode'=>$status_code['statusCode'],'code'=>200,'status' =>200,'message'=>"Status Updated Successfully.");
+						$this->logData($this->logInfoPah,$this->request->all(),'DB',$response_data);
+			
+						return response()->json($response_data,200);
+					}
+				} catch(Exception $e) {
+					
+					$response_data = array('code'=>300,'status' =>300,'message'=>$e);
+					$this->logData($this->logInfoPah,$this->request->all(),'DB',$response_data);
+			
+					return response()->json($response_data,200);
+				}
+			} else {
+				$response_data = array('code'=>300,'status' =>300,'message'=>"Machine Not Found.");
+				$this->logData($this->logInfoPah,$this->request->all(),'DB',$response_data);
+		
+				return response()->json($response_data,200); 
+			}
+		}
+		
+		if ($type == 'structure') {
+			
+			$structure = Structure::where('_id',$id)->first();
+			$structureLog =  new StructureLog;
+			$structureLog['code'] = $code;
+			$structureLog['action_title'] = $status_code['status_name'];
+			$structureLog['action_code'] = $status_code['statusCode'];
+			$structureLog['structure_id'] = $id;
+			$structureLog['action_by'] = $user['_id'];
+		  	
+			if ($structure) {
+				$structure['status'] = $status_code['status_name'];
+				$structure['statusCode'] = $status_code['statusCode'];
+				try{
+					$updated = $structure->save();
+					$structureLog->save();
+					if($updated)
+					{
+						$response_data = array('statusCode'=>$status_code['statusCode'],'code'=>300,'status' =>300,'message'=>"Status Updated Successfully.");
+						$this->logData($this->logInfoPah,$this->request->all(),'DB',$response_data);
+			
+						return response()->json($response_data,200);
+					}
+				}catch(Exception $e) {
+					$response_data = array('code'=>300,'status' =>300,'message'=>$e);
+					$this->logData($this->logInfoPah,$this->request->all(),'DB',$response_data);
+			
+					return response()->json($response_data,200);
+				}
+			} else {
+					$response_data = array('code'=>300,'status' =>300,'message'=>"Structure Not Found.");
+					$this->logData($this->logInfoPah,$this->request->all(),'DB',$response_data);
+			
+					return response()->json($response_data,200); 
+			}
+		}
+		}else{
+			$response_data = array('code'=>300,'status' =>300,'message'=>"Invalid Status Code..");
+			$this->logData($this->logInfoPah,$this->request->all(),'DB',$response_data);
+			
+            return response()->json($response_data,200); 
+		}
+		
+		}
+		else
+		{
+			$response_data = array('code'=>300,'status' =>300,'message'=>"Undefined Request..");
+            return response()->json($response_data,200); 
+		}
+	}
+
+	// to get Machine Analytics calculated data
+	public function getMachineAnalytics(Request $request)
+	{
+		
+		/*$header = getallheaders();
+ 		if(isset($header['orgId']) && ($header['orgId']!='') 
+ 			&& isset($header['projectId']) && ($header['projectId']!='')
+ 			&& isset($header['roleId']) && ($header['roleId']!='')
+		  )
+ 		{	
+			$org_id =  $header['orgId'];
+			$project_id =  $header['projectId'];
+			$role_id =  $header['roleId'];
+		} else {
+			
+			$message = "insufficent header info";
+			$this->logData($this->logInfoPah ,$message,'Error');
+			$response_data = array('status' =>'404','message'=>$message);
+			
+			return response()->json($response_data,200);			
+		}		
+		$database = $this->connectTenantDatabase($request,$org_id);
+		   
+		if ($database === null) {
+			return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+		}			
+		
+		$resultData = [];
+		//please do not change below format : changes done as per andorid team requirement
+		
+		$mouDoneCnt =  Machine::where(['status_code' =>'104'])->count();
+		$deployedeCnt =  Machine::where(['status_code' =>'107'])->count();
+		
+		$haltedCnt =  Machine::where(['status_code' =>'111'])->count();
+		$workingCnt =  Machine::where(['status_code' =>'108'])->count();
+		
+		//$resultData[2]['Title'] = '';
+		$resultData[0]['percentValue'] = $mouDoneCnt;
+		$resultData[0]['status'] = 'MOU Done';
+
+		$resultData[1]['percentValue'] = $deployedeCnt;
+		$resultData[1]['status'] = 'Deployed';
+
+		$resultData[2]['percentValue'] = $haltedCnt;
+		$resultData[2]['status'] = 'Halted';
+
+		$resultData[3]['percentValue'] = $workingCnt ;
+		$resultData[3]['status'] = 'Working';*/
+
+		$header = getallheaders();
+ 		if(isset($header['orgId']) && ($header['orgId']!='') 
+ 			&& isset($header['projectId']) && ($header['projectId']!='')
+ 			&& isset($header['roleId']) && ($header['roleId']!='')
+		  )
+ 		{	
+			$org_id =  $header['orgId'];
+			$project_id =  $header['projectId'];
+			$role_id =  $header['roleId'];
+		} else {
+			
+			$message = "insufficent header info";
+			$this->logData($this->logInfoPah ,$message,'Error');
+			$response_data = array('status' =>'404','message'=>$message);
+			
+			return response()->json($response_data,200);			
+		}
+		
+		//$this->logData($this->logInfoPah,$request, 'DB');
+			
+		$user = $this->request->user();		
+		$userLocation = $user['location'];
+		$database = $this->connectTenantDatabase($request,$org_id);		
+		
+		if ($database === null) {
+			return response()->json(['status' => 'error', 
+									 'data' => '', 
+									 'message' => 'User does not belong to any Organization.'],
+									 403);
+		}
+		//$data = json_decode(file_get_contents('php://input'), true);
+		
+		$approverRoleConfig = \App\RoleConfig::where('role_id', $role_id )
+		->select('jurisdiction_type_id','level','role_id')
+		->get();
+		
+		if (empty($approverRoleConfig)) {
+			
+			return response()->json(['status' => 'error', 
+									'data' => '', 
+									'message' => 'Role missing'], 
+									403
+									);            
+		
+		}		
+		$levelDetail = \App\Jurisdiction::where('_id',$approverRoleConfig[0]['level'])->get();	
+		
+		//$district = $user->location['district'];
+		
+		$statusCode = \App\StatusCode::where(['type'=>'machine'])->get();		
+				
+		$resultData = [];
+		
+		$query =  Machine::where('is_active',1);
+		
+		if (strtolower($levelDetail[0]['levelName']) == 'district') {
+				if (isset($userLocation['district'])) {
+					$query->where('district_id',$userLocation['district'][0]);
+				}
+			
+			}
+			
+			//echo $levelDetail[0]['levelName'];exit;
+			if (strtolower($levelDetail[0]['levelName']) == 'taluka') {
+			
+				if (isset($userLocation['taluka'])) {
+					$query->where('taluka_id',$userLocation['taluka'][0]);
+				}
+			
+			}			
+			
+		$mCnt = $query->count();
+		
+		if ($mCnt > 0 ) {	
+			$resultData[0]['percentValue'] = $mCnt;
+			$resultData[0]['status'] = 'Total Machine';
+		}
+		$cnt = 1;
+		foreach ($statusCode as $data) {
+			
+			$query =  Machine::where(['status_code' =>$data['statusCode']]);
+			
+			if (strtolower($levelDetail[0]['levelName']) == 'district') {
+				if (isset($userLocation['district'])) {
+					$query->where('district_id',$userLocation['district'][0]);
+				}
+			
+			}
+			
+			//echo $levelDetail[0]['levelName'];exit;
+			if (strtolower($levelDetail[0]['levelName']) == 'taluka') {
+			
+				if (isset($userLocation['taluka'])) {
+					$query->where('taluka_id',$userLocation['taluka'][0]);
+				}
+			
+			}			
+			
+			$approvedCnt = $query->count();
+			$statusName = $data['status_name'];
+			
+			if ($approvedCnt > 0) {
+				$resultData[$cnt]['percentValue'] = $approvedCnt;
+				$resultData[$cnt]['status'] = $statusName;
+				$cnt ++;
+			}
+
+		}
+		if (count($resultData) == 0) {
+			
+			return response()->json([
+				'code'=>403,	
+				'status' => 'failed',
+				//'data' => $resultData,
+				'message' => 'No data available'
+			]);
+			
+		}	
+		return response()->json([
+			'code'=>200,	
+            'status' => 'success',
+            'data' => $resultData,
+            'message' => 'Machine analytics data'
+        ]);
+
+	}
+
+	//machine mou submission form
+	public function machineMou(Request $request)
+	{
+		$this->logData($this->logInfoPah,$request->all(),'DB');		
+			
+		$header = getallheaders();
+ 		if(isset($header['orgId']) && ($header['orgId']!='') 
+ 			&& isset($header['projectId']) && ($header['projectId']!='')
+ 			&& isset($header['roleId']) && ($header['roleId']!='')
+		  )
+ 		{	
+			$org_id =  $header['orgId'];
+			$project_id =  $header['projectId'];
+			$role_id =  $header['roleId'];
+		} else {
+			
+			$message = "insufficent header info";
+			$this->logData($this->logInfoPah ,$message,'Error');
+			$response_data = array('status' =>'404','message'=>$message);
+			
+			return response()->json($response_data,200);			
+		}
+		
+		
+		if ($request) { 
+			$user = $this->request->user();		
+			$this->request->user_id = $user->_id;
+		
+			$this->logData($this->logInfoPah,$this->request->all(),'DB');		
+			
+			if (!$this->request->has('formData')) {
+				$error = array('status' =>300,
+								'message' => 'Formdata field is missing',							
+								'code' => 300);						
+				$this->logData($this->errorPath,$this->request->all(),'Error',$error);
+								
+				return response()->json($error);			
+			}
+
+			
+		   
+			$temp = $this->request['formData'];
+			$requestJson = json_decode($temp);
+
+			//print_r($requestJson);exit;
+			//check duplicate phone number in user collection
+			if (!isset($requestJson->machine->machine_mobile_number)) {
+				
+				$error = array('status' =>300,
+								'message' => 'Operator number field is missing',							
+								'code' => 300);						
+				$this->logData($this->errorPath,$this->request->all(),'Error',$error);
+								
+				return response()->json($error);
+			}
+			//get user count	
+			$userCnt = User::where(['phone'=>$requestJson->machine->machine_mobile_number])
+			->whereNotNull('org_id')
+			->count();
+			
+			$database = $this->connectTenantDatabase($request,$org_id);
+			 if ($database === null) {
+                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+            }
+	
+			$muCnt = 0;
+			if ($userCnt > 0) {				
+				
+				//checked in mou
+				$muCnt = MachineMou::where(['machine_mobile_number'=>$requestJson->machine->machine_mobile_number,
+											'provider_information.machine_id' => $requestJson->provider_information->machine_id])
+				//->whereNotNull('org_id')
+				->count();
+				
+				if ($muCnt == 0 ) {
+	
+					$error = array('status' =>300,
+									'message' => 'Machine attached  mobile number already linked with some other machine.',							
+									'code' => 300);						
+					$this->logData($this->errorPath,$this->request->all(),'Error',$error);
+									
+					return response()->json($error);
+				}				
+			}
+			
+			//check mou done except expired MOU
+			
+			$accountImage = 0;
+			$licenseImage = 0;
+			
+			$accountImageUrl = [];
+			$licenseImageUrl = [];
+			
+			if ($this->request->has('imageArraySize')) {
+			
+			for ($cnt = 0; $cnt < $this->request['imageArraySize']; $cnt++) {
+				
+				
+				$fileName = 'accountImage';
+					
+				if ($this->request->has($fileName)) {
+					
+					if ($this->request->file($fileName)->isValid()) {
+				
+						$fileInstance = $this->request->file($fileName);
+					
+						$name = $fileInstance->getClientOriginalName();
+						$ext = $this->request->file($fileName)->getClientMimeType(); 
+						$newName = uniqid().'_'.$name.'.jpg';
+						$s3Path = $this->request->file($fileName)->storePubliclyAs(env('SS_IMAGE_PATH_MACHINE'), $newName, 'octopusS3');
+						
+						$accountImageUrl[] = 'https://' . env('OCT_AWS_CDN_PATH') . '/'.env('SS_IMAGE_PATH_MACHINE').'/' . $newName;
+					}
+					$accountImage++;	
+				}
+				
+				$fileName = 'licenseImage';
+					
+				if ($this->request->has($fileName)) {				
+					
+						if ($this->request->file($fileName)->isValid()) {
+					
+							$fileInstance = $this->request->file($fileName);
+						
+							$name = $fileInstance->getClientOriginalName();
+							//$ext = $this->request->file($fileName)->getClientMimeType(); 
+							
+							$newName = uniqid().'_'.$name.'.jpg';
+							$s3Path = $this->request->file($fileName)->storePubliclyAs(env('SS_IMAGE_PATH_MACHINE'), $newName, 'octopusS3');
+							
+							$licenseImageUrl[] = 'https://' . env('OCT_AWS_CDN_PATH') . '/'.env('SS_IMAGE_PATH_MACHINE').'/' . $newName;
+							
+						}					
+					$licenseImage++;			
+				}			
+				break;		
+			}
+			}
+			
+			
+			$MachineMou = new MachineMou;
+			$MachineMou->project_id = $project_id;
+			$MachineMou->machine_mobile_number = $requestJson->machine->machine_mobile_number;
+			
+			$MachineMou['provider_information.first_name'] = (isset($requestJson->provider_information->first_name) ? $requestJson->provider_information->first_name : '' ); 	
+			$MachineMou['provider_information.last_name'] = (isset($requestJson->provider_information->last_name) ? $requestJson->provider_information->last_name : '' ); 	
+			$MachineMou['provider_information.address'] = (isset($requestJson->provider_information->address) ? $requestJson->provider_information->address : '' ); 	
+			$MachineMou['provider_information.contact_number'] = (isset($requestJson->provider_information->contact_number) ? $requestJson->provider_information->contact_number : '' ); 	
+			$MachineMou['provider_information.machine_id'] = (isset($requestJson->provider_information->machine_id) ? $requestJson->provider_information->machine_id : '' ); 	
+			$MachineMou['provider_information.machine_meter_working'] = (isset($requestJson->provider_information->machine_meter_working) ? $requestJson->provider_information->machine_meter_working : '' ); 	
+			$MachineMou['provider_information.PAN_number'] = (isset($requestJson->provider_information->PAN_number) ? $requestJson->provider_information->PAN_number : '' ); 	
+			$MachineMou['provider_information.trade_name'] = (isset($requestJson->provider_information->trade_name) ? $requestJson->provider_information->trade_name : '' ); 	
+			$MachineMou['provider_information.is_turnover'] = (isset($requestJson->provider_information->is_turnover) ? $requestJson->provider_information->is_turnover : '' ); 	
+			$MachineMou['provider_information.GST_number'] = (isset($requestJson->provider_information->GST_number) ? $requestJson->provider_information->GST_number : '' ); 	
+			$MachineMou['provider_information.account_name'] = (isset($requestJson->provider_information->account_name) ? $requestJson->provider_information->account_name : '' ); 	
+			$MachineMou['provider_information.account_no'] = (isset($requestJson->provider_information->account_no) ? $requestJson->provider_information->account_no : '' ); 	
+			$MachineMou['provider_information.bank_address'] = (isset($requestJson->provider_information->bank_address) ? $requestJson->provider_information->bank_address : '' ); 	
+			$MachineMou['provider_information.branch'] = (isset($requestJson->provider_information->branch) ? $requestJson->provider_information->branch : '' ); 	
+			$MachineMou['provider_information.bank_name'] = (isset($requestJson->provider_information->bank_name) ? $requestJson->provider_information->bank_name : '' );
+			$MachineMou['provider_information.account_type'] = (isset($requestJson->provider_information->account_type) ? $requestJson->provider_information->account_type : '' );
+			$MachineMou['provider_information.IFSC'] = (isset($requestJson->provider_information->IFSC) ? $requestJson->provider_information->IFSC : '' );
+			$MachineMou['operator_details.first_name'] = (isset($requestJson->operator_details->first_name) ? $requestJson->operator_details->first_name : '' );
+			$MachineMou['operator_details.last_name'] = (isset($requestJson->operator_details->last_name) ? $requestJson->operator_details->last_name : '' );
+			$MachineMou['operator_details.address'] = (isset($requestJson->operator_details->address) ? $requestJson->operator_details->address : '' );
+			$MachineMou['operator_details.licence_number'] = (isset($requestJson->operator_details->licence_number) ? $requestJson->operator_details->licence_number : '' );
+			$MachineMou['operator_details.contact_numnber'] = (isset($requestJson->operator_details->contact_numnber) ? $requestJson->operator_details->contact_numnber : '' );
+			$MachineMou['operator_details.operator_images'] = $licenseImageUrl;
+			
+			if (isset($requestJson->mou_details)) {	  
+					$count = 0; 
+					if (isset($requestJson->mou_details->rate_details)) {
+						foreach ($requestJson->mou_details->rate_details as $rate){ 
+							$MachineMou['mou_details.rate_details.'.$count.'.from_date'] = $rate->from_date;
+							$MachineMou['mou_details.rate_details.'.$count.'.to_date'] = $rate->to_date;
+							$MachineMou['mou_details.rate_details.'.$count.'.value'] = $rate->value;
+							$count++;
+						}
+					}					
+				}
+				
+		 	
+		// $MachineMou['operator_licence_image'] = (array_key_exists('operator_licence_image',$requestJson) ? $requestJson['operator_licence_image'] : '' );	
+		$MachineMou['mou_details.MOU_images'] = $accountImageUrl;
+		$MachineMou['mou_details.date_of_sign'] = new \MongoDB\BSON\UTCDateTime($requestJson->mou_details->date_of_signing);	
+		$MachineMou['mou_details.date_of_signing'] = (isset($requestJson->mou_details->date_of_signing) ? $requestJson->mou_details->date_of_signing : '' );	
+		
+		$MachineMou['mou_details.mou_expiry_date'] = (isset($requestJson->mou_details->mou_expiry_datetime) ? new \MongoDB\BSON\UTCDateTime($requestJson->mou_details->mou_expiry_datetime) : '' );	
+		$MachineMou['mou_details.mou_expiry_datetime'] = (isset($requestJson->mou_details->mou_expiry_datetime) ? ($requestJson->mou_details->mou_expiry_datetime) : '' );	
+		
+		//(array_key_exists('mou_expiry_date',$requestJson['mou_details']) ? new \MongoDB\BSON\UTCDateTime($requestJson['mou_details']['mou_expiry_date']): '' );
+		//$MachineMou['mou_details.mou_expiry_date'] = (array_key_exists('mou_expiry_date',$requestJson['mou_details']) ? $requestJson['mou_details']['mou_expiry_date'] : '' );
+		
+		$MachineMou['is_MOU_cancelled'] = "No";	
+		$MachineMou['status'] = "MOU Done";
+		$MachineMou['status_code'] = "104";	
+		$MachineMou->lat = isset($requestJson->lat) ? (int)$requestJson->lat : 0;
+		$MachineMou->long = isset($requestJson->long) ? (int)$requestJson->long : 0;								
+		// $MachineMou['signing_contract_date'] = (new \MongoDB\BSON\UTCDateTime(Carbon::now()) ?: '' ); 
+		$machine_code = (isset($requestJson->machine_code) ? $requestJson->machine_code : '' ); 
+		
+		$id = (isset($requestJson->provider_information->machine_id) ? $requestJson->provider_information->machine_id : '' ); 
+		//(array_key_exists('machine_id',$requestJson['provider_information']) ? $requestJson['provider_information']['machine_id'] : '' );  ; 
+		$status_name = 'MOU Done';
+		$status_code = '104'; 
+		$type = 'machine'; 
+			try{ 
+				$success = $MachineMou->save();
+				//create oprator user
+				if ($muCnt == 0 ) {
+					$this->createOpratorUser($request,$requestJson,  $org_id, $project_id);
+				}
+				$this->statusChange($request,$id,$machine_code,$status_code,$type, $org_id);
+				
+				//get machine details
+				$machineData = Machine::find($requestJson->provider_information->machine_id);
+				
+				if ($machineData) {
+					//echo $requestJson->provider_information->machine_id;exit;
+					//send notification
+					$roleArr = array('110','111','112','114','115');
+					$params['org_id'] = $org_id;
+					$params['request_type'] =  self::NOTIFICATION_MACHINE_MOU;
+					$params['update_status'] = 'MOU Done';				
+					$params['code'] = $machineData->machine_code;
+					
+					$params['stateId'] = $machineData->state_id;
+					$params['districtId'] = $machineData->district_id;
+					$params['talukaId'] = $machineData->taluka_id;
+					$params['modelName'] = 'Machine';
+					$this->sendSSNotification($this->request,$params, $roleArr);
+				}				
+					
+				if ($success) {
+					
+					$response_data = array("statusCode"=>104,
+											'statusName'=>$status_name,
+											'code'=>200,
+											'status' =>200,
+											'message'=>"MOU done successfully."
+											);
+											
+					return response()->json($response_data,200);
+				}
+				
+			} catch(Exception $e){
+					$response_data = array('code'=>400,
+											'status' =>400,
+											'message'=>$e
+											);
+					return response()->json($response_data);
+			}			 
+		} else {
+			$response_data = array('code'=>300,
+									'status' =>300,
+									'message'=>"Undefined Request."
+									);
+            return response()->json($response_data,200); 
+		}
+		
+	}
+	
+	//change MOU status terminated or deployed 
+	public function MOUTerminateDeployed(Request $request)
+	{
+		$this->logData($this->logInfoPah,$this->request->all(),'DB');
+		
+		$header = getallheaders();
+ 		if(isset($header['orgId']) && ($header['orgId']!='') 
+ 			&& isset($header['projectId']) && ($header['projectId']!='')
+ 			&& isset($header['roleId']) && ($header['roleId']!='')
+		  )
+ 		{	
+			$org_id =  $header['orgId'];
+			$project_id =  $header['projectId'];
+			$role_id =  $header['roleId'];
+		} else {
+			
+			$message = "insufficent header info";
+			$this->logData($this->logInfoPah ,$message,'Error');
+			$response_data = array('status' =>'404','message'=>$message);
+			
+			return response()->json($response_data,200);			
+		}
+		
+		if($request)
+		{
+			$user = $this->request->user(); 
+			$database = $this->connectTenantDatabase($request,$org_id);
+            if ($database === null) {
+                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+            }
+		
+			$requestJson = json_decode(file_get_contents('php://input'), true);
+			$MachineMou = MachineMou::where('provider_information.machine_id',$requestJson['machine_id'])
+			->where('is_MOU_cancelled','No')
+			//->where('status_code','MOU Done')
+			->where('status_code','104')
+			//->orWhere('status_code','115')			
+						
+			->first();
+			
+			$Machine = Machine::where('_id',$requestJson['machine_id'])->first();
+			
+			$status_code = statusCode::where('statusCode',$requestJson['status'])->first(); 
+			
+			if ($MachineMou) {
+				
+				if (array_key_exists('reason',$requestJson)) {					
+					$MachineMou['status'] = $status_code['status_name'] ; 
+					$MachineMou['status_code'] = $status_code['statusCode'] ; 
+					$MachineMou['is_MOU_cancelled'] = 'Yes' ; 
+					$MachineMou['reason'] = $requestJson['reason'] ; 	
+					$MachineMou['machine_id'] = $requestJson['machine_id'] ; 
+					
+					$params['request_type'] =  self::NOTIFICATION_MACHINE_MOU_TERMINATED;
+					$params['update_status'] = 'MOU Terminated';
+				} else {					
+					if (array_key_exists('deploy_taluka',$requestJson)) {
+						
+						$Machine['taluka_id'] = $requestJson['deploy_taluka'] ; 
+						$talukaDetails = \App\Taluka::find($requestJson['deploy_taluka']);
+						$params['talukaName'] = $talukaDetails->name;
+						$params['request_type'] =  self::NOTIFICATION_MACHINE_AVAILABLE;
+						$params['update_status'] = 'Machine Available';
+						
+					} else {
+						
+						$MachineMou['status'] = $status_code['status_name'] ; 
+						$MachineMou['status_code'] = $status_code['statusCode'] ;
+						
+						$params['request_type'] =  self::NOTIFICATION_MACHINE_FREE;
+						$params['update_status'] = 'Machine Free';
+					}
+					
+				}
+				
+				try {
+					$type = 'machine';	 
+					$this->statusChange($request,$requestJson['machine_id'],$requestJson['machine_code'],$requestJson['status'],$type,$org_id); 
+					$success = $MachineMou->save();
+					$Machine->save();
+					
+					//$machineData = Machine::find($requestJson->provider_information->machine_id);
+				
+					if ($Machine) {
+						//echo $requestJson->provider_information->machine_id;exit;
+						//send notification
+						$roleArr = array('110','111','112','115');
+						$params['org_id'] = $org_id;
+										
+						$params['code'] = $Machine->machine_code;
+						
+						$params['stateId'] = $Machine->state_id;
+						$params['districtId'] = $Machine->district_id;
+						$params['talukaId'] = $Machine->taluka_id;
+						$params['modelName'] = 'Machine';
+						$this->sendSSNotification($this->request,$params, $roleArr);
+					}
+					
+					if ($success) {
+						$response_data = array('code'=>200,'status' =>200,'message'=>"Status Changed to ".$status_code['status_name']);
+						return response()->json($response_data,200); 
+					}
+				} catch(Exception $e) {
+					$response_data = array('code'=>300,'status' =>300,'message'=>$e);
+					return response()->json($response_data,200); 
+				}
+			} else {
+				$response_data = array('code'=>300,'status' =>300,'message'=>'No Machine Found..');
+				return response()->json($response_data,200); 
+			}
+			 
+		}else{
+			$response_data = array('code'=>300,'status' =>300,'message'=>"Undefined Request..");
+            return response()->json($response_data,200); 
+		}
+	}
+
+	//machine detialed view 
+	public function machineDetails(Request $request,$machineId,$type)
+	{
+		$header = getallheaders();
+ 		if(isset($header['orgId']) && ($header['orgId']!='') 
+ 			&& isset($header['projectId']) && ($header['projectId']!='')
+ 			&& isset($header['roleId']) && ($header['roleId']!='')
+		  )
+ 		{	
+			$org_id =  $header['orgId'];
+			$project_id =  $header['projectId'];
+			$role_id =  $header['roleId'];
+		} else {
+			
+			$message = "insufficent header info";
+			$this->logData($this->logInfoPah ,$message,'Error');
+			$response_data = array('status' =>'404','message'=>$message);
+			
+			return response()->json($response_data,200);			
+		}
+		
+		if($request)
+		{
+			$user = $this->request->user(); 
+			$database = $this->connectTenantDatabase($request,$org_id);
+            if ($database === null) {
+                return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
+            }
+			if($type == '101' || $type == '102'){
+				$machineDetail = Machine::select('machine_mobile_number','provider_name','provider_contact_number','is_meter_working','state_id','chassis_no','excavation_capacity','RTO_numner','manufactured_year','owned_by','ownership_type_id','district_id','taluka_id','type_id','make_model','status','status_code','machine_code','excavation_capacity','disel_tank_capacity')
+			->where('_id',$machineId) 
+			->with('State')
+			->with('District') 
+			->with('masterData')
+			->with('MasterDatatype')
+			->with('MasterManufactureYr')
+			->with('ownership')
+			->with('machine_make_master')
+			->get();
+			
+			if(count($machineDetail) > 0)
+			{
+				$machineData = array();
+				$ResponsemachineData = array();
+				$machineData = array();
+				$ResponsemachineData = array();
+				
+				foreach($machineDetail as $row)
+				{
+					$machineData['machine']['_id'] = $row['_id'];
+					$machineData['machine']['status_code'] = $row['status_code'];
+					$machineData['machine']['status'] = $row['status'];
+					$machineData['machine']['make_model'] = $row['machine_make_master']['value'];
+					$machineData['machine']['ownership_type_id'] = $row['ownership']['value']; 
+					$machineData['machine']['owned_by'] = $row['masterData']['value']; 
+					$machineData['machine']['district'] = $row['district']['name'];
+					$machineData['machine']['state'] = $row['state']['name'];
+					$machineData['machine']['taluka'] = $row['taluka']['name']; 
+					//$machineData['machine']['manufactured_year'] = $row['manufactured_year'];
+					$machineData['machine']['machinetype'] = $row['MasterDatatype']['value'];
+					$machineData['machine']['machine_code'] = $row['machine_code'];
+					$machineData['machine']['disel_tank_capacity'] = $row['disel_tank_capacity'];
+					$machineData['machine']['manufactured_year'] = $row['MasterManufactureYr']['value'];
+					$machineData['machine']['RTO_numner'] = $row['RTO_numner'];
+					$machineData['machine']['excavation_capacity'] = $row['excavation_capacity'];
+					$machineData['machine']['chassis_no'] = $row['chassis_no'];
+					$machineData['machine']['is_meter_working'] = $row['is_meter_working'];
+					$machineData['machine']['provider_name'] = $row['provider_name'];					
+					$machineData['machine']['provider_contact_number'] = $row['provider_contact_number'];
+					$machineData['machine']['machine_mobile_number'] =  $row['machineMou']['machine_mobile_number'];
+					$ResponsemachineData = $machineData;
+					break;
+				}
+				$response_data = array('status' =>200,'message'=>'Success','data'=>$ResponsemachineData);
+				return response()->json($response_data,200); 
+			} else{
+			$response_data = array('code'=>300,'status' =>300,'message'=>"No Data Found.");
+            return response()->json($response_data,200); 
+			}	
+			
+			}else{
+			$machineDetail = Machine::select('machine_mobile_number','provider_name','provider_contact_number','is_meter_working','state_id','chassis_no','excavation_capacity','RTO_numner','owned_by','ownership_type_id','district_id','taluka_id','type_id','manufactured_year','make_model','status','status_code','chassis_no','machine_code','excavation_capacity','disel_tank_capacity')
+			->where('_id',$machineId) 
+			->with('State')
+			->with('District') 
+			->with('masterData')
+			->with('MasterDatatype')
+			->with('ownership')
+			->with('MasterManufactureYr')
+			->with('machine_make_master')
+			->with('machineMou')->get();
+			if(count($machineDetail) > 0)
+			{
+				$machineData = array();
+				$ResponsemachineData = array();
+				
+				foreach($machineDetail as $row)
+				{
+					$machineData['machine']['_id'] = $row['_id'];
+					$machineData['machine']['status_code'] = $row['status_code'];
+					$machineData['machine']['status'] = $row['status'];
+					$machineData['machine']['state'] = $row['state']['name'];
+					$machineData['machine']['make_model'] = $row['machine_make_master']['value'];
+					$machineData['machine']['owned_by'] = $row['masterData']['value']; 
+					$machineData['machine']['ownership_type_id'] = $row['ownership']['value']; 
+					$machineData['machine']['district'] = $row['district']['name'];
+					$machineData['machine']['taluka'] = $row['taluka']['name']; 
+					//$machineData['machine']['manufactured_year'] = $row['manufactured_year'];
+					$machineData['machine']['machinetype'] = $row['MasterDatatype']['value'];
+					$machineData['machine']['machine_code'] = $row['machine_code'];
+					$machineData['machine']['disel_tank_capacity'] = $row['disel_tank_capacity'];
+					$machineData['machine']['manufactured_year'] = $row['MasterManufactureYr']['value'];
+					$machineData['machine']['RTO_numner'] = $row['RTO_numner'];
+					$machineData['machine']['excavation_capacity'] = $row['excavation_capacity'];
+					$machineData['machine']['chassis_no'] = $row['chassis_no'];
+					$machineData['machine']['is_meter_working'] = $row['is_meter_working'];
+					
+					$machineData['provider_information'] = $row['machineMou']['provider_information'];
+					$machineData['operator_details'] = $row['machineMou']['operator_details'];
+					/*$machineData['mou_details']['rate_details'] = $row['machineMou']['mou_details']['rate_details'];
+					$machineData['mou_details']['MOU_images'] = $row['machineMou']['mou_details']['MOU_images'];
+					$machineData['mou_details']['date_of_signing'] = $row['machineMou']['mou_details']['date_of_signing'];
+					$machineData['mou_details']['is_MOU_cancelled'] = $row['machineMou']['is_MOU_cancelled'];
+					$machineData['mou_details']['status'] = $row['machineMou']['status'];
+					*/
+					$machineData['mou_details'] = $row['machineMou']['mou_details'];					
+					$machineData['machine']['provider_name'] = $row['provider_name'];					
+					$machineData['machine']['provider_name'] = $row['provider_name'];					
+					$machineData['machine']['provider_contact_number'] = $row['provider_contact_number'];
+					$machineData['machine']['machine_mobile_number'] =  $row['machineMou']['machine_mobile_number'];
+			
+  
+					$ResponsemachineData = $machineData; 
+					break;
+				}
+			
+				$response_data = array('status' =>200,'message'=>'Success','data'=>$ResponsemachineData);
+				return response()->json($response_data,200); 
+			}
+			else{
+			$response_data = array('code'=>400,'status' =>400,'message'=>"No Data Found.");
+            return response()->json($response_data); 
+			}}	
+		}
+		else{
+			$response_data = array('code'=>300,'status' =>300,'message'=>"Undefined Request..");
+            return response()->json($response_data,200); 
+		}
+	}
+	
+	/** 
+	* create new machine
+	*
+	*
+	*/
+	public function createMachine (Request $request) {
+		
+		$header = getallheaders();
+ 		if(isset($header['orgId']) && ($header['orgId']!='') 
+ 			&& isset($header['projectId']) && ($header['projectId']!='')
+ 			&& isset($header['roleId']) && ($header['roleId']!='')
+		  )
+ 		{	
+			$org_id =  $header['orgId'];
+			$project_id =  $header['projectId'];
+			$role_id =  $header['roleId'];
+		} else {
+			
+			$message = "insufficent header info";
+			$this->logData($this->logInfoPah ,$message,'Error');
+			$response_data = array('status' =>'404','message'=>$message);
+			
+			return response()->json($response_data,200);			
+		}
+		
+		$user = $this->request->user();		
+		$database = $this->connectTenantDatabase($request,$org_id);		
+		$this->request->userId =  $user->id;
+		$this->logData($this->logInfoPah,$this->request->all(),'DB');
+		
+		if ($database === null) {
+			return response()->json(['status' =>403, 									 
+									 'message' => 'User does not belong to any Organization.'],
+									 403);
+		}		
+		//$tempJson = json_decode(file_get_contents('php://input'), true);
+		
+		$requestJson = $this->request['machine'];	
+		
+		//$this->request['machine']['chasisNumber']
+		
+		
+		if (!$this->request->has('machine')) {
+			$error = array('status' =>300,
+							'message' => 'Formdata field is missing',							
+							'code' => 300);						
+			$this->logData($this->errorPath,$this->request->all(),'Error',$error);
+							
+			return response()->json($error);			
+		}
+
+		//$temp = $this->request['formData'];
+		//$requestJson = json_decode($temp);		
+		//validate chassis number 
+		if (!isset($requestJson['chassis_no'])) {
+
+			$error = array('status' =>300,
+							'msg' => 'Machine chassis number is missing',							
+							'code' => 300);						
+			$this->logData($this->errorPath,$requestJson,'Error',$error);
+			
+			return response()->json($error);						
+		}
+		
+		//validate State id
+		if (!isset($requestJson['state'])) {
+			$error = array('status' =>300,
+							'msg' => 'State id is missing',							
+							'code' => 300);						
+			$this->logData($this->errorPath,$requestJson,'Error',$error);
+			
+			return response()->json($error);						
+		}
+		
+		//validate District id
+		if (!isset($requestJson['district'])) {
+
+			$error = array('status' =>300,
+							'msg' => 'District id is missing',							
+							'code' => 300);						
+			$this->logData($this->errorPath,$requestJson,'Error',$error);
+			
+			return response()->json($error);						
+		}
+		
+		if (!isset($requestJson['taluka'])) {
+
+			$error = array('status' =>300,
+							'msg' => 'Taluka id is missing',							
+							'code' => 300);						
+			$this->logData($this->errorPath,$requestJson,'Error',$error);
+			
+			return response()->json($error);						
+		}
+		
+		/*if (!isset($requestJson['model_type_id'])) {
+
+			$error = array('status' =>400,
+							'msg' => 'Model type id field is missing',							
+							'code' => 400);						
+			$this->logData($this->errorPath,$requestJson,'Error',$error);
+			
+			return response()->json($error);						
+		}*/
+		
+		/*if (!isset($requestJson['ownership_type_id'])) {
+
+			$error = array('status' =>400,
+							'msg' => 'Machine owened by field is missing',							
+							'code' => 400);						
+			$this->logData($this->errorPath,$requestJson,'Error',$error);
+			
+			return response()->json($error);						
+		}*/
+		
+		if (!isset($requestJson['machinetype'])) {
+
+			$error = array('status' =>300,
+							'msg' => 'Machine type field is missing',							
+							'code' => 300);						
+			$this->logData($this->errorPath,$requestJson,'Error',$error);
+			
+			return response()->json($error);						
+		}
+		
+		if (!isset($requestJson['owned_by'])) {
+
+			$error = array('status' =>300,
+							'msg' => 'Owned by id field is missing',							
+							'code' => 300);						
+			$this->logData($this->errorPath,$requestJson,'Error',$error);
+			
+			return response()->json($error);						
+		}
+		
+		/*if (!isset($requestJson['provider_name'])) {
+
+			$error = array('status' =>400,
+							'msg' => 'Provider name field is missing',							
+							'code' => 400);						
+			$this->logData($this->errorPath,$requestJson,'Error',$error);
+			
+			return response()->json($error);						
+		}
+		
+		if (!isset($requestJson['provider_address'])) {
+
+			$error = array('status' =>400,
+							'msg' => 'Provider address field is missing',							
+							'code' => 400);						
+			$this->logData($this->errorPath,$requestJson,'Error',$error);
+			
+			return response()->json($error);						
+		}
+		
+		if (!isset($requestJson['provider_contact_number'])) {
+
+			$error = array('status' =>400,
+							'msg' => 'Provider contact number field is missing',							
+							'code' => 400);						
+			$this->logData($this->errorPath,$requestJson,'Error',$error);
+			
+			return response()->json($error);						
+		}*/
+		//check duplicate cassi number
+		$machineCnt = Machine::where('chassis_no',$requestJson['chassis_no'])->count();
+		
+		if ($machineCnt > 0) {
+			
+			$error = array('status' =>300,
+							'msg' => 'Duplicate chassis number',							
+							'code' => 300);						
+			$this->logData($this->errorPath,$requestJson,'Error',$error);
+			
+			return response()->json($error);
+			
+		}	
+		
+		$getLastMachine = Machine::all()->last();
+		$lastMachineCode = '100000';
+
+		if ($getLastMachine) {
+			$lastMachineCode = (explode("-",  $getLastMachine['machine_code'])[1]);
+		}
+        $lastMachineCode = $lastMachineCode + 1;
+		
+		$created_at = (new \MongoDB\BSON\UTCDateTime(Carbon::now()) ?: '' ); 
+		
+		$resultData = [
+						'owned_by' =>isset( $requestJson['owned_by']) ? $requestJson['owned_by'] : '',
+						'machine_code' => 'MBJS-'.$lastMachineCode,
+						'project_id' =>$project_id,
+						'state_id' => isset($requestJson['state']) ? $requestJson['state'] : '',
+						'district_id' => isset($requestJson['district']) ? $requestJson['district'] : '',
+						'taluka_id' => isset($requestJson['taluka']) ? $requestJson['taluka'] : '',
+						'manufactured_year' => isset($requestJson['manufactured_year'] ) ? $requestJson['manufactured_year'] : '',
+						//'model_type_id' => isset($requestJson['model_type_id']) ? $requestJson['model_type_id'] : '',
+						'make_model' => isset($requestJson['make_model']) ? $requestJson['make_model'] : '',
+						'type_id' => isset($requestJson['machinetype']) ? $requestJson['machinetype'] : '',
+						'RTO_numner' => isset($requestJson['RTO_numner']) ? $requestJson['RTO_numner'] : '',
+						'chassis_no' => isset($requestJson['chassis_no']) ? $requestJson['chassis_no'] : '',
+						'excavation_capacity' => isset($requestJson['excavation_capacity']) ? $requestJson['excavation_capacity'] : '',
+						'disel_tank_capacity' => isset ($requestJson['disel_tank_capacity']) ? $requestJson['disel_tank_capacity'] : '',
+						'provider_name' => isset($requestJson['provider_name']) ? $requestJson['provider_name'] : '',
+						//'provider_address' => isset($requestJson['provider_address']) ? $requestJson['provider_address'] : '',
+						'provider_contact_number' => isset($requestJson['provider_contact_number']) ? $requestJson['provider_contact_number'] : '',
+						'ownership_type_id' => isset($requestJson['ownership_type_id']) ? $requestJson['ownership_type_id'] : '',
+						
+						'is_meter_working' => isset($requestJson['is_meter_working']) ? $requestJson['is_meter_working'] : '',
+						'lat' => isset($requestJson['lat']) ? $requestJson['lat'] : '',
+						'long' => isset($requestJson['long']) ? $requestJson['long'] : '',
+						
+						'created_by' =>  $user->id,
+						'updated_by' =>  $user->id,
+						'is_active' => 1,
+						'status'=>'new',
+						'status_code'=> '101',
+						'created_date_time' => $created_at,
+						'updated_date_time' => $created_at,
+						'created_at' => $created_at,
+						'updated_at' => $created_at
+                        ];                            
+        
+		try {
+				DB::table('machine')->insert($resultData);
+				$responseData = array('code'=>200,
+										'status' =>200,
+										'message'=>"Machine created successfully.");									
+				
+				$this->logData($this->logInfoPah,$this->request->all(),'DB',$responseData);
+			
+				return response()->json($responseData,200);
+		
+			} catch(Exception $e) {				
+				
+				$error = array('code'=>400,
+								'status' =>400,
+								'message'=>'Some error has occured .Please try again'
+								);
+				$this->logData($this->errorPath,$this->request->all(),'Error',$error);
+			
+				return response()->json($error,200);	
+			}
+		
+	}
+
+	public function getWorkDetails(Request $request) {
+		
+		$header = getallheaders();
+ 		if(isset($header['orgId']) && ($header['orgId']!='') 
+ 			&& isset($header['projectId']) && ($header['projectId']!='')
+ 			&& isset($header['roleId']) && ($header['roleId']!='')
+		  )
+ 		{	
+			$org_id =  $header['orgId'];
+			$project_id =  $header['projectId'];
+			$role_id =  $header['roleId'];
+		} else {
+			
+			$message = "insufficent header info";
+			$this->logData($this->logInfoPah ,$message,'Error');
+			$response_data = array('status' =>'404','message'=>$message);
+			
+			return response()->json($response_data,200);			
+		}
+		
+		$user = $this->request->user();
+		$this->request->user_id = $user->_id;
+		
+		//insert user request to log
+		$this->logData($this->logInfoPah,$this->request->all(),'DB');		
+
+		$requsetData = json_decode(file_get_contents('php://input'), true);
+
+		//validate machine_id
+		if (!isset($requsetData['machine_id'])) {
+			$error = array('status' =>300,
+							'msg' => 'Machine id field is missing',							
+							'code' => 300);						
+			$this->logData($this->errorPath,$requsetData,'Error',$error);
+							
+			return response()->json($error);			
+		}	
+
+		//validate log_date
+		if (!isset($requsetData['log_date'])) {
+			$error = array('status' =>300,
+							'msg' => 'Log date field is missing',							
+							'code' => 300);						
+			$this->logData($this->errorPath,$requsetData,'Error',$error);
+							
+			return response()->json($error);			
+		}
+		$database = $this->connectTenantDatabase($request,$org_id);
+		
+		$log_date = $requsetData['log_date']; 
+		
+		
+		if ($database === null) {
+			return response()->json(['status' => 300,									 
+									'message' => 'User does not belong to any Organization.'],
+									300);
+		}
+		$start_date = Carbon::createFromTimestamp($log_date/1000 );
+		$startdate = new Carbon($start_date);
+        $startdate->timezone = 'Asia/Kolkata';
+        $start_date_str = new \MongoDB\BSON\UTCDateTime($startdate->startOfDay());
+		$end_date_str = new \MongoDB\BSON\UTCDateTime($startdate->endOfDay());
+		
+		$data = MachineDailyWorkRecord::where(['machine_id'=>$requsetData['machine_id']])
+			->where('workDate',">=",$start_date_str)
+			->where('workDate',"<=",$end_date_str)
+			->where('status_code','110')
+			->get();
+			
+			//->last();
+		//echo '<pre>';print_r($data);exit;
+		$data = $data->toArray();
+		$toPluck = 'total_hours';
+		$totalHrs = array_reduce($data, function($sum, $item) use($toPluck) {
+			return $sum + $item[$toPluck];
+		}, 0);
+
+				
+	 	if ($data == NULL) {
+					
+			$responseData = array('code'=>400,
+								'status' =>400,								
+								'message'=>"No data available");
+		} else {
+			//$data = $data->toArray();
+			$resultData['is_action_taken'] = false;
+			$resultData['_id'] = $data[0]['_id'];
+			$resultData['status'] = $data[0]['status'];
+			$resultData['totalHours'] =  gmdate("H:i",$totalHrs);
+			$resultData['mis_status'] = $data[0]['mis_status'];
+			
+			if (isset($data[0]['is_valid'])) {
+				$resultData['is_action_taken'] = true;
+			}
+					
+			$responseData = array('code'=>200,
+								'status' =>200,
+								'result'=>$resultData,
+								'message'=>"Machine log data");
+		}
+								
+		$this->logData($this->logInfoPah,$this->request->all(),'DB',$responseData);
+						
+		return response()->json($responseData);	
+		
+	}
+	
+	//cron for mou expired machie
+	public function machineMOUExpire() {
+		
+		$startdate = new Carbon();
+        $startdate->timezone = 'Asia/Kolkata';
+        $start_date_time = new \MongoDB\BSON\UTCDateTime($startdate->startOfDay()->addHours(5)->addMinutes(30));
+
+		
+		//get data all mou done
+		$machineData = MachineMou::where(['status_code' => '104'])
+		->where('mou_details.mou_expiry_date' <= $start_date_tim)
+		->get()->toArray();
+		
+		if (count($machineData) == 0 ) {
+			
+			$responseData = array('code'=>400,
+								'status' =>400,								
+								'message'=>"No MOU available");	
+								
+			$this->logData($this->logInfoPah,$this->request->all(),'DB',$responseData);
+						
+			return response()->json($responseData);	
+		
+		}
+		$statuData = ['status_code' => '114', 'status'=> 'MOU  Expired'];
+		foreach ($machineData as $data) {
+			
+			$machineData = MachineMou::where(['_id' => $data['_id']])->update($statuData);
+			
+			$responseData = array('code'=>200,
+								'status' =>200,
+								'result'=> $data['_id'] .'updated successfully',
+								'message'=>"Status updated");	
+			
+			$this->logData($this->logInfoPah,$this->request->all(),'DB',$responseData);	
+		
+		}	
+		
+	}
+	
+	public function createOpratorUser($request,$requestJson, $orgId, $projectId) {
+		
+		DB::setDefaultConnection('mongodb');
+		
+		$name = (isset($requestJson->operator_details->first_name) ? $requestJson->operator_details->first_name : '' );
+		$lname = (isset($requestJson->operator_details->last_name) ? $requestJson->operator_details->last_name : '' );
+		$phoneNumber = $requestJson->machine->machine_mobile_number;
+		$bjUser = User::where(['phone'=>$phoneNumber])
+			->whereNull('org_id')
+			->first();
+		
+		//var_dump($bjUser);exit;
+		if ($bjUser) {
+
+
+		} else  {	
+			$bjUser = new User;
+		}
+		$database = $this->connectTenantDatabase($request,$orgId);
+		
+		$machineData = Machine::find($requestJson->provider_information->machine_id);		
+		$password = app('hash')->make($phoneNumber);
+		$bjUser->name = $name.' '.$lname;
+		$bjUser->email = 'test@gmail.com';
+		$bjUser->password =  $password;
+		$bjUser->phone = $phoneNumber ;
+		
+		$bjUser->approve_status = 'approved';
+		//$bjUser->dob = '';
+		$bjUser->org_id = $orgId;
+		$bjUser->profile_pic = '';
+		$bjUser->project_id = array($projectId);
+
+		//getoprator role from role collection
+		DB::setDefaultConnection('mongodb');
+		
+		$roleData = \App\Role::where(['role_code'=> '113', 
+								'is_deleted' => 0,
+								'org_id'=> $orgId])
+								->select('_id','role_code')
+								->get()
+								->toArray();							
+								
+		if (count($roleData) >0) {			
+			$bjUser->role_id = $roleData[0]['_id'];
+		} else  {
+			
+		}
+		$orgArray = [
+			'org_id'=>$orgId,
+			'project_id'=>$projectId,
+			'role_id'=>$roleData[0]['_id'],
+			'address'=>'',
+			'leave_type'=>'',
+			'lat'=>'',
+			'long'=>'',
+			'approver_user_id'=>'',
+			];
+		$bjUser->orgDetails = $orgArray ;
+		//var_dump($machineData);exit;
+		$location =  new \stdClass;
+ 
+		$location->state = array($machineData->state_id);
+		$location->district = array($machineData->district_id);
+		$location->taluka = array($machineData->taluka_id);
+
+		$bjUser->location = $location;
+		
+		try {
+			
+			$bjUser->save();	
+			/*$http = new \GuzzleHttp\Client;
+			//generate Oauth token using the            
+            $response = $http->post('http://localhost/oauth/token', [
+            'form_params' => [
+                                'grant_type' => 'password',
+                                'client_id' => '5c1c78a9d503a33b29274ca4',
+                                'client_secret' => 'CL8isQUG6Ch3DUoAhgCfLbwTayZZCPUx21uZ2mxN',
+                                'username' => $phoneNumber ,
+                                'password' => $password,
+                                'scope' => '*'
+                    ],
+            ]);  */ 
+			
+			$responseData = array('code'=>200,
+								  'status' =>200,
+								  'message'=>'Oprator created successfully'
+								  );
+								  
+			$this->logData($this->logInfoPah,$bjUser,'DB',$responseData);
+			
+			return true;
+			
+		} catch (Exception $e) {
+					
+			$response_data = array('code'=>300,'status' =>300,'message'=>$e);
+			$this->logData($this->logInfoPah,$this->request->all(),'DB',$response_data);
+	
+			return response()->json($response_data,200);
+		}
+	}
+	
+	/*public function sendSSNotification($request,$params, $roleArr) {
+		
+		//print_r($params);exit;
+		$logInfoPath = "logs/Machine/DB/Notification/logs_".date('Y-m-d').'.log';
+		$errorPath = "logs/Machine/Error/Notification/logs_".date('Y-m-d').'.log';
+
+		//$stateId = $params['stateId'];
+		$districtId = $params['districtId'];
+		$talukaId = $params['talukaId'];
+		$villageId = isset($params['villageId']) ? $params['villageId'] : '';
+		DB::setDefaultConnection('mongodb');
+		//loop for role
+		foreach ($roleArr as  $roleCode) {
+		
+			
+		
+			$roleData = \App\Role::where(['role_code'=>$roleCode, 'org_id'=>$params['org_id']])->first();
+			
+			if (!$roleData) {
+				$responseData = array( 'code'=>400,
+									   'status' =>'error',
+									   'roleCode'=>$roleCode,									  
+									   'structureCode'=>$params['code'],
+									   'message'=> 'Role missing in role collection');									
+				
+				$this->logData($errorPath,$params,'Error',$responseData);
+				
+				return true;
+					
+			}//echo $roleData->_id;exit;
+			$dtArry = array($districtId);			
+			$query = \App\User::where(['role_id' => $roleData->_id])
+			
+			 ->whereIn('location.district',$dtArry);
+
+			// 'location.district' => $districtId]);
+			
+			if ($roleCode == '111') {
+				$talukaIds  = array($talukaId);
+				$query->whereIn(['location.taluka' => $talukaIds]);
+			}
+
+			if ($roleCode == '114') {
+				$villageIds  = array($villageId);
+				$query->whereIn(['location.village' => $villageIds]);
+			}			
+			$userDetails = $query->select('firebase_id','name','phone')
+										->get()->toArray();
+			
+			//print_r($userDetails);exit;
+			foreach($userDetails as $userData) {
+				//echo "rwerewr".$userData['firebase_id'];exit;
+				if (!isset($userData['firebase_id'])) {
+					
+					$responseData = array( 'code'=>400,
+									   'status' =>'error',
+									   'roleCode'=>$roleCode,									  
+									   'structureCode'=>$params['code'],
+									   'message' => 'firebase_id missing in User collection');									
+				
+				$this->logData($errorPath,$params,'Error',$responseData);
+					//echo "ewrwerwr";exit;
+					return true;				
+				}
+				$dataD = $this->sendPushNotification(
+					$request,
+					$params['request_type'],
+					$userData['firebase_id'],
+					//'eI_FdLaocPU:APA91bE_HZck00WgG4HJmIuDQJu6jolos0rFeyO_fN1N9qwqOUrHFv1adpLRQTX4n3Y1w6MKCEFtBk9iQOUsDHcS3G1AGWEl2rQgX39gn1y4Oqmnlh2eXs0uUNUVhdGkQG7L6HNjkM7h',
+					[ 
+						'phone'=> $userData['phone'],
+						//'9028724868',
+						'update_status' => $params['update_status'],						
+						'rolename' => $roleData->display_name,
+						'code'=> $params['code'],
+						'params'=>$params
+					],
+				   $params['org_id']
+				);
+				if ($dataD) { 
+				
+					$responseData = array('code'=>200,
+										  'status' =>'success',
+										   'roleName'=>$roleData->display_name,
+										   'roleUserCode'=>$userData['_id'],
+										   'structureCode'=>$params['code']);									
+					
+					$this->logData($logInfoPath,$params,'DB',$responseData);
+				
+				} else {
+					$responseData = array( 'code'=>400,
+										   'status' =>'error',
+										   'roleName'=>$roleData->display_name,
+										   'roleUserCode'=>$userData['_id'],
+										   'structureCode'=>$params['code']);									
+					
+					$this->logData($logInfoPath,$params,'DB',$responseData);
+				
+				}
+			}	
+		}
+		return true;
+	}*/
+	
+	
+
+}
+?>

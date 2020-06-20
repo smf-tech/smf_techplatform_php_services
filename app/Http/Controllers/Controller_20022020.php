@@ -39,7 +39,7 @@ class Controller extends BaseController
     const NOTIFICATION_TYPE_LEAVE_REJECTED = 'leave rejected';
 	
 	const NOTIFICATION_TYPE_ATTENDANCE_APPROVAL = 'attendance approval';
-	const NOTIFICATION_TYPE_CHECKIN_APPROVAL = 'check in to approval';
+	const NOTIFICATION_TYPE_CHECKIN_APPROVAL = 'attendance check in';
     const NOTIFICATION_TYPE_ATTENDANCE_APPROVED = 'attendance approved';
     const NOTIFICATION_TYPE_ATTENDANCE_REJECTED = 'attendance rejected';
 	
@@ -53,11 +53,9 @@ class Controller extends BaseController
 	const NOTIFICATION_TYPE_TASK_CHANGES = 'Task Updated';
 	const NOTIFICATION_TYPE_FORM_FILLED = 'Form filled';
 	const NOTIFICATION_TYPE_CHECKIN= 'check in';
+	const NOTIFICATION_TYPE_CHECKOUT= 'check out';
 	const NOTIFICATION_TYPE_EVENT_DELETED= 'Event Deletion';
 
-	
-	const NOTIFICATION_TYPE_CHECKOUT= 'check out';
-	
 	const ENTITY_USER = 'userapproval';
 	const ENTITY_LEAVE = 'leave';
 	const ENTITY_ATTENDANCE = 'leave';
@@ -97,6 +95,7 @@ class Controller extends BaseController
 	
 	const NOTIFICATION_OPERATOR_RELEASE = 'operator_release';
 	const NOTIFICATION_OPERATOR_ASSIGNED = 'operator_assigned';
+	
 	
 	
 	public function logData($path, $requestData,$type,$infoData = array()) {
@@ -168,7 +167,6 @@ class Controller extends BaseController
 		$userdetails = $this->request->user();
 		$model = "Planner"; 
         $database=$this->connectTenantDatabase($request, $orgId);
-		
         if ($database === null) 
         {
             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
@@ -180,9 +178,7 @@ class Controller extends BaseController
         switch ($type) {
             case self::NOTIFICATION_TYPE_APPROVAL:
                 $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_APPROVAL)->first();
-				
 				$notificationSchema['message.en'] =$userdetails->name ."(".$params['rolename'] .") " .$notificationSchema['message.en'];
-				
 				$model = "userApproval";
 				$service = $notificationSchema->service . '/' . $params['phone'];
 				$parameters = ['update_status' => $params['update_status'], 'approval_log_id' => $params['approval_log_id']];
@@ -250,7 +246,9 @@ class Controller extends BaseController
 				
 				case self::NOTIFICATION_TYPE_ATTENDANCE_APPROVAL:
                 $notificationSchema = NotificationSchema::where('type', self::NOTIFICATION_TYPE_ATTENDANCE_APPROVAL)->first(); 
-				$notificationSchema['message.en'] = $userdetails->name." ".$notificationSchema['message.en'] ;
+				
+				$notificationSchema['message.en'] = $userdetails->name."(". $params['rolename'] .") ".$notificationSchema['message.en'];
+				
 				$service = $notificationSchema->service . '/' . $params['phone'];
 				$model = "attendanceApproval"; 
 				$parameters = ['update_status' => $params['update_status'], 'approval_log_id' => $params['approval_log_id']];
@@ -435,7 +433,7 @@ class Controller extends BaseController
 
 					//echo $notificationSchema['message.en'];exit;
 					$notificationSchema['message.en'] = $userdetails->name ."(".$params['rolename'] .") " .$notificationSchema['message.en'];
-					$model = "StructureApproved";
+					$model = "structure";
 					$service = $notificationSchema->service . '/' . $params['phone'];
 					$parameters = ['update_status' => $params['update_status']];
 					break;
@@ -447,7 +445,7 @@ class Controller extends BaseController
 					$strMsg = str_replace('#Code', $params['code'], $notificationSchema['message.en']); 
 					$strMsg = str_replace('#Reason', $params['params']['reason'], $strMsg); 
 					$notificationSchema['message.en'] = $strMsg;
-					$model = "Non Complaint";
+					$model = "structure";
 					$service = $notificationSchema->service . '/' . $params['phone'];
 					$parameters = ['update_status' => $params['update_status']];
 					break;
@@ -458,7 +456,7 @@ class Controller extends BaseController
 					
 					$strMsg = str_replace('#Code', $params['code'], $notificationSchema['message.en']); 					
 					$notificationSchema['message.en'] = $strMsg;
-					$model = "Structure Prepared";
+					$model = "structure";
 					
 					//echo $notificationSchema['message.en'];exit;
 					$service = $notificationSchema->service . '/' . $params['phone'];
@@ -473,7 +471,7 @@ class Controller extends BaseController
 					$strMsg = str_replace('#Reason', $params['params']['reason'], $strMsg); 
 					
 					$notificationSchema['message.en'] = $strMsg;
-					$model = "Structure Partially Completed";
+					$model = "structure";
 					$service = $notificationSchema->service . '/' . $params['phone'];
 					$parameters = ['update_status' => $params['update_status']];
 					break;
@@ -485,7 +483,7 @@ class Controller extends BaseController
 					$strMsg = str_replace('#Code', $params['code'], $notificationSchema['message.en']); 
 					//$strMsg = str_replace('#Reason', $params['params']['reason'], $strMsg); 
 					$notificationSchema['message.en'] = $strMsg;
-					$model = "Structure Completed";
+					$model = "structure";
 					$service = $notificationSchema->service . '/' . $params['phone'];
 					$parameters = ['update_status' => $params['update_status']];
 					
@@ -498,7 +496,7 @@ class Controller extends BaseController
 					$strMsg = str_replace('#Code', $params['code'], $notificationSchema['message.en']); 
 					//$strMsg = str_replace('#Reason', $params['params']['reason'], $strMsg); 
 					$notificationSchema['message.en'] = $strMsg;
-					$model = "Structure Completed";
+					$model = "structure";
 					$service = $notificationSchema->service . '/' . $params['phone'];
 					$parameters = ['update_status' => $params['update_status']];
 					
@@ -511,7 +509,7 @@ class Controller extends BaseController
 					$strMsg = str_replace('#machinecode', $params['code'], $notificationSchema['message.en']); 
 					//$strMsg = str_replace('#Reason', $params['params']['reason'], $strMsg); 
 					$notificationSchema['message.en'] = $strMsg;
-					$model = "Machine MOU Done";
+					$model = "machine";
 					$service = $notificationSchema->service . '/' . $params['phone'];
 					$parameters = ['update_status' => $params['update_status']];
 					
@@ -524,7 +522,7 @@ class Controller extends BaseController
 					$strMsg = str_replace('#machinecode', $params['code'], $notificationSchema['message.en']); 
 					//$strMsg = str_replace('#Reason', $params['params']['reason'], $strMsg); 
 					$notificationSchema['message.en'] = $strMsg;
-					$model = "Machine MOU Terminated";
+					$model = "machine";
 					$service = $notificationSchema->service . '/' . $params['phone'];
 					$parameters = ['update_status' => $params['update_status']];
 					
@@ -538,7 +536,7 @@ class Controller extends BaseController
 					$strMsg = str_replace('#TalukaName', $params['params']['talukaName'], $strMsg); 
 					
 					$notificationSchema['message.en'] = $strMsg;
-					$model = "Machine Available";
+					$model = "machine";
 					$service = $notificationSchema->service . '/' . $params['phone'];
 					$parameters = ['update_status' => $params['update_status']];
 					
@@ -554,7 +552,7 @@ class Controller extends BaseController
 				
 					//newStructureCode
 					$notificationSchema['message.en'] = $strMsg;
-					$model = "Machine Available";
+					$model = "machine";
 					$service = $notificationSchema->service . '/' . $params['phone'];
 					$parameters = ['update_status' => $params['update_status']];
 					
@@ -568,7 +566,7 @@ class Controller extends BaseController
 					$strMsg = str_replace('#StructureCode', $params['params']['struture_code'], $strMsg);
 					
 					$notificationSchema['message.en'] = $strMsg;
-					$model = "Machine Available";
+					$model = "machine";
 					$service = $notificationSchema->service . '/' . $params['phone'];
 					$parameters = ['update_status' => $params['update_status']];
 					
@@ -582,7 +580,7 @@ class Controller extends BaseController
 					$strMsg = str_replace('#status', $params['params']['status'].'ed', $strMsg);
 					//echo $strMsg;exit;
 					$notificationSchema['message.en'] = $strMsg;
-					$model = "Machine Status";
+					$model = "machine";
 					$service = $notificationSchema->service . '/' . $params['phone'];
 					$parameters = ['update_status' => $params['update_status']];
 					
@@ -595,7 +593,7 @@ class Controller extends BaseController
 					$strMsg = str_replace('#Reason', $params['params']['reason'], $strMsg);
 					
 					$notificationSchema['message.en'] = $strMsg;
-					$model = "Machine Status";
+					$model = "machine";
 					$service = $notificationSchema->service . '/' . $params['phone'];
 					$parameters = ['update_status' => $params['update_status']];
 					
@@ -610,7 +608,7 @@ class Controller extends BaseController
 										
 					
 					$notificationSchema['message.en'] = $strMsg;
-					$model = "Oprator Login";
+					$model = "structure";
 					$service = $notificationSchema->service . '/' . $params['phone'];
 					$parameters = ['update_status' => $params['update_status']];
 					
@@ -625,7 +623,7 @@ class Controller extends BaseController
 					//$strMsg = str_replace('#status', $params['params']['status'].'ed', $strMsg);
 					//echo $strMsg;exit;
 					$notificationSchema['message.en'] = $strMsg;
-					$model = "Machine Free From Taluka";
+					$model = "machine";
 					$service = $notificationSchema->service . '/' . $params['phone'];
 					$parameters = ['update_status' => $params['update_status']];
 					
@@ -639,7 +637,7 @@ class Controller extends BaseController
 					$strMsg = str_replace('#Code', $params['code'], $notificationSchema['message.en']); 
 					//$strMsg = str_replace('#Reason', $params['params']['reason'], $strMsg); 
 					$notificationSchema['message.en'] = $strMsg;
-					$model = "Structure Completed";
+					$model = "structure";
 					$service = $notificationSchema->service . '/' . $params['phone'];
 					$parameters = ['update_status' => $params['update_status']];
 					
@@ -662,7 +660,7 @@ class Controller extends BaseController
 			],
 			'to' => $firebaseId,
 			'title'=>$notificationSchema['title']['en'],
-			'message'=>$notificationSchema['message.en'],			
+			'message'=>$notificationSchema['message.en'],
 			'toOpen' => $model,
 			'data' => [
 				'action' => [
@@ -859,8 +857,6 @@ class Controller extends BaseController
             $title_fields_str = implode($separator,$field_values);
         }
         $form_title =$title_pretext.$title_fields_str.$title_posttext;
-        $form_title =$title_fields_str;
-		
         return $form_title;
 
     }
@@ -900,11 +896,9 @@ class Controller extends BaseController
 	 * @param string $reason
 	 * @return string
 	 */
-	public function addApprovalLog(Request $request, $entityId, $projectId, $roleId, $entityType, $approverIds, $status, $userName, $reason = '', $orgId)
+	public function addApprovalLog(Request $request, $entityId, $entityType, $approverIds, $status, $userName, $reason = '', $orgId)
 	{
 		$this->connectTenantDatabase($request, $orgId);
-
-		/* 
 		$approverLog = ApprovalLog::create([
 			'entity_id' => $entityId,
 			'entity_type' => "userapproval",
@@ -912,58 +906,29 @@ class Controller extends BaseController
 			'status' => $status,
 			'userName' => $userName,
 			'reason' => $reason,
-			'default.org_id' => $orgId,
-			'default.created_by' => $userName,
-			'default.updated_by' => "",
-			'ddefault.created_on' => \Carbon\Carbon::now()->getTimestamp(),
-			'default.updated_on' => \Carbon\Carbon::now()->getTimestamp(),
-			'default.project_id' => $projectId,
-			'default.role_id' => $roleId,
 			'createdDateTime' => \Carbon\Carbon::now()->getTimestamp(),
 			'updatedDateTime' => \Carbon\Carbon::now()->getTimestamp()
-		]); */
-		$approverLog = new ApprovalLog;
-		$approverLog['entity_id'] = $entityId;
-		$approverLog['entity_type'] = "userapproval";
-		$approverLog['approver_ids'] = $approverIds;
-		$approverLog['status'] = $status;
-		$approverLog['userName'] = $userName;
-		$approverLog['reason'] = $reason;
-		$approverLog['default.org_id'] = $orgId;
-		$approverLog['default.created_by'] = $userName;
-		$approverLog['default.updated_by'] = "";
-		$approverLog['default.created_on'] = \Carbon\Carbon::now()->getTimestamp();
-		$approverLog['default.updated_on'] = \Carbon\Carbon::now()->getTimestamp();
-		$approverLog['default.project_id'] = $projectId;
-		$approverLog['default.role_id'] = $roleId;
-		$approverLog['default.createdDateTime'] = \Carbon\Carbon::now()->getTimestamp();
-		$approverLog['default.updatedDateTime'] = \Carbon\Carbon::now()->getTimestamp();
-		$approverLog->save();
+		]);
 		
-		
+
 		$AApprovalsPending = ApprovalsPending::where('entity_id',$entityId)->where('entity_type',$entityType)->first(); 
 		 
 		if(empty($AApprovalsPending)){
 			$AApprovalsPending = new ApprovalsPending;
 		}
-			$AApprovalsPending['entity_id'] = $entityId;
-			$AApprovalsPending['entity_type'] = "userapproval";
-			$AApprovalsPending['approver_ids'] = $approverIds;
-			$AApprovalsPending['status'] = $status;
-			$AApprovalsPending['userName'] = $userName;
-			$AApprovalsPending['reason'] = $reason; 
-			 
-			$AApprovalsPending['default.org_id']  = $orgId; 
-			$AApprovalsPending['default.created_by'] = $userName; 
-			$AApprovalsPending['default.updated_by']  = ""; 
-			$AApprovalsPending['default.created_on'] = \Carbon\Carbon::now()->getTimestamp(); 
-			$AApprovalsPending['default.updated_on']  = \Carbon\Carbon::now()->getTimestamp(); 
-			$AApprovalsPending['default.project_id'] = $projectId; 
-			$AApprovalsPending['default.roleId'] = $roleId; 
-			$AApprovalsPending['createdDateTime'] = new \MongoDB\BSON\UTCDateTime(\Carbon\Carbon::now()->getTimestamp());
-			$AApprovalsPending['updatedDateTime'] = new \MongoDB\BSON\UTCDateTime(\Carbon\Carbon::now()->getTimestamp());
+			$AApprovalsPending->entity_id = $entityId;
+			$AApprovalsPending->entity_type = "userapproval";
+			$AApprovalsPending->approver_ids = $approverIds;
+			$AApprovalsPending->status = $status;
+			$AApprovalsPending->userName = $userName;
+			$AApprovalsPending->reason = $reason;  
+			$AApprovalsPending->createdDateTime = new \MongoDB\BSON\UTCDateTime(\Carbon\Carbon::now()->getTimestamp());
+			$AApprovalsPending->updatedDateTime = new \MongoDB\BSON\UTCDateTime(\Carbon\Carbon::now()->getTimestamp());
 			$AApprovalsPending->save();
+		
+			return $AApprovalsPending->id;
 	}
+
 	/**
 	 * Get approvers based on location of User
 	 *
@@ -988,23 +953,25 @@ class Controller extends BaseController
 		}
 		
 		$levelDetail = \App\Jurisdiction::find($approverRoleConfig->level); 
-		// $jurisdictions = \App\JurisdictionType::where('_id',$roleConfig->jurisdiction_type_id)->pluck('jurisdictions')[0];
-		$jurisdictions = \App\JurisdictionType::where('_id',$roleConfig->jurisdiction_type_id)->get();
-		 
+		
+		$jurisdictions = \App\JurisdictionType::where('_id',$roleConfig->jurisdiction_type_id)->get()->toArray();
+		
 		DB::setDefaultConnection('mongodb');
-		$approvers = \App\User::where('orgDetails.role_id', $roleConfig->approver_role);
-		if($jurisdictions){
-		 foreach ($jurisdictions as $singleLevel) {
-			
+		$approvers = \App\User::where('role_id', $roleConfig->approver_role);
+		if(count($jurisdictions) > 0 ){
+		
+		 foreach ($jurisdictions[0]['jurisdictions'] as $singleLevel) {
+				
 			if (isset($userLocation[strtolower($singleLevel)])) {
-				$approvers->whereIn('orgDetails.location.' . strtolower($singleLevel), $userLocation[strtolower($singleLevel)]);
+			
+				$approvers->whereIn('location.' . strtolower($singleLevel), $userLocation[strtolower($singleLevel)]);
 				
 				if ($singleLevel == $levelDetail->levelName) {
 					break;
 				}
-			}
+			} 
 		} 
-		
+			
 		return $approvers->get()->all();
 		}else{
 		return [];	

@@ -1,0 +1,578 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Organisation;
+use Dingo\Api\Routing\Helpers;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Http\Request;
+use Carbon\Carbon;
+use Illuminate\Support\Collection;
+/*
+use App\Structure;
+use App\StructureDepartment;
+use App\StructureSubDepartment;
+use App\StructureType;
+use App\MasterData;
+use App\StructurePreparation;
+use App\StructureLog;
+use App\Machine; */
+use App\MachineMou;
+use App\MachineDailyWorkRecord;
+use App\Machine;
+use App\MachineLog;
+date_default_timezone_set('Asia/Kolkata'); 
+class OpratorController extends Controller
+{
+
+    use Helpers;
+
+    protected $request;
+
+    public function __construct(Request $request)
+    {
+        $this->request = $request;
+		$this->logInfoPah = "logs/Oprator/DB/logs_".date('Y-m-d').'.log';
+		$this->errorPath = "logs/Oprator/Error/logs_".date('Y-m-d').'.log';
+
+    }
+	
+	//get Feedlist from DB
+	public function machineWorkingDetails(Request $request) {	
+		
+		
+		$header = getallheaders();
+ 		if(isset($header['orgId']) && ($header['orgId']!='') 
+ 			&& isset($header['projectId']) && ($header['projectId']!='')
+ 			&& isset($header['roleId']) && ($header['roleId']!='')
+		  )
+ 		{	
+			$org_id =  $header['orgId'];
+			$project_id =  $header['projectId'];
+			$role_id =  $header['roleId'];
+		} else {
+			
+			$message = "insufficent header info";
+			$this->logData($this->logInfoPah ,$message,'Error');
+			$response_data = array('status' =>'404','message'=>$message);
+			
+			return response()->json($response_data,200);			
+		}
+		
+		$user = $this->request->user();	
+		$this->request->user_id = $user->_id;
+		$this->logData($this->logInfoPah, $this->request->all(),'DB');		
+		
+		/*if ($request->isMethod('post')) {
+			
+			
+		} else {
+			return response()->json(['status' => 403, 
+									 'data' => '', 
+									 'message' => 'Method missing.'],
+									 403);
+		
+
+		}*/			
+
+		$database = $this->connectTenantDatabase($request,$org_id);
+		
+		//$user->org_id);		
+		
+		if ($database === null) {
+			return response()->json(['status' => 403, 
+									 'data' => '', 
+									 'message' => 'User does not belong to any Organization.'],
+									 403);
+		}
+		
+		//$result = $this->request->all();
+		if (!$this->request->has('formData')) {
+			
+			$error = array('status' =>400,
+							'msg' => 'Form Data field is missing',							
+							'code' => 400);						
+			$this->logData($this->errorPath,$this->request->all(),'Error',$error);
+							
+			return response()->json($error);
+		}	
+		
+		$url = [];
+		if ($this->request->has('imageArraySize')) {
+			for ($cnt = 0; $cnt < $this->request['imageArraySize']; $cnt++) {
+					
+				$fileName = 'image'.$cnt; 		
+				
+				if ($this->request->file($fileName)->isValid()) {
+				
+					$fileInstance = $this->request->file($fileName);
+					$name = $fileInstance->getClientOriginalName();
+					$ext = $this->request->file($fileName)->getClientMimeType(); 
+					//echo $ext;exit;
+					$newName = uniqid().'_'.$name.'.jpg';
+					$s3Path = $this->request->file($fileName)->storePubliclyAs('staging/machine/forms', $newName, 'octopusS3');
+					
+					//if ($s3Path == null || !$s3Path) {
+						//return response()->json(['status' => 'error', 'data' => '', 'message' => 'Error while uploading an image'], 400);
+					//}
+					$url[] = 'https://' . env('OCT_AWS_CDN_PATH') . '/staging/machine/forms/' . $newName;
+					//return response()->json(['status' => 'success', 'data' => ['url' => $result], 'message' => 'Image successfully uploaded in S3']);
+				}
+			}
+		}
+		//echo "<pre>";	print_r($url);exit;
+		$temp = $this->request['formData'];
+		$requestJson = json_decode($temp);
+		$errorLog = 0;
+		
+		$machineWorkObj = new MachineDailyWorkRecord;
+		
+		$machineWorkObj->machine_id = $requestJson->machine_id;
+		$machineWorkObj->status = isset($requestJson->status) ? $requestJson->status : '';
+		
+		$machineWorkObj->workTime = isset($requestJson->workTime) ? $requestJson->workTime : '';
+			
+		$machineWorkObj->workDate = new \MongoDB\BSON\UTCDateTime( $requestJson->workTime);
+		$machineWorkObj->lat = isset($requestJson->lat) ? $requestJson->lat : '';
+		
+		$machineWorkObj->long = isset($requestJson->long) ? $requestJson->long : '';
+		$machineWorkObj->hours = isset($requestJson->hours) ? $requestJson->hours : '';
+		$machineWorkObj->total_hours =  isset($requestJson->totalHours) ? $requestJson->totalHours : '';
+				
+		$machineWorkObj->mis_status = 'pending';
+		$machineWorkObj->status_code = $requestJson->status_code;
+		$machineWorkObj->project_id = $project_id;
+		
+		if ($requestJson->status == 'start' || $requestJson->status == 'stop') {								
+			$machineWorkObj->meter_reading_image = $url;	
+		}
+		
+		//$machineWorkObj->is_valid = false;			
+		try {			
+				$machineWorkObj->save();
+				
+				//update machine status						
+				$machineData = Machine::where('_id',$requestJson->machine_id)->first();
+				$machineCode = '';
+				if (($machineData)) {
+					
+					$codeArray = array('107','108','109','110','111','112','113');
+					
+					if (in_array($machineData->status_code, $codeArray)) {					
+					//if ($machineData->status_code != '105' && $machineData->status_code != '114' && $machineData->status_code != '115') {
+						
+						$machineCode = $machineData->code;
+						$status = $requestJson->status;
+						$status_code = $requestJson->status_code;
+						
+						$params['request_type'] =  self::NOTIFICATION_MACHINE_STATUS;
+						$params['update_status'] = 'Machine Free';
+						
+						if ($requestJson->status_code == '111') {
+							
+							$params['request_type'] =  self::NOTIFICATION_MACHINE_HALTED;
+							$params['update_status'] = 'Machine Halted';
+							
+							
+							$masterData = \App\MasterData::find($requestJson->reason_id);
+							//echo $masterData->value;exit;
+							/*$params['org_id'] = $org_id;										
+							$params['code'] = $machineData->machine_code;						
+							$params['stateId'] = $machineData->state_id;
+							$params['districtId'] = $machineData->district_id;
+							$params['talukaId'] = $machineData->taluka_id;*/
+							$params['reason'] = $masterData->value;
+							//$params['modelName'] = 'Oprator';	
+							//$statusCode = \App\StatusCode::where(['statusCode'=>'111', 'type'=>'machine'])->first();
+														
+						}	
+						
+						$statusCode = \App\StatusCode::where(['statusCode'=>$status_code, 'type'=>'machine'])->first();
+							
+						
+						if ($requestJson->status_code == '112') {
+							
+							$statusCode = \App\StatusCode::where(['statusCode'=>'108', 'type'=>'machine'])->first();
+							
+							//$status = $statusCode['status_name'];
+							//$status_code = $statusCode['statusCode'];
+						}
+						$machineData->status = $statusCode['status_name'];
+						$machineData->status_code = $statusCode['statusCode'];
+						
+						$machineData->save();	
+
+							
+						
+						
+						//send notification
+						$roleArr = array('111','112','115');
+						
+						$params['org_id'] = $org_id;										
+						$params['code'] = $machineData->machine_code;						
+						$params['stateId'] = $machineData->state_id;
+						$params['districtId'] = $machineData->district_id;
+						$params['talukaId'] = $machineData->taluka_id;
+						$params['status'] = $requestJson->status;
+						$params['modelName'] = 'Oprator';
+						$this->sendSSNotification($this->request,$params, $roleArr);
+					}
+					
+				}				
+				//insert into machine log
+				$machineLog =  new MachineLog;		
+				$machineLog['code'] = $machineCode;
+				$machineLog['action_title'] = 'Daily work log';
+				$machineLog['machine_id'] = $requestJson->machine_id;
+				
+				//$machineLog['action_by'] = $this->request->user_id;
+				$machineLog['status'] = $requestJson->status;			
+				$machineLog['status_code'] = $requestJson->status_code;			
+
+				$machineLog->save();	
+				
+				$success = array('status' =>200,								
+								'msg' => 'Machine work  log saved successfully',							
+								'code' => 200
+								);				
+				$this->logData($this->logInfoPah,$this->request->all(),'DB',$success);				
+				
+			} catch (Exception $e){
+				
+				$errorLog++;
+				$error = array('status' =>400,
+								'msg' => 'Some error has occured.Please try again',							
+								'code' => 400);						
+				$this->logData($this->errorPath,$this->request->all(),'Error',$error);				
+			}			
+		//}	
+		
+		if ($errorLog > 0) {
+
+			$error = array('status' =>400,
+								'msg' => 'Some error has occured.Please try again',							
+								'code' => 400);						
+				
+			return response()->json($error);
+		}
+		$success = array('status' =>200,								
+						'msg' => 'Machine work  log saved successfully',							
+						'code' => 200
+						);				
+		return response()->json($success);				
+		
+	}
+	
+	//get Feedlist from DB
+	public function machineNonUtilisation(Request $request) {	
+		
+		$header = getallheaders();
+ 		if(isset($header['orgId']) && ($header['orgId']!='') 
+ 			&& isset($header['projectId']) && ($header['projectId']!='')
+ 			&& isset($header['roleId']) && ($header['roleId']!='')
+		  )
+ 		{	
+			$org_id =  $header['orgId'];
+			$project_id =  $header['projectId'];
+			$role_id =  $header['roleId'];
+		} else {
+			
+			$message = "insufficent header info";
+			$this->logData($this->logInfoPah ,$message,'Error');
+			$response_data = array('status' =>'404','message'=>$message);
+			
+			return response()->json($response_data,200);			
+		}
+		
+		$user = $this->request->user();	
+		$this->request->user_id = $user->_id;
+		$this->logData($this->logInfoPah, $this->request->all(),'DB');		
+		
+		$database = $this->connectTenantDatabase($request,$org_id);
+		
+		if ($database === null) {
+			return response()->json(['status' => 403, 
+									 'data' => '', 
+									 'message' => 'User does not belong to any Organization.'],
+									 403);
+		}	
+		
+		if (!$this->request->has('machineId')) {
+			
+			$error = array('status' =>400,
+							'msg' => 'machine Id field is missing',							
+							'code' => 400);						
+			$this->logData($this->errorPath,$this->request->all(),'Error',$error);
+							
+			return response()->json($error);
+		}
+
+		if (!$this->request->has('selectedReasonId')) {
+			
+			$error = array('status' =>400,
+							'msg' => 'Reason Id field is missing',							
+							'code' => 400);						
+			$this->logData($this->errorPath,$this->request->all(),'Error',$error);
+							
+			return response()->json($error);
+		}
+
+		$machineWorkObj = new MachineDailyWorkRecord;
+		
+		$machineWorkObj->machine_id = $this->request->machineId;		
+		$machineWorkObj->reason_id = isset($this->request->selectedReasonId) ? $this->request->selectedReasonId : '';
+		$machineWorkObj->reason_description = ($this->request->has('otherReason')) ? $this->request->otherReason : '';
+		
+		$machineWorkObj->status = 'Halted';
+		$machineWorkObj->status_code = '119';
+		$machineWorkObj->project_id = $project_id;
+		
+		$errorLog = 0;
+		try {
+			
+				$machineWorkObj->save();
+				
+				//update machine status						
+				$machineData = Machine::where('_id',$this->request->machineId)->first();
+				//print_r($machineData);exit;
+				//$machineCode = '';
+				if (($machineData)) {
+					
+					$codeArray = array('107','108','109','110','111','112','113');
+					
+					if (in_array($machineData->status_code, $codeArray)) {
+						
+						$status = 'Halted';
+						$status_code = '119';
+						$machineData->save();
+					}
+				}
+				$params['request_type'] =  self::NOTIFICATION_MACHINE_HALTED;
+				$params['update_status'] = 'Machine Halted';
+				
+				//send notification
+				$roleArr = array('111','112','114');
+				//echo $machineData->district_id;exit;
+				//get master string
+				$masterData = \App\MasterData::find($this->request->selectedReasonId);
+				//echo $masterData->value;exit;
+				$params['org_id'] = $org_id;										
+				$params['code'] = $machineData->machine_code;						
+				$params['stateId'] = $machineData->state_id;
+				$params['districtId'] = $machineData->district_id;
+				$params['talukaId'] = $machineData->taluka_id;
+				$params['reason'] = $masterData->value;
+				$params['modelName'] = 'Oprator';
+				$this->sendSSNotification($this->request,$params, $roleArr);
+
+				
+				$success = array('status' =>200,								
+								'msg' => 'Machine work  log saved successfully',							
+								'code' => 200
+								);				
+				$this->logData($this->logInfoPah,$this->request->all(),'DB',$success);				
+				
+			} catch (Exception $e){
+				
+				$errorLog++;
+				$error = array('status' =>400,
+								'msg' => 'Some error has occured.Please try again',							
+								'code' => 400);						
+				$this->logData($this->errorPath,$this->request->all(),'Error',$error);				
+			}			
+		//}	
+		
+		if ($errorLog > 0) {
+
+			$error = array('status' =>400,
+								'msg' => 'Some error has occured.Please try again',							
+								'code' => 400);						
+				
+			return response()->json($error);
+		}
+		$success = array('status' =>200,								
+						'msg' => 'Machine work  log saved successfully',							
+						'code' => 200
+						);				
+		return response()->json($success);				
+			
+		
+	}
+	
+	public function getMachineData(Request $request) {
+		
+		
+		$header = getallheaders();
+ 		if(isset($header['orgId']) && ($header['orgId']!='') 
+ 			&& isset($header['projectId']) && ($header['projectId']!='')
+ 			&& isset($header['roleId']) && ($header['roleId']!='')
+		  )
+ 		{	
+			$org_id =  $header['orgId'];
+			$project_id =  $header['projectId'];
+			$role_id =  $header['roleId'];
+		} else {
+			
+			$message = "insufficent header info";
+			$this->logData($this->logInfoPah ,$message,'Error');
+			$response_data = array('status' =>'404','message'=>$message);
+			
+			return response()->json($response_data,200);			
+		}
+		
+		$user = $this->request->user();	
+		$this->request->user_id = $user->_id;
+		$this->logData($this->logInfoPah, $this->request->all(),'DB');		
+		
+		$database = $this->connectTenantDatabase($request,$org_id);
+		
+		if ($database === null) {
+			return response()->json(['status' => 403, 
+									 'data' => '', 
+									 'message' => 'User does not belong to any Organization.'],
+									 403);
+		}	
+		$data = MachineMou::where('machine_mobile_number',$user->phone)
+							->with('machineData')
+							//->select('_id','machine_code','provider_information.machine_id as machine_id')
+							->get()->toArray();
+		if (count($data) == 0) {
+			return response()->json(['status' => 400, 
+									'code' => 400,									 
+									 'message' => 'No data available.']
+									 );
+		}			
+		//echo '<pre>';var_dump($data[0]['machine_data']['_id']);exit;					
+		$resultData['machine_id'] = $data[0]['machine_data'][0]['_id'];
+		$resultData['machine_code'] = $data[0]['machine_data'][0]['machine_code'];
+		
+		$nonutilisationTypeData = \App\MasterData::where('type','machine_nonutilisation')
+								->where('is_active',1)
+								->select('_id','value')
+								->get();
+								
+		/*if ($nonutilisationTypeData) {
+			$accountType['form'] = 'machine_nonutilisation';
+			$accountType['field'] = 'machine_nonutilisation';
+			$accountType['data'] = $accountTypeData;
+
+			array_push($resultData,$accountType);
+			unset($accountType);
+
+		}*/					
+		$resultData['nonutilisationTypeData'] = $nonutilisationTypeData;
+		
+		$success = array('status' =>200,								
+								'msg' => 'Machine details',
+								'data'=>$resultData,								
+								'code' => 200
+								);
+
+		return response()->json($success);
+		
+	}
+
+	/*public function sendSSNotification($request,$params, $roleArr) {
+		
+		//print_r($params);exit;
+		$logInfoPath = "logs/Oprator/DB/Notification/logs_".date('Y-m-d').'.log';
+		$errorPath = "logs/Oprator/Error/Notification/logs_".date('Y-m-d').'.log';
+
+		//$stateId = $params['stateId'];
+		$districtId = $params['districtId'];
+		$talukaId = $params['talukaId'];
+		$villageId = isset($params['villageId']) ? $params['villageId'] : '';
+		DB::setDefaultConnection('mongodb');
+		//loop for role
+		foreach ($roleArr as  $roleCode) {
+		
+			
+		
+			$roleData = \App\Role::where(['role_code'=>$roleCode, 'org_id'=>$params['org_id']])->first();
+			
+			if (!$roleData) {
+				$responseData = array( 'code'=>400,
+									   'status' =>'error',
+									   'roleCode'=>$roleCode,									  
+									   'structureCode'=>$params['code'],
+									   'message'=> 'Role missing in role collection');									
+				
+				$this->logData($errorPath,$params,'Error',$responseData);
+				
+				return true;
+					
+			}
+			
+			$dtArry = array($districtId);
+			
+			$query = \App\User::where(['role_id' => $roleData->_id])			
+					->whereIn('location.district',$dtArry);
+			
+			if ($roleCode == '111') {
+				$talukaIds  = array($talukaId);
+				$query->whereIn('location.taluka',$talukaIds);
+			}
+
+			if ($roleCode == '114') {
+				$villageIds  = array($villageId);
+				$query->whereIn('location.village',$villageIds);
+			}			
+			$userDetails = $query->select('firebase_id','name','phone')
+										->get()->toArray();
+			
+			
+			foreach($userDetails as $userData) {
+				
+				if (!isset($userData['firebase_id'])) {
+					
+					$responseData = array( 'code'=>400,
+									   'status' =>'error',
+									   'roleCode'=>$roleCode,									  
+									   'structureCode'=>$params['code'],
+									   'message' => 'firebase_id missing in User collection');									
+				
+				$this->logData($errorPath,$params,'Error',$responseData);
+					//echo "ewrwerwr";exit;
+					return true;				
+				}
+				$dataD = $this->sendPushNotification(
+					$request,
+					$params['request_type'],
+					//$userData['firebase_id'],
+					'eI_FdLaocPU:APA91bE_HZck00WgG4HJmIuDQJu6jolos0rFeyO_fN1N9qwqOUrHFv1adpLRQTX4n3Y1w6MKCEFtBk9iQOUsDHcS3G1AGWEl2rQgX39gn1y4Oqmnlh2eXs0uUNUVhdGkQG7L6HNjkM7h',
+					[ 
+						'phone'=> '9028724868',//$userData['phone']
+						'update_status' => $params['update_status'],						
+						'rolename' => $roleData->display_name,
+						'code'=> $params['code'],
+						'params'=>$params
+					],
+				   $params['org_id']
+				);
+				if ($dataD) { 
+				
+					$responseData = array('code'=>200,
+										  'status' =>'success',
+										   'roleName'=>$roleData->display_name,
+										   'roleUserCode'=>$userData['_id'],
+										   'structureCode'=>$params['code']);									
+					
+					$this->logData($logInfoPath,$params,'DB',$responseData);
+				
+				} else {
+					$responseData = array( 'code'=>400,
+										   'status' =>'error',
+										   'roleName'=>$roleData->display_name,
+										   'roleUserCode'=>$userData['_id'],
+										   'structureCode'=>$params['code']);									
+					
+					$this->logData($logInfoPath,$params,'DB',$responseData);
+				
+				}
+			}	
+		}
+		return true;
+	}*/
+	
+}

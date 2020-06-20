@@ -263,6 +263,8 @@ public function test($id)
             $update_data = json_decode(file_get_contents('php://input'), true);
 		    $update_data['function']  = "update";
 
+             
+
             $update_project_id = (isset($update_data['project_id']) && is_array($update_data['project_id']))?$update_data['project_id'][0]:$update_data['project_id'];
             
             //$update_data['org_id'];
@@ -426,7 +428,7 @@ public function test($id)
             $user->update($update_data);
             $this->connectTenantDatabase($this->request,$update_data['org_id']);
 			 
-				$approvalLogId = $this->addApprovalLog($this->request, $userId, $update_data['project_id'], $update_data['role_id'], self::ENTITY_USER, $approverIds, self::STATUS_PENDING, $userId," ",$update_data['org_id']);
+				$approvalLogId = $this->addApprovalLog($this->request, $userId, self::ENTITY_USER, $approverIds, self::STATUS_PENDING, $userId," ",$update_data['org_id']);
              
 			foreach ($firebaseIds as $firebaseId) {  
 				$this->sendPushNotification(
@@ -535,16 +537,9 @@ public function test($id)
                         if ($level == 'taluka'){
                             $location_obj = \App\Taluka::find($location_id);
                         }
-                         if ($level == 'cluster'){
-                                $location_obj = \App\Cluster::find($location_id);
-                        }
                         if ($level == 'village'){
                             $location_obj = \App\Village::find($location_id);
                         }
-                        if ($level == 'school'){
-                            $location_obj = \App\School::find($location_id);
-                        }
-                        
                          }
                     
                     //$location_std_obj =  new \stdClass;
@@ -608,7 +603,67 @@ public function test($id)
         return $user;
     }
 
+     public function mvUserInfo(Request $request)
+    {
+        $header = getallheaders();
+          //$user = $this->request->user();
+          if(isset($header['orgId']) && ($header['orgId']!='') 
+            && isset($header['projectId']) && ($header['projectId']!='')
+            && isset($header['roleId']) && ($header['roleId']!='')
+            )
+          { 
+            $org_id =  $header['orgId'];
+            $project_id =  $header['projectId'];
+            $role_id =  $header['roleId'];
+          }else{
 
+            
+            $message['message'] = "insufficent header info";
+            $message['function'] = 'checkUser'; 
+            $this->logData($this->logInfoPath ,$message,'Error');
+            $response_data = array('status' =>'404','message'=>$message);
+            return response()->json($response_data,200); 
+            // return $message;
+          }
+
+           $data = json_decode(file_get_contents('php://input'), true);
+
+           $this->logData($this->logInfoPath,$data,'DB');
+
+           //echo json_encode($data["phone"]);
+           if(isset($data["phone"]) && $data["phone"]!='')
+           {
+              $userData =  User::select('phone','name')
+                        ->where('orgDetails.project_id', '=', $project_id)
+                        ->where('phone',$data["phone"])->get();
+
+              // echo json_encode($userData);         
+               if($userData && count($userData)>0)
+                {
+                    $response_data = array('status' =>'200','message'=>'success','data' => $userData);
+                    return response()->json($response_data,200); 
+                }
+                else
+                {
+                    
+                    $response_data = array('status' =>'403','message'=>'User not found');
+                    return response()->json($response_data,200);
+                }          
+
+                        
+
+           }
+           else{
+
+            $message['message'] = "phone number is missing";
+                        $message['function'] = 'checkUser'; 
+                        $this->logData($this->logerrorPath ,$message,'Error');
+                        $response_data = array('status' =>'404','message'=>$message);
+                        return response()->json($response_data,200);
+
+           }
+          // die();
+    }
 
     public function getUserProfileData($user,$userProfile)
     {
@@ -740,14 +795,8 @@ public function test($id)
                         if ($level == 'taluka'){
                             $location_obj = \App\Taluka::find($location_id);
                         }
-                         if ($level == 'cluster'){
-                                $location_obj = \App\Cluster::find($location_id);
-                        }
                         if ($level == 'village'){
                             $location_obj = \App\Village::find($location_id);
-                        }
-                        if ($level == 'school'){
-                            $location_obj = \App\School::find($location_id);
                         }
                          }
                     
@@ -811,7 +860,7 @@ public function test($id)
                         {
                             DB::setDefaultConnection('mongodb');
                             $profileArr[$profileCnt]['org_id'] =$value;
-                            $Loop_org_id = $value; 
+                             $Loop_org_id = $value; 
                             $orgtData =  Organisation::
                                           select('display_name')
                                           ->where('_id',$value)
@@ -1383,68 +1432,4 @@ public function test($id)
 				}//foreach ends here
 		}	
 	}	
-
-
-
-      public function mvUserInfo(Request $request)
-    {
-        $header = getallheaders();
-          //$user = $this->request->user();
-          if(isset($header['orgId']) && ($header['orgId']!='') 
-            && isset($header['projectId']) && ($header['projectId']!='')
-            && isset($header['roleId']) && ($header['roleId']!='')
-            )
-          { 
-            $org_id =  $header['orgId'];
-            $project_id =  $header['projectId'];
-            $role_id =  $header['roleId'];
-          }else{
-
-            
-            $message['message'] = "insufficent header info";
-            $message['function'] = 'checkUser'; 
-            $this->logData($this->logInfoPath ,$message,'Error');
-            $response_data = array('status' =>'404','message'=>$message);
-            return response()->json($response_data,200); 
-            // return $message;
-          }
-
-           $data = json_decode(file_get_contents('php://input'), true);
-
-           $this->logData($this->logInfoPath,$data,'DB');
-
-           //echo json_encode($data["phone"]);
-           if(isset($data["phone"]) && $data["phone"]!='')
-           {
-              $userData =  User::select('phone','name')
-                        ->where('orgDetails.project_id', '=', $project_id)
-                        ->where('phone',$data["phone"])->get();
-
-              // echo json_encode($userData);         
-               if($userData && count($userData)>0)
-                {
-                    $response_data = array('status' =>'200','message'=>'success','data' => $userData);
-                    return response()->json($response_data,200); 
-                }
-                else
-                {
-                    
-                    $response_data = array('status' =>'403','message'=>'User not found');
-                    return response()->json($response_data,200);
-                }          
-
-                        
-
-           }
-           else{
-
-            $message['message'] = "phone number is missing";
-                        $message['function'] = 'checkUser'; 
-                        $this->logData($this->logerrorPath ,$message,'Error');
-                        $response_data = array('status' =>'404','message'=>$message);
-                        return response()->json($response_data,200);
-
-           }
-          // die();
-    }
 }

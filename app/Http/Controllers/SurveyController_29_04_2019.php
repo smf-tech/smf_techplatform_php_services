@@ -23,8 +23,6 @@ use \DateTime;
 use App\RoleConfig;
 use App\ApprovalLog;
 use App\ApprovalsPending;
-use App\SmartGirlBatch;
-use App\SmartGirlWorkshop;
 
 class SurveyController extends Controller
 {
@@ -36,7 +34,7 @@ class SurveyController extends Controller
     public function __construct(Request $request)
     {
         $this->request = $request;
-        $this->logInfoPath = "logs/Survey/DB/logs_".date('Y-m-d').'.log';
+		$this->logInfoPath = "logs/Survey/DB/logs_".date('Y-m-d').'.log';
         $this->logLocationUpdate = "logs/Survey/DB/logs_".date('Y-m-d').'.log';
     }
 
@@ -148,48 +146,49 @@ class SurveyController extends Controller
     public function getSurveys()
     {
         
-        $header = getallheaders();
-        if(isset($header['orgId']) && ($header['orgId']!='') 
-            && isset($header['projectId']) && ($header['projectId']!='')
-            && isset($header['roleId']) && ($header['roleId']!='')
-          )
-        {   
-            $orgId =  $header['orgId'];
-            $project_id =  $header['projectId'];
-            $role_id =  $header['roleId'];
-        } else {
-            
-            $message = "Header info missing";
-            $this->logData($this->logInfoPath ,$message,'Error');
-            
-            $response_data = array('status' =>'404',
-                                    'message'=>$message
-                                    );
-            
-            return response()->json($response_data,200);            
-        }
-        
-        $database = $this->connectTenantDatabase($this->request,$orgId);
+		$header = getallheaders();
+ 		if(isset($header['orgId']) && ($header['orgId']!='') 
+ 			&& isset($header['projectId']) && ($header['projectId']!='')
+ 			&& isset($header['roleId']) && ($header['roleId']!='')
+		  )
+ 		{	
+			$orgId =  $header['orgId'];
+			$project_id =  $header['projectId'];
+			$role_id =  $header['roleId'];
+		} else {
+			
+			$message = "Header info missing";
+			$this->logData($this->logInfoPath ,$message,'Error');
+			
+			$response_data = array('status' =>'404',
+									'message'=>$message
+									);
+			
+			return response()->json($response_data,200);			
+		}
+		
+		$database = $this->connectTenantDatabase($this->request,$orgId);
         if ($database === null) {
             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
         }
 
         $user = $this->request->user();
-        //  echo json_encode($header);
-        // die;  
+
         // Obtaining '_id','name','active','editable','multiple_entry','category_id','microservice_id','project_id','entity_id','assigned_roles' of Surveys
         // alongwith corresponding details of 'microservice','project','category','entity'
         $data = Survey::select('_id','name','active','approve_required','editable','multiple_entry','category_id','entity_collection_name','api_url','project_id','assigned_roles','created_at', 'entity_collection_name')
         ->with('project','category')
-        ->where(['active'=>'true', 'project_id'=> $project_id])
-        ->orderBy('created_at')->get();
+       // ->where('assigned_roles','=',$user->role_id)
+	    ->where(['active'=>'true', 'project_id'=> $project_id])
+		->orderBy('created_at')->get();
         
-        
+       // echo json_encode($data);
+        //die;   
         foreach($data as $row)
         {
             // unset() removes the element from the 'row' object
             unset($row->category_id); 
-            //unset($row->project_id);
+            unset($row->project_id);
             unset($row->entity_id);
             unset($row->assigned_roles);
 
@@ -207,29 +206,8 @@ class SurveyController extends Controller
 
     public function getSurveyDetails($survey_id)
     {
-        $header = getallheaders();
-        if(isset($header['orgId']) && ($header['orgId']!='') 
-            && isset($header['projectId']) && ($header['projectId']!='')
-            && isset($header['roleId']) && ($header['roleId']!='')
-          )
-        {   
-            $orgId =  $header['orgId'];
-            $project_id =  $header['projectId'];
-            $role_id =  $header['roleId'];
-        } else {
-            
-            $message = "Header info missing";
-            $this->logData($this->logInfoPath ,$message,'Error');
-            
-            $response_data = array('status' =>'404',
-                                    'message'=>$message
-                                    );
-            
-            return response()->json($response_data,200);            
-        } 
-
-        $user = $this->request->user();
-        $database = $this->connectTenantDatabase($this->request,$orgId);
+         $user = $this->request->user();
+        $database = $this->connectTenantDatabase($this->request);
         if ($database === null) {
             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
         }
@@ -238,7 +216,7 @@ class SurveyController extends Controller
         // alongwith corresponding details of 'microservice','project','category','entity'
         $entity_id = Survey::where('_id',$survey_id)->select('entity_id')->get();
         $data = Survey:: with('project')
-        //->with('microservice')
+		//->with('microservice')
         ->with('category')
         //->with('entity')        
         ->select('category_id','project_id','entity_id','assigned_roles','_id','name','json_result','active','approve_required','editable','multiple_entry','form_keys','api_url','entity_collection_name','location_required','location_required_level')
@@ -270,7 +248,7 @@ class SurveyController extends Controller
         return response()->json(['status'=>'success','data' => $data,'message'=>'']);
     }
 
-    public function createResponse($survey_id)
+     public function createResponse($survey_id)
     {
         $header = getallheaders();
         //$user = $this->request->user();
@@ -282,35 +260,25 @@ class SurveyController extends Controller
             $org_id =  $header['orgId'];
             $project_id =  $header['projectId'];
             $role_id =  $header['roleId'];
-        } else {
-			
-			$message = "Header info missing";
-			//$this->logData($this->logInfoPath ,$message,'Error');
-			$response_data = array('status' =>'404','message'=>$message);
-			
-			return response()->json($response_data,200);			
-		}
+        }
 
-        $user = $this->request->user();
-        $userLocation = $this->request->user()->location;  
-        
-        $userRole = $role_id;  
-        $userRoleLocation = ['role_id' => $userRole];
-        $userRoleLocation = array_merge($userRoleLocation,$userLocation);
-
-        $database = $this->connectTenantDatabase($this->request,$org_id);
+        $database = $this->connectTenantDatabase($this->request);
         if ($database === null) {
             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
         }
 
+        $user = $this->request->user();
+        $userLocation = $this->request->user()->location;  
+        
+        $userRole = $this->request->user()->role_id;  
+        $userRoleLocation = ['role_id' => $userRole];
+        $userRoleLocation = array_merge($userRoleLocation,$userLocation);
+         
 
-         //echo $org_id .'--------' .$userRole;
-        $database = $this->connectTenantDatabase($this->request,$org_id);
-         $roleConfig = RoleConfig::where('role_id',$userRole)->first();
-        //die();
+        $roleConfig = RoleConfig::where('role_id',$userRole)->first();
+
         $survey = Survey::find($survey_id);
-       //echo  json_encode($survey_id);
-       //die();
+       // echo  $survey->json;
         $formData = json_decode($survey->json, true);
         // echo json_encode($formData['pages'][0]['elements']);
         // die();
@@ -321,22 +289,17 @@ class SurveyController extends Controller
         //die();
         $primaryKeys = isset($survey->form_keys)?$survey->form_keys:[];
 
-
         $fields = array();
         
-		if (!$this->request->has('processId')) {
-			
-			$fields['userName'] = $user->id;
-			$fields['isDeleted'] = false;
-			$fields['jurisdiction_type_id'] = $roleConfig->jurisdiction_type_id;
-			$fields['user_role_location'] = $userRoleLocation;
-		}
+        $fields['userName'] = $user->id;
+        $fields['isDeleted'] = false;
+        $fields['jurisdiction_type_id'] = $roleConfig->jurisdiction_type_id;
+        $fields['user_role_location'] = $userRoleLocation;
 
         $this->logData($this->logInfoPath,$this->request->all(),'DB');
         $primaryValues = array();
         $resultsArr = [];
         $cnt= 0;
-        $valueDataCnt= 0;
         $itemArrCnt=0;
         // Looping through the response object from the body
         foreach($this->request->all() as $key=>$value)
@@ -348,23 +311,10 @@ class SurveyController extends Controller
                 
                 $primaryValues[$key] = 1;
             }
-
-            if($key == 'batch_id')
-            {
-                
-                $smartgirlFlag = $key;
-            }else if($key == 'workshop_id')
-            {
-                
-                $smartgirlFlag = $key;
-            }
-            
            
-
             $valueChecK  =  $key;
             $item = $value;
             $arraySearchQuestion = $this->arraySearch($surveyQuestions, $valueChecK, $item);
-            
           
             if($arraySearchQuestion)
             {
@@ -410,66 +360,23 @@ class SurveyController extends Controller
                         
                     } else if(is_object($itemValueArray))
                     {
-                        
-                        
-                         //echo json_encode($itemValueArray);
-
                         foreach($itemValueArray as $key => $objecData){
                             
-                            $resultArrsearchItem = $this->arraySearch($resultArrsearchOption, $key, $item);
-                            // echo '---------'.json_encode($objecData);
-                            // die();
-
-                           if(isset($resultArrsearchItem) && isset($resultArrsearchItem[0]['option_title']) )
-                           {
-                           // foreach($resultArrsearchItem as $optionKey => $optionValue)
-                           // {
-                                 
-                                foreach ($objecData as $rowKey => $rowValue)
-                                {
-                                    //echo $rowKey;
-                                    foreach ($rowValue as $valueKey => $valueData)
-                                    { 
-                                        //if($rowKey == $optionValue['option_id'])
-                                        //{
-                                            
-                                            $rowValueSearch = $this->arraySearch($resultArrsearchOption, $rowKey, $item);
-                                            
-                                             
-                                            $results['question_id'] = $key;
-                                            $results['result_id'] = $rowKey;
-                                            $results['result_title'] = $rowValueSearch[0]['rowValue'];// $optionValue['rowValue'];
-                                            //echo json_encode($optionValue);
-                                             $results['result_flag'] =$valueData;
-                                             array_push($resultsArr, $results);
-                                             unset($results['result_flag']);
-                                             $valueDataCnt = $valueDataCnt+1;
-                                        //}
-                                   } 
+                            foreach ($objecData as $rowKey => $rowValue) {
+                               
+                                foreach ($rowValue as $valueKey => $valueData) {
+                                     $results['question_id'] = $key;
+                                     $results['result_id'] = $rowKey;
+                                     $results['result_title'] =  $valueKey;
+                                     $results['result_flag'] =$valueData;
+                                    array_push($resultsArr, $results);
+                                    unset($results['result_flag']);
                                 }
-
+                               
                             }
 
-                           //}
-                           
-                           
-                           
-                            // foreach ($objecData as $rowKey => $rowValue) {
-                               
-                            //     foreach ($rowValue as $valueKey => $valueData) {
-                            //          $results['question_id'] = $key;
-                            //          $results['result_id'] = $rowKey;
-                            //          $results['result_title'] =  $valueKey;
-                            //          $results['result_flag'] =$valueData;
-                            //         array_push($resultsArr, $results);
-                            //         unset($results['result_flag']);
-
-                            //     }
-                               
-                            // }
-
-                        } 
-                        
+                        }
+                       
                     } else if(is_string($item))
                      {
                      
@@ -524,30 +431,23 @@ class SurveyController extends Controller
             
         }    
        
-
-
         // Gives current date and time in the format :  2019-01-24 10:30:46
         $date = Carbon::now();
         $fields['results'] = $resultsArr;
-       
-        $fields['submitted_body']= file_get_contents('php://input');
+         
+
         $fields['submit_count'] = 1;
         $fields['updatedDateTime'] = $date->getTimestamp();
-		
-		if (!$this->request->has('processId')) {
-			
-			$fields['createdDateTime'] = $date->getTimestamp();
-            $fields['created_at'] = new \MongoDB\BSON\UTCDateTime();
-		}
+        $fields['createdDateTime'] = $date->getTimestamp();
+        
+        $fields['created_at'] = new \MongoDB\BSON\UTCDateTime();
         $fields['updatd_at'] = new \MongoDB\BSON\UTCDateTime();
-		$fields['status'] = 'approved';
 
-		//check if approval required 
-		if ($survey->approve_required){
-		    $fields['status'] = 'pending';
-		}
-		
-		/* if($survey['entity_id'] == null) {
+        
+         $fields['status'] = 'approved';
+
+
+        /* if($survey['entity_id'] == null) {
           
             $collection_name = 'survey_results';
             $fields['form_id'] = $survey_id;
@@ -640,7 +540,7 @@ class SurveyController extends Controller
            if(!empty($user_submitted) && $survey['multiple_entry'] == "false"){
                     // echo json_encode($user_submitted);
                     //die();
-                if($project_id == '5e6a0c167cef42725011a042')
+                if($project_id == '5e6f661cab7a197863606a74')
                     {
                         return response()->json(['status'=>'error','metadata'=>[],'values'=>[],'message'=>'Form already submitted.'],400);
                     }
@@ -659,111 +559,15 @@ class SurveyController extends Controller
                     $approverIds = $approver['id'];  
                     array_push($approverUsers,$approverIds);
                     } 
-                $database = $this->connectTenantDatabase($this->request,$org_id);
+                $database = $this->connectTenantDatabase($this->request);
                         if ($database === null) {
                             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
                         }   
 
-					if (!$this->request->has('processId')) {		
-					
-						$form = DB::collection($survey->entity_collection_name)->insertGetId($fields);
-					} else {
-						
-						unset($fields['processId']);
-						unset($fields['survey_id']);
-						
-						 $user_submitted = DB::collection($survey->entity_collection_name)
-                            ->where('_id',$this->request['processId'])
-                            /*->where(function($q) use ($survey_id){
-                                $q->where('form_id','=',$survey_id)
-                                  ->orWhere('survey_id','=',$survey_id);
-                            })*/
-                           // ->where('userName','=',$user->id);
-							->update($fields);
-							$form = $this->request['processId'];
-					
-					}
-                
-                //entity_collection_name smartgirl project changing user feedback status
-                if($project_id == '5e2eb798385c233934007414'){
-                    //json_decode
-                    if($smartgirlFlag =='batch_id')
-                    {
-
-                        // explode('-', $survey->entity_collection_name);
-
-
-                        $batchData = SmartGirlBatch::where('_id',$this->request->batch_id)
-                                ->first();
-                            if(isset($this->request->trainer_id) && $this->request->trainer_id!='')
-                                { 
-                                    $trainer_id = $this->request->trainer_id;
-                                }
-                            else{
-                                    $trainer_id = $user->_id;
-                                }
-                            if(isset($batchData['trainerList']))
-                            {
-                                $count = 0;
-                                foreach($batchData['trainerList'] as $trainerData)
-                                    {
-                                        if($trainerData['userId'] == $trainer_id)
-                                        {
-                                        
-                                            $batchData['trainerList.'.$count.'.'.$this->request->formStatus] = true;
-                                            $success = $batchData->save();
-                                            
-                                        }  
-
-                                       $count = $count +1;          
-                                    }
-                            }        
-                                  
-                    } else if($smartgirlFlag =='workshop_id')
-                    {
-
-                        // explode('-', $survey->entity_collection_name);
-
-
-                        $workshopData = SmartGirlWorkshop::where('_id',$this->request->workshop_id)
-                                ->first();
-
-                               
-     
-                            if(isset($this->request->beneficiary_id) && $this->request->beneficiary_id!='')
-                                { 
-
-                                    $beneficiary_id = $this->request->beneficiary_id;
-                                }
-                            else{
-
-                                    $beneficiary_id = $user->_id;
-                                }
-
-                             if(isset($workshopData['beneficiariesList']))
-                                {
-                                    $count = 0;
-
-                                    foreach($workshopData['beneficiariesList'] as $beneficiaryData)
-                                        {
-                                            if($beneficiaryData['userId'] == $beneficiary_id)
-                                            {
-                                            
-                                                $workshopData['beneficiariesList.'.$count.'.'.$this->request->formStatus] = true;
-                                                $success = $workshopData->save();
-                                                
-                                            }  
-
-                                           $count = $count +1;          
-                                        }
-                                }       
-                    }
-                } 
-
-                
+                $form = DB::collection($survey->entity_collection_name)->insertGetId($fields);
 
                 $ApprovalLog = new ApprovalLog;
-                $ApprovalLog['entity_id']=(string)$form;
+                // $ApprovalLog['entity_id']=(string)$form;
                 $ApprovalLog['category_id']=(string)$survey->category_id;
                 $ApprovalLog['entity_type']='form';
                 $ApprovalLog['approver_ids']= $approverUsers;
@@ -776,73 +580,46 @@ class SurveyController extends Controller
                 $ApprovalLog['default.created_by'] = $user->_id;
                 $ApprovalLog['default.created_on'] = $timestamp;    
                 $ApprovalLog['default.updated_on'] = "";
-                $ApprovalLog['default.project_id'] = $project_id;
+                $ApprovalLog['default.project_id'] = $user->project_id;
                 $ApprovalLog['createdDateTimeing'] = $date->getTimestamp();
                 $ApprovalLog['updatedDateTimeing'] = $date->getTimestamp();
                 $ApprovalLog['createdDateTime'] = new \MongoDB\BSON\UTCDateTime($date->getTimestamp()*1000);
                 $ApprovalLog['updatedDateTime'] = new \MongoDB\BSON\UTCDateTime($date->getTimestamp()*1000);
-                $ApprovalLog['role_id'] = $role_id;
+               
                 $ApprovalLog->save();
                 
                 
-                if($fields['status'] != 'approved')
-                {
-                    $ApprovalsPending = new ApprovalsPending;
-                    $ApprovalsPending['entity_id']=(string)$form;
-                    $ApprovalsPending['category_id']=(string)$survey->category_id;
-                    $ApprovalsPending['entity_type']='form';
-                    $ApprovalsPending['approver_ids']= $approverUsers;
-                    $ApprovalsPending['status'] = 'pending';
-                    $ApprovalsPending['userName']= $user->_id;
-                    $ApprovalsPending['reason'] = "";
-                    $ApprovalsPending['form_id'] = (string)$form;
-                    $ApprovalsPending['default.org_id'] = $user->org_id;
-                    $ApprovalsPending['default.updated_by'] = "";
-                    $ApprovalsPending['default.created_by'] = $user->_id;
-                    $ApprovalsPending['default.created_on'] = $timestamp;    
-                    $ApprovalsPending['default.updated_on'] = "";
-                    $ApprovalsPending['default.project_id'] = $project_id;
-                    $ApprovalsPending['createdDateTimeing'] = $date->getTimestamp();
-                    $ApprovalsPending['updatedDateTimeing'] = $date->getTimestamp();
-                    $ApprovalsPending['createdDateTime'] = new \MongoDB\BSON\UTCDateTime($date->getTimestamp()*1000);
-                    $ApprovalsPending['updatedDateTime'] = new \MongoDB\BSON\UTCDateTime($date->getTimestamp()*1000);
-    				$ApprovalsPending['default.role_id'] = $role_id;
-    				$ApprovalsPending->save();
-                }
+                
+                $ApprovalsPending = new ApprovalsPending;
+                // $ApprovalsPending['entity_id']=(string)$form;
+                $ApprovalsPending['category_id']=(string)$survey->category_id;
+                $ApprovalsPending['entity_type']='form';
+                $ApprovalsPending['approver_ids']= $approverUsers;
+                $ApprovalsPending['status'] = 'pending';
+                $ApprovalsPending['userName']= $user->_id;
+                $ApprovalsPending['reason'] = "";
+                $ApprovalsPending['form_id'] = (string)$form;
+                $ApprovalsPending['default.org_id'] = $user->org_id;
+                $ApprovalsPending['default.updated_by'] = "";
+                $ApprovalsPending['default.created_by'] = $user->_id;
+                $ApprovalsPending['default.created_on'] = $timestamp;    
+                $ApprovalsPending['default.updated_on'] = "";
+                $ApprovalsPending['default.project_id'] = $user->project_id;
+                $ApprovalsPending['createdDateTimeing'] = $date->getTimestamp();
+                $ApprovalsPending['updatedDateTimeing'] = $date->getTimestamp();
+                $ApprovalsPending['createdDateTime'] = new \MongoDB\BSON\UTCDateTime($date->getTimestamp()*1000);
+                $ApprovalsPending['updatedDateTime'] = new \MongoDB\BSON\UTCDateTime($date->getTimestamp()*1000);
+                $ApprovalsPending->save();
                 $data['_id'] = $form;
             }
 
        // }    
 
         $data['form_title'] = $this->generateFormTitle($org_id,$survey_id,$data['_id'],$collection_name);
-       
-		$formName = $survey->name['default'];
-		if (count($survey->title_fields) > 0) {
-			$formName = $survey->title_fields[0];
-			
-		}
-		if (!$this->request->has('processId')) {
-			$data['createdDateTime'] = $fields['createdDateTime'];
-			$data['form_title'] = $formName.'_'.$fields['createdDateTime'];
-			$data['status'] = $fields['status'];
-		
-		} else {
-			unset($data['_id']);
-			$data['_id']['$oid'] =  $form;
-
-			$user_submitted = DB::collection($survey->entity_collection_name)
-					->where('_id',$this->request['processId'])->get();
-			
-
-			$data['createdDateTime'] = $user_submitted[0]['createdDateTime'];
-			$data['form_title'] =  $formName.'_'.$user_submitted[0]['createdDateTime'];
-			$data['status'] = $user_submitted[0]['status'];
-
-		}
-
-		// $data['form_title'] = " Form ";
+        $data['form_title'] = " Form ";
          // echo json_encode($data['form_title']);
         // die();
+        $data['createdDateTime'] = $fields['createdDateTime'];
         $data['updatedDateTime'] = $fields['updatedDateTime'];
 
         return response()->json(['status'=>'success', 'data' => $data, 'message'=>'']);
@@ -902,7 +679,7 @@ class SurveyController extends Controller
 
     public function getUserResponse($user_id,$survey_id,$primaryValues,$collection_name){
         $formKey = $collection_name == 'survey_results' ? 'form_id' : 'survey_id'; 
-        
+		
         $response = DB::collection($collection_name)->where($formKey,'=',$survey_id)
                                                   ->where('userName','=',$user_id)
                                                   ->where('isDeleted','=',false)
@@ -914,215 +691,33 @@ class SurveyController extends Controller
                                                       }
                                                   })
                                                   ->get()->first();
-        //echo json_encode($collection_name);die();                                      
+		//echo json_encode($collection_name);die();										 
         return $response;   
     }
 
-
-
-
-
-     public function getUserFormRecords()
-    {
-       $header = getallheaders();
-        if(isset($header['orgId']) && ($header['orgId']!='') 
-            && isset($header['projectId']) && ($header['projectId']!='')
-            && isset($header['roleId']) && ($header['roleId']!='')
-          )
-        {   
-            $orgId =  $header['orgId'];
-            $project_id =  $header['projectId'];
-            $role_id =  $header['roleId'];
-        } else {
-            
-            $message = "Header info missing";
-            $this->logData($this->logInfoPath ,$message,'Error');
-            
-            $response_data = array('status' =>'404',
-                                    'message'=>$message
-                                    );
-            
-            return response()->json($response_data,200);            
-        }
-        
-        $database = $this->connectTenantDatabase($this->request,$orgId);
-        if ($database === null) {
-            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
-        }
-
-        $user = $this->request->user(); 
-
-         $reqData = json_decode(file_get_contents('php://input'), true);
-        
-
-        $survey = Survey::find($reqData['survey_id']);
-
-       
-        //$user->_id = '5e4b7e17515e88607566f3a0';
-        $collection_name = $survey->entity_collection_name;
-        $records = DB::collection($survey->entity_collection_name)->select('title_fields','submitted_body','status','survey_id','updatedDateTime','createdDateTime')
-            ->where('_id',$reqData['id'])
-            ->where('userName',$reqData['userName'])
-           
-
-            ->get();
-
-           
-        
-        $submit_count = count($records);
-        $form_id = $reqData['survey_id'];  
-        $submittedData= [];
-        $form= [];
-        $metadata = [];
-        $valuesArr = [];
-        $tempArr = [];
-        $form['form']['submit_count'] = $submit_count;
-        $form['form']['form_id'] = $form_id;
-        $submittedData['metadata']= [$form];
-       
-        $formName = $survey->name['default'];
-        if (count($survey->title_fields) > 0) {
-            $formName = $survey->title_fields[0];
-            
-        }
-        
-        foreach($records as $rcKey => $rcValue) {
-                  foreach ($rcValue['_id'] as $idValue) {
-                    $tempArr['$oid']  = $idValue;
-                  };
-                 //echo $temp_id;//[0]['$oid'];
-                 
-                $tempArr['form_title'] =  $formName.'_'.$rcValue['createdDateTime'];
-                $tempArr['form_id'] = $rcValue['survey_id'];
-                $tempArr['updatedDateTime'] = $rcValue['updatedDateTime'];
-                $tempArr['status'] = $rcValue['status'];
-                //$tempArr['$oid'] = $rcValue['_id'];
-                $tempArr['result'] = $rcValue['submitted_body'];
-
-                array_push($valuesArr, $tempArr);
-            
-        }
-
-        //echo json_encode($valuesArr);
-        $submittedData['values']= $valuesArr;
-
-       //die();
-        
-
-       // $records = '{"code":200,"status":"success","metadata":[{"form":{"submit_count":"2","form_id":"5e9ab9ea56c8d04ef6755c54"}}],"values":[{"form_title":"Form1","form_id":"5e9ab9ea56c8d04ef6755c54","updatedDateTime":1587465230,"status":"Approved","$oid":"5e9ecc0e7e16e67dec0790b3","result":{"question5phone":"9890650446","question2":"item2","question5name":"My Bjs Testuser","Lang":"en","question1":"{\"question1\":{\"Row 1\":{\"Column 1\":false},\"Row 2\":{\"Column 1\":false}}}","lat":"0.0","long":"0.0"}},{"form_title":"Form2","form_id":"5e9ab9ea56c8d04ef6755c54","updatedDateTime":1587465230,"status":"Rejected","$oid":"5e9ecc0e7e16e67dec0790b2","result":{"question5phone":"9890650445","question2":"item3","question5name":"My Bjs Testusersss","Lang":"en","question1":"{\"question1\":{\"Row 1\":{\"Column 1\":false},\"Row 2\":{\"Column 1\":false}}}","lat":"0.0","long":"0.0"}}],"message":"Success"}';
-
-        //return $records; 
-        return response()->json(['status'=>'success','code'=>'200','data' => $submittedData,'message'=>'Success']);
-    }
-
-
-
-    public function getRecords($survey_id)
-    {
-       $header = getallheaders();
-        if(isset($header['orgId']) && ($header['orgId']!='') 
-            && isset($header['projectId']) && ($header['projectId']!='')
-            && isset($header['roleId']) && ($header['roleId']!='')
-          )
-        {   
-            $orgId =  $header['orgId'];
-            $project_id =  $header['projectId'];
-            $role_id =  $header['roleId'];
-        } else {
-            
-            $message = "Header info missing";
-            $this->logData($this->logInfoPath ,$message,'Error');
-            
-            $response_data = array('status' =>'404',
-                                    'message'=>$message
-                                    );
-            
-            return response()->json($response_data,200);            
-        }
-        
-        $database = $this->connectTenantDatabase($this->request,$orgId);
-        if ($database === null) {
-            return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
-        }
-
-        $user = $this->request->user(); 
-
-        $survey = Survey::find($survey_id);
-
-       
-		//$user->_id = '5e4b7e17515e88607566f3a0';
-        $collection_name = $survey->entity_collection_name;
-        $records = DB::collection($survey->entity_collection_name)->select('title_fields','submitted_body','status','survey_id','updatedDateTime','createdDateTime','rejection_reason')->where('userName',$user->_id)->get();
-        
-        $submit_count = count($records);
-        $form_id = $survey_id;  
-        $submittedData= [];
-        $form= [];
-        $metadata = [];
-        $valuesArr = [];
-        $tempArr = [];
-        $form['form']['submit_count'] = $submit_count;
-        $form['form']['form_id'] = $form_id;
-        $submittedData['metadata']= [$form];
-       
-	    $formName = $survey->name['default'];
-		if (count($survey->title_fields) > 0) {
-			$formName = $survey->title_fields[0];
-			
-		}
-		
-        foreach($records as $rcKey => $rcValue) {
-                  foreach ($rcValue['_id'] as $idValue) {
-                    $tempArr['$oid']  = $idValue;
-                  };
-                 //echo $temp_id;//[0]['$oid'];
-                 
-                $tempArr['form_title'] =  $formName.'_'.$rcValue['createdDateTime'];
-                $tempArr['form_id'] = $rcValue['survey_id'];
-                $tempArr['updatedDateTime'] = $rcValue['updatedDateTime'];
-                $tempArr['status'] = $rcValue['status'];
-               $tempArr['rejection_reason'] = $rcValue['rejection_reason'] ?? '' ;
-                //$tempArr['$oid'] = $rcValue['_id'];
-                $tempArr['result'] = $rcValue['submitted_body'];
-
-                array_push($valuesArr, $tempArr);
-            
-        }
-
-        //echo json_encode($valuesArr);
-        $submittedData['values']= $valuesArr;
-
-       //die();
-        
-
-       // $records = '{"code":200,"status":"success","metadata":[{"form":{"submit_count":"2","form_id":"5e9ab9ea56c8d04ef6755c54"}}],"values":[{"form_title":"Form1","form_id":"5e9ab9ea56c8d04ef6755c54","updatedDateTime":1587465230,"status":"Approved","$oid":"5e9ecc0e7e16e67dec0790b3","result":{"question5phone":"9890650446","question2":"item2","question5name":"My Bjs Testuser","Lang":"en","question1":"{\"question1\":{\"Row 1\":{\"Column 1\":false},\"Row 2\":{\"Column 1\":false}}}","lat":"0.0","long":"0.0"}},{"form_title":"Form2","form_id":"5e9ab9ea56c8d04ef6755c54","updatedDateTime":1587465230,"status":"Rejected","$oid":"5e9ecc0e7e16e67dec0790b2","result":{"question5phone":"9890650445","question2":"item3","question5name":"My Bjs Testusersss","Lang":"en","question1":"{\"question1\":{\"Row 1\":{\"Column 1\":false},\"Row 2\":{\"Column 1\":false}}}","lat":"0.0","long":"0.0"}}],"message":"Success"}';
-
-        //return $records; 
-        return response()->json(['status'=>'success','code'=>'200','data' => $submittedData,'message'=>'Success']);
-    }
     public function showResponse($survey_id)
     {
-        $header = getallheaders();
-        if(isset($header['orgId']) && ($header['orgId']!='') 
-            && isset($header['projectId']) && ($header['projectId']!='')
-            && isset($header['roleId']) && ($header['roleId']!='')
-          )
-        {   
-            $orgId =  $header['orgId'];
-            $project_id =  $header['projectId'];
-            $role_id =  $header['roleId'];
-        } else {
-            
-            $message = "Header info missing";
-            $this->logData($this->logInfoPath ,$message,'Error');
-            
-            $response_data = array('status' =>'404',
-                                    'message'=>$message
-                                    );
-            
-            return response()->json($response_data,200);            
-        }
-        
+		$header = getallheaders();
+ 		if(isset($header['orgId']) && ($header['orgId']!='') 
+ 			&& isset($header['projectId']) && ($header['projectId']!='')
+ 			&& isset($header['roleId']) && ($header['roleId']!='')
+		  )
+ 		{	
+			$orgId =  $header['orgId'];
+			$project_id =  $header['projectId'];
+			$role_id =  $header['roleId'];
+		} else {
+			
+			$message = "Header info missing";
+			$this->logData($this->logInfoPath ,$message,'Error');
+			
+			$response_data = array('status' =>'404',
+									'message'=>$message
+									);
+			
+			return response()->json($response_data,200);			
+		}
+		
         $database = $this->connectTenantDatabase($this->request,$orgId);
         if ($database === null) {
             return response()->json(['status' => 'error', 'data' => '', 'message' => 'User does not belong to any Organization.'], 403);
@@ -1195,7 +790,7 @@ class SurveyController extends Controller
                                 ->paginate($limit);
 
         /* } */
-          
+		  
         if ($surveyResults->count() === 0) {
             return response()->json(['status'=>'success','metadata'=>[],'values'=>[],'message'=>'']);
         }
@@ -2840,7 +2435,7 @@ class SurveyController extends Controller
 
         return response()->json(['status'=>'success', 'data' => $data, 'message'=>'']);
     }
-
+	
     public function arraySearch($array, $key, $value)
     {
         
@@ -2868,9 +2463,9 @@ class SurveyController extends Controller
         return $results;
     }
     
-    public function staticJson()
-    {
-        $static = '{"pages":[{"name":"page1","elements":[{"type":"checkbox","name":"question1","title": "Types of TEA",
+	public function staticJson()
+	{
+		$static = '{"pages":[{"name":"page1","elements":[{"type":"checkbox","name":"question1","title": "Types of TEA",
      "isRequired": true,
      "validators": [
       {
@@ -3037,7 +2632,7 @@ $arr = array(
 'message'=>'success'
 );
  return response()->json($arr);
-    }
-    
+	}
+	
 
 }

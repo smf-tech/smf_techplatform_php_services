@@ -48,7 +48,6 @@ $api->version('v1',function($api){
         $api->post('downloadCertificate', 'CertificateController@downloadCertificate');
 		
         $api->get('migrateUserToMeet', 'MeetController@migrateUserToMeet');
-        $api->get('isPaidToMigrated', 'MeetController@isPaidToMigrated');
          
 		//seva consent 
         $api->post('savesevaConsentForm', 'ContentMgmtController@savesevaConsentForm');
@@ -191,22 +190,11 @@ $api->version('v1',function($api){
 		 $api->get('archiveMeet/{meetId}/{type}','MeetController@archiveMeet');
 		 $api->post('registration_meet','MeetController@registration_meet');
          $api->get('allocateBadge/{meetId}/{type}','MeetController@allocateBadge');
-         
-         $api->get('allocateBadgeByAgeGroupK/{meetId}','BadgeKController@allocateBadgeByAgeGroupK');
-         $api->get('allocateBadgeByAgeGroupJ/{meetId}','BadgeController@allocateBadgeByAgeGroupJ');
-
-         $api->get('group_batches_age/{meetId}','BadgeKController@group_batches_age');
-         
-         //$api->get('group_batches/{meetId}','BadgeKController@group_batches_age');
-
-         $api->get('removeBadges/{meetId}','MeetController@removeBadges');
          $api->get('getMeetUsers/{meetId}','MeetController@getMeetUsers');
          $api->post('userApproval','MeetController@userApproval');
          $api->post('markAttendance_interview','MeetController@markAttendance_interview');
          $api->get('isFinalize/{meetId}','MeetController@isFinalize');
-
          $api->get('group_batches/{meetId}','MeetController@group_batches');
-         
          $api->post('search','MeetController@search');		 
 		 //---------------------Meet API's End-------------------
 
@@ -273,46 +261,6 @@ $api->version('v1',function($api){
            $api->get('contentDashboard','ContentMgmtController@contentDashboard');
         //--------------------Content Management API's end ----------------//   
 
-		//------------------SmartGirl API's start -------------------//
-         $api->get('getbatchCategory','smartGirlBatchController@getbatchCategory');
-         $api->get('getMasterTrainers','smartGirlBatchController@getMasterTrainerList');
-         $api->get('masterTrainerDashboard','smartGirlDashboardController@masterTrainerDashboard');
-
-         $api->post('getAdditionalMasterTrainers','smartGirlBatchController@getAdditionalMasterTrainers');
-         $api->get('getTrainers','smartGirlBatchController@getTrainerList');
-         $api->get('getBeneficiaries','smartGirlBatchController@getBeneficiaryList');
-
-         $api->post('createBatch','smartGirlBatchController@createBatch');
-         $api->post('editBatch','smartGirlBatchController@editBatch');
-         $api->post('cancelBatch','smartGirlBatchController@cancelBatch');
-         
-         $api->get('getBatchList','smartGirlBatchController@batchList');
-         $api->get('getBatchDetails/{batchId}','smartGirlBatchController@batchDetails');
-
-         $api->post('registerToBatch','smartGirlBatchController@registerToBatch');
-         $api->post('addTrainerToBatch','smartGirlBatchController@addTrainerToBatch');
-         $api->post('trainerPreTest','smartGirlBatchController@trainerPreTest');
-
-         $api->post('submitTrainerMockTest', 'smartGirlBatchController@submitTrainerMockTest');
-
-         $api->post('communityUserInfo','UserController@communityUserInfo');
-
-         $api->post('createWorkshop','smartGirlWorkshopController@createWorkshop');
-         $api->post('editWorkshop','smartGirlWorkshopController@editWorkshop');
-         $api->post('cancelWorkshop','smartGirlWorkshopController@cancelWorkshop');
-         
-         $api->get('workshopList','smartGirlWorkshopController@workshopList');
-         $api->get('getWorkshopDetails/{workshopId}','smartGirlWorkshopController@workshopDetails');
-
-         $api->post('registerToWorkshop','smartGirlWorkshopController@registerToWorkshop');
-         $api->post('addBeneficiaryToWorkshop','smartGirlWorkshopController@addBeneficiaryToWorkshop');
-
-
-
-         $api->post('trainerBatchFeedback','smartGirlFeedbackController@trainerBatchFeedback');
-         $api->post('beneficiaryWorkshopFeedback','smartGirlFeedbackController@beneficiaryWorkshopFeedback');
-        //------------------SmartGirl API's end--------------------//   
-
         //-------------------Testing API's ------------------------//   
         $api->get('getAddress','getAddressController@getGeoCodes');  
         $api->get('getDistance','getAddressController@getDistance');  
@@ -335,9 +283,6 @@ $api->version('v1',function($api){
         $api->put('forms/result/{form_id}/{response_id}','SurveyController@updateSurvey');
         $api->delete('forms/result/{formId}/{recordId}','SurveyController@deleteFormResponse');
 
-		$api->get('forms/{form_id}','SurveyController@getRecords');
-        $api->post('forms/getUserFormRecords','SurveyController@getUserFormRecords');
-														   
         $api->get('locations', 'LocationController@getLocations');
         $api->get('districts', 'LocationController@getDistricts');
         $api->get('talukas', 'LocationController@getTalukas');

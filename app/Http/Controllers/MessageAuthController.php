@@ -10,7 +10,8 @@ use App\JurisdictionType;
 use GuzzleHttp\Client;
 use App\Lib\AES;
 use App\Jobs\DataQueue;
-
+// use Aws\Sns\SnsClient;
+// use Aws\Sns\Message; 
 
 class MessageAuthController extends Controller
 {
@@ -52,9 +53,48 @@ class MessageAuthController extends Controller
 
        
         //$sendsmscall = $http->get('http://www.smsjust.com/sms/user/urlsms.php?username=avmabd&pass=avmabd@123&senderid=MVMSMF&dest_mobileno='.$ph_no.'&message=%3C%23%3E%20The%20password%20is:'.$six_digit_random_number.' '.urlencode($autoreadcode).'&response=Y');
+		
+		//old sms 
+        //$sendsmscall = $http->get('http://sms2.sminfomedia.in/api/mt/SendSMS?user=avmabd&password=avmabd&senderid=MVMSMF&channel=Trans&DCS=0&flashsms=0&number='.$ph_no.'&text=%3C%23%3E%20The%20password%20is:'.$six_digit_random_number.' '.urlencode($autoreadcode).'&route=5');
+		
+		//new sms
+		$sendsmscall = $http->get('https://smsapi.24x7sms.com/api_2.0/SendSMS.aspx?APIKEY=Z5sDZyZIGlU&MobileNo=91'.$ph_no.'&SenderID=SMSMsg&Message=%3C%23%3E%20Your%20OTP%20is:'.$six_digit_random_number.' '.urlencode($autoreadcode).'&ServiceName=TEMPLATE_BASED');
+		
+		//aws sms start
+		
+			/* $SnSclient = new SnsClient([ 
+		'region' => 'ap-south-1',
+		'version' => '2010-03-31',
+		 'credentials' => [
+        'key' => 'AKIA56PJVSDM5WI3OCW5',
+        'secret' => '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',
+			]
+		]); 
+		$autoreadcode = env('AUTOREAD_SMS_CODE','JftAsR+UI44');
+		// $six_digit_random_number = mt_rand(100000, 999999);;
+		$message = '<#> The password is:'.$six_digit_random_number.' '.urlencode($autoreadcode);
+		$phone = '+91'.$ph_no;
 
-        $sendsmscall = $http->get('http://sms2.sminfomedia.in/api/mt/SendSMS?user=avmabd&password=avmabd&senderid=MVMSMF&channel=Trans&DCS=0&flashsms=0&number='.$ph_no.'&text=%3C%23%3E%20The%20password%20is:'.$six_digit_random_number.' '.urlencode($autoreadcode).'&route=5');
-       
+		try {
+			 $result = $SnSclient->SetSMSAttributes([
+				'attributes' => [
+					'DefaultSMSType' => 'Transactional',
+				],
+			]);
+			$result = $SnSclient->checkIfPhoneNumberIsOptedOut([
+				'phoneNumber' => $phone,
+			]);
+			$result = $SnSclient->publish([
+				'Message' => $message,
+				'PhoneNumber' => $phone,
+			]);
+			
+			// var_dump($result);
+		} catch (AwsException $e) {
+			// output error message if fails
+			error_log($e->getMessage());
+		}
+        */
         //$content = array('otp'=>$six_digit_random_number);
         //$content = array('otp'=>''); 
         $content = array('otp'=>$encryptedOtp);

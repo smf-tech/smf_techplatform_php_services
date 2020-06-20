@@ -85,8 +85,8 @@ return [
 		
         'bjsCommunity' => [
             'driver'   => env('MONGO_DB_DRIVER'),
-            'database' => env('COMMUNITY_MONGO_DB_DATABASE','bjs_community'),
-            'dsn' => env('MONGO_DB_DSN')
+            'database' => env('COMM_DB_DATABASE','bjs_community'),
+            'dsn' => env('COMM_DB_DSN')
         ], 
     ], 
 
